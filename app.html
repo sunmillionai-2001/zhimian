@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>职面 ZhiMian · 求职工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f4eee2;--paper-2:#ede3d0;--card:#fbf6ea;--card-hi:#fffdf6;
+    --ink:#211c14;--ink-soft:#5a4f40;--ink-faint:#8a7d6a;
+    --line:#d9cbb0;--line-soft:#e6dcc6;
+    --seal:#c13a1e;--seal-deep:#9c2a12;--seal-soft:#f0d9cd;--gold:#b88a2e;--teal:#2f5d5d;
+    --shadow:0 1px 0 rgba(33,28,20,.06),0 14px 40px -18px rgba(33,28,20,.28);
+    --shadow-soft:0 1px 0 rgba(33,28,20,.05),0 8px 26px -16px rgba(33,28,20,.22);
+    --serif:"Noto Serif SC","Songti SC",serif;--sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;--latin:"Fraunces","Georgia",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(1200px 600px at 12% -8%,rgba(184,138,46,.10),transparent 60%),
+      radial-gradient(1000px 700px at 110% 4%,rgba(47,93,93,.09),transparent 55%),
+      radial-gradient(900px 900px at 70% 120%,rgba(193,58,30,.06),transparent 55%)}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+
+  .shell{position:relative;z-index:2;display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+
+  /* 左侧栏 */
+  .sidebar{background:var(--paper-2);border-right:1px solid var(--line);padding:26px 18px 24px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sb-brand{display:flex;align-items:center;gap:12px;padding:0 6px 22px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .seal{width:44px;height:44px;flex:none;border-radius:10px;background:var(--seal);color:#fff8ee;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:22px;line-height:1;box-shadow:inset 0 0 0 1.5px rgba(255,248,238,.35),0 4px 10px -4px rgba(156,42,18,.6);transform:rotate(-4deg)}
+  .sb-brand-name{font-family:var(--serif);font-weight:900;font-size:21px;letter-spacing:.5px}
+  .sb-brand-name small{display:block;font-family:var(--latin);font-style:italic;font-weight:500;font-size:11px;letter-spacing:3px;color:var(--ink-faint);text-transform:uppercase;margin-top:2px}
+  .sb-section{font-family:var(--latin);font-style:italic;font-size:11px;letter-spacing:2px;color:var(--ink-faint);text-transform:uppercase;padding:14px 8px 6px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;cursor:pointer;font-size:14.5px;font-weight:500;color:var(--ink-soft);border:1px solid transparent;transition:.18s}
+  .nav-item svg{width:19px;height:19px;stroke:currentColor;flex:none}
+  .nav-item:hover{background:var(--card-hi);color:var(--ink)}
+  .nav-item.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-soft);border-color:var(--line)}
+  .nav-item.active svg{stroke:var(--seal)}
+  .sb-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .sb-user{display:flex;align-items:center;gap:12px;padding:8px 8px}
+  .avatar{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:linear-gradient(140deg,var(--teal),#22413f);color:#f6f1e6;font-family:var(--serif);font-weight:700;box-shadow:inset 0 0 0 1.5px rgba(246,241,230,.25)}
+  .sb-user-name{font-weight:700;font-size:14px}
+  .sb-user-sub{font-size:12px;color:var(--ink-faint)}
+  .sb-copyright{font-size:11.5px;color:var(--ink-faint);padding:0 8px;letter-spacing:.4px}
+
+  /* 主区 */
+  .main{min-width:0;padding:0 30px 56px}
+  .topbar{display:flex;align-items:center;gap:18px;padding:22px 0 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:5}
+  .page-title{font-family:var(--serif);font-weight:900;font-size:20px;letter-spacing:.5px;white-space:nowrap}
+  .breadcrumb{font-size:13px;color:var(--ink-faint)}
+  .search{flex:1;display:flex;align-items:center;gap:10px;max-width:440px;margin-left:auto;padding:10px 15px;border:1px solid var(--line);border-radius:12px;background:var(--card-hi);box-shadow:var(--shadow-soft);transition:.25s}
+  .search:focus-within{border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12),var(--shadow-soft)}
+  .search svg{width:18px;height:18px;stroke:var(--ink-faint);flex:none}
+  .search input{border:0;outline:0;background:transparent;font-family:var(--sans);font-size:14.5px;width:100%;color:var(--ink)}
+  .search input::placeholder{color:var(--ink-faint)}
+  .pill{border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:.2s}
+  .pill:hover{border-color:var(--seal);color:var(--seal)}
+
+  /* 视图 */
+  .view{display:none}
+  .view.active{display:block;animation:fadeUp .45s ease forwards}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .hero{padding:36px 0 26px;position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--latin);font-style:italic;font-size:13px;letter-spacing:2px;color:var(--seal);text-transform:uppercase;margin-bottom:14px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--seal)}
+  .hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(28px,4.2vw,46px);line-height:1.12;letter-spacing:.5px;max-width:18ch}
+  .hero h1 em{font-style:normal;color:var(--seal);position:relative}
+  .hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:.16em;z-index:-1;background:var(--seal-soft);border-radius:2px}
+  .hero p{margin-top:14px;font-size:16.5px;color:var(--ink-soft);max-width:50ch}
+  .hero-actions{margin-top:24px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:12px 20px;border-radius:12px;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .18s,box-shadow .18s,background .18s}
+  .btn-primary{background:var(--seal);color:#fff8ee;box-shadow:0 12px 26px -12px rgba(193,58,30,.8);border-color:var(--seal-deep)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(193,58,30,.85)}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--ink);background:var(--card-hi)}
+  .btn-seal{background:var(--seal-soft);color:var(--seal-deep);border-color:transparent}
+  .btn-seal:hover{background:var(--seal);color:#fff8ee}
+
+  /* 分区标题 */
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:30px 0 16px}
+  .section-head h2{font-family:var(--serif);font-weight:900;font-size:20px;letter-spacing:.5px;display:flex;align-items:center;gap:12px}
+  .section-head h2 .num{font-family:var(--latin);font-style:italic;font-weight:400;color:var(--ink-faint);font-size:14px;letter-spacing:1px}
+  .section-head a{color:var(--seal);font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap}
+  .section-head a:hover{text-decoration:underline}
+
+  .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .stat-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;box-shadow:var(--shadow-soft);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+  .stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .stat-card::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(193,58,30,.07),transparent 68%)}
+  .stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .stat-label{font-size:14px;color:var(--ink-soft);font-weight:500}
+  .stat-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--seal-soft);color:var(--seal)}
+  .stat-icon svg{width:19px;height:19px;stroke:currentColor}
+  .stat-num{font-family:var(--serif);font-weight:900;font-size:34px;line-height:1;letter-spacing:-.5px}
+  .stat-num small{font-size:15px;font-weight:500;color:var(--ink-faint);margin-left:4px;font-family:var(--sans)}
+  .stat-note{margin-top:7px;font-size:13px;color:var(--ink-faint)}
+  .stat-note b{color:var(--teal);font-weight:700}
+
+  .module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .mod{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-soft);transition:transform .22s,box-shadow .22s,border-color .22s}
+  .mod:hover{transform:translateY(-4px);border-color:var(--seal);box-shadow:var(--shadow)}
+  .mod .mod-num{position:absolute;top:16px;right:20px;font-family:var(--latin);font-style:italic;font-size:14px;color:var(--ink-faint);letter-spacing:1px}
+  .mod-head{display:flex;align-items:center;gap:15px;margin-bottom:14px}
+  .mod-badge{width:48px;height:48px;flex:none;border-radius:13px;display:grid;place-items:center;background:var(--paper-2);color:var(--ink);border:1px solid var(--line)}
+  .mod-badge svg{width:24px;height:24px;stroke:currentColor}
+  .mod-title{font-family:var(--serif);font-weight:900;font-size:19px;letter-spacing:.5px}
+  .mod-desc{font-size:13.5px;color:var(--ink-soft);margin-top:3px}
+  .mod-foot{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .mod-tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{font-size:12px;color:var(--teal);background:rgba(47,93,93,.08);padding:4px 10px;border-radius:999px;font-weight:500}
+  .mod-arrow{width:24px;height:24px;stroke:var(--ink-faint);transition:.2s}
+  .mod:hover .mod-arrow{transform:translate(4px,-4px);color:var(--seal)}
+
+  .lower-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow-soft)}
+  .panel h3{font-family:var(--serif);font-weight:900;font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .job{display:flex;align-items:center;gap:14px;padding:12px 5px;border-bottom:1px solid var(--line-soft);transition:.18s;border-radius:10px}
+  .job:hover{background:var(--card-hi)}
+  .job:last-child{border-bottom:0}
+  .job-logo{width:42px;height:42px;flex:none;border-radius:10px;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:19px;color:#fff}
+  .job-main{flex:1;min-width:0}
+  .job-title{font-weight:700;font-size:14.5px;line-height:1.35}
+  .job-meta{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+  .job-salary{font-weight:700;color:var(--seal);font-size:14px;white-space:nowrap}
+  .fresh{font-size:11px;color:var(--teal);background:rgba(47,93,93,.1);padding:2px 8px;border-radius:999px;font-weight:500;margin-left:6px}
+  .rec-item{display:flex;gap:13px;padding:11px 4px;border-bottom:1px solid var(--line-soft);align-items:flex-start;transition:.18s;border-radius:10px}
+  .rec-item:hover{background:var(--card-hi)}
+  .rec-item:last-child{border-bottom:0}
+  .rec-num{font-family:var(--latin);font-style:italic;color:var(--ink-faint);font-size:15px;line-height:1;padding-top:2px}
+  .rec-title{font-weight:700;font-size:14px;line-height:1.4}
+  .rec-sub{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+
+  /* 方法论卡片 */
+  .method-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .method-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-soft);transition:.2s;position:relative;overflow:hidden}
+  .method-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--seal)}
+  .method-card .mc-tag{font-family:var(--latin);font-style:italic;font-size:12px;letter-spacing:1.5px;color:var(--seal);text-transform:uppercase}
+  .method-card h3{font-family:var(--serif);font-weight:900;font-size:20px;margin:8px 0 10px}
+  .method-card p{font-size:14px;color:var(--ink-soft);margin-bottom:16px}
+  .mc-steps{display:flex;flex-direction:column;gap:8px}
+  .mc-step{display:flex;gap:10px;font-size:13.5px;color:var(--ink);align-items:flex-start}
+  .mc-step b{color:var(--seal-deep);font-family:var(--latin);font-style:italic;flex:none}
+  .mc-cta{margin-top:16px;font-weight:700;color:var(--seal);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .mc-cta:hover{text-decoration:underline}
+
+  /* 方法论：工具条 / 统计 / 卡片收藏 */
+  .method-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:6px 0 10px}
+  .method-toolbar .filter-row{margin-bottom:0;flex:1}
+  .method-search{display:flex;align-items:center;gap:9px;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card-hi);box-shadow:var(--shadow-soft);min-width:280px}
+  .method-search svg{width:17px;height:17px;stroke:var(--ink-faint);flex:none}
+  .method-search input{border:0;outline:0;background:transparent;font-family:var(--sans);font-size:14px;width:100%;color:var(--ink)}
+  .method-search input::placeholder{color:var(--ink-faint)}
+  .method-stats{font-size:12.5px;color:var(--ink-faint);margin:0 0 14px;font-family:var(--latin);font-style:italic;letter-spacing:.5px}
+  .method-card .mc-fav{position:absolute;top:18px;right:20px;font-size:18px;cursor:pointer;color:var(--ink-faint);transition:.18s;background:transparent;border:0;line-height:1}
+  .method-card .mc-fav:hover{transform:scale(1.2)}
+  .method-card .mc-fav.on{color:var(--seal)}
+  .method-card.is-fav{border-color:var(--seal)}
+  .method-card .mc-open{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:13px;color:var(--seal);font-weight:600;cursor:pointer;background:transparent;border:0}
+  .method-card .mc-open:hover{text-decoration:underline}
+  .method-card .mc-cat{margin-right:10px}
+  .method-empty{text-align:center;padding:48px 20px;color:var(--ink-soft)}
+  .method-empty h3{font-family:var(--serif);font-weight:900;font-size:20px;margin-bottom:6px}
+
+  /* 弹层 */
+  .modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(33,28,20,.42);backdrop-filter:blur(3px)}
+  .modal.open{display:flex;animation:fadeUp .3s ease}
+  .modal-box{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);max-width:720px;width:100%;max-height:86vh;overflow-y:auto;padding:30px;position:relative}
+  .modal-box.modal-wide{max-width:840px}
+  .modal-close{position:absolute;top:16px;right:18px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card-hi);color:var(--ink-soft);font-size:20px;cursor:pointer;display:grid;place-items:center;transition:.18s}
+  .modal-close:hover{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
+  .md-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+  .md-tag{font-family:var(--latin);font-style:italic;font-size:12px;letter-spacing:1.5px;color:var(--seal);text-transform:uppercase}
+  .modal-box h2{font-family:var(--serif);font-weight:900;font-size:26px;margin:8px 0 4px}
+  .md-lead{font-size:15px;color:var(--ink-soft);margin-bottom:18px}
+  .md-section{margin-bottom:20px}
+  .md-section h4{font-family:var(--serif);font-weight:900;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .md-section h4::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--seal)}
+  .md-section p{font-size:14px;color:var(--ink-soft);line-height:1.75}
+  .md-steps{display:flex;flex-direction:column;gap:10px}
+  .md-step{display:flex;gap:11px;font-size:14px;color:var(--ink);align-items:flex-start;line-height:1.55}
+  .md-step b{color:var(--seal-deep);font-family:var(--latin);font-style:italic;flex:none;width:18px}
+  .md-example{background:var(--paper-2);border:1px solid var(--line-soft);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .md-pit{display:flex;gap:9px;font-size:13.5px;color:var(--ink-soft);align-items:flex-start;line-height:1.55;padding:6px 0}
+  .md-pit span{flex:none}
+  .md-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+  .md-meta .tag{color:var(--teal)}
+  .md-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+  /* STAR 练习器 */
+  .star-head .eyebrow{margin-bottom:10px}
+  .star-head h2{font-family:var(--serif);font-weight:900;font-size:26px}
+  .star-head p{font-size:14px;color:var(--ink-soft);margin:8px 0 20px}
+  .star-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .star-grid .field label{font-size:13px;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:6px}
+  .star-grid .field textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:12px;padding:12px;font-family:var(--sans);font-size:14px;background:var(--card-hi);color:var(--ink);resize:vertical;line-height:1.6}
+  .star-grid .field textarea:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
+  .star-output{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  .star-output label{font-size:13px;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:8px}
+  .star-output textarea{width:100%;min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;font-family:var(--serif);font-size:14.5px;background:var(--paper-2);color:var(--ink);resize:vertical;line-height:1.75}
+  .star-actions{display:flex;gap:10px;margin-top:10px}
+
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--ink-soft);padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;transition:.18s}
+  .chip:hover{border-color:var(--seal);color:var(--seal)}
+  .chip.active{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
+
+  /* 技能地图 */
+  .skill-map{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start}
+  .role-select{display:flex;flex-direction:column;gap:12px;padding:22px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft)}
+  .role-select label{font-size:13px;color:var(--ink-soft);font-weight:600}
+  .role-input{display:flex;gap:10px}
+  .role-input input{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--sans);font-size:15px;background:var(--card-hi);color:var(--ink)}
+  .role-input input:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
+  .role-preset{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .skill-tree{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft)}
+  .tree-node{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--line-soft)}
+  .tree-node:last-child{border-bottom:0}
+  .tree-mark{width:30px;height:30px;flex:none;border-radius:8px;display:grid;place-items:center;font-family:var(--serif);font-weight:900;background:var(--paper-2);color:var(--ink);border:1px solid var(--line)}
+  .tree-node.done .tree-mark{background:var(--teal);color:#f4eee2;border-color:var(--teal)}
+  .tree-node.wait .tree-mark{background:var(--seal-soft);color:var(--seal);border-color:transparent}
+  .tree-body{flex:1}
+  .tree-name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+  .tree-name .lv{font-size:11px;color:var(--ink-faint);font-weight:500}
+  .tree-desc{font-size:13px;color:var(--ink-soft);margin-top:3px}
+  .tree-status{font-size:12px;font-weight:600;color:var(--teal);white-space:nowrap}
+  .tree-node.wait .tree-status{color:var(--seal)}
+  .tree-act{margin-top:8px;font-size:12.5px;color:var(--ink-faint);font-family:var(--latin);font-style:italic}
+
+  /* 模拟面试 */
+  .mock-wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;align-items:start}
+  .mock-setup{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;gap:16px}
+  .mock-setup h3{font-family:var(--serif);font-weight:900;font-size:18px}
+  .mock-step-label{font-size:13px;color:var(--ink-soft);font-weight:600}
+  .paste-box{position:relative}
+  .paste-box textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:12px;padding:14px;font-family:var(--sans);font-size:14.5px;background:var(--card-hi);color:var(--ink);resize:vertical;line-height:1.7}
+  .paste-box textarea:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
+  .paste-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .mock-chat{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;min-height:460px}
+  .mock-chat-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .mock-role{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--teal);color:#f4eee2;font-family:var(--serif);font-weight:900}
+  .mock-role-name{font-weight:700;font-size:14.5px}
+  .mock-role-sub{font-size:12px;color:var(--ink-faint)}
+  .mock-live{margin-left:auto;font-size:12px;color:var(--teal);font-weight:600;display:flex;align-items:center;gap:6px}
+  .mock-live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .mock-messages{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;max-height:340px}
+  .msg{display:flex;gap:10px;max-width:82%}
+  .msg.ai{align-self:flex-start}
+  .msg.user{align-self:flex-end;flex-direction:row-reverse}
+  .msg-ava{width:30px;height:30px;flex:none;border-radius:8px;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:14px}
+  .msg.ai .msg-ava{background:var(--teal);color:#f4eee2}
+  .msg.user .msg-ava{background:var(--seal);color:#fff8ee}
+  .msg-bubble{padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.65;box-shadow:var(--shadow-soft)}
+  .msg.ai .msg-bubble{background:var(--paper-2);color:var(--ink);border-top-left-radius:4px}
+  .msg.user .msg-bubble{background:var(--card-hi);border:1px solid var(--line);border-top-right-radius:4px}
+  .mock-input{display:flex;gap:10px;padding:14px;border-top:1px solid var(--line)}
+  .mock-input input{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--sans);font-size:14.5px;background:var(--card-hi);color:var(--ink)}
+  .mock-input input:focus{outline:0;border-color:var(--seal)}
+  .mock-score{display:flex;gap:14px;padding:16px 20px;border-top:1px solid var(--line);align-items:center}
+  .score-ring{width:52px;height:52px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:17px;background:conic-gradient(var(--seal) 0 76%,var(--line-soft) 76% 100%);color:var(--seal-deep)}
+  .score-info strong{font-size:14px}
+  .score-info span{font-size:12.5px;color:var(--ink-faint);display:block}
+
+  /* 复盘 */
+  .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .record-form{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;gap:14px}
+  .record-form h3{font-family:var(--serif);font-weight:900;font-size:18px}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field label{font-size:13px;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:var(--sans);font-size:14.5px;background:var(--card-hi);color:var(--ink)}
+  .field textarea{min-height:70px;resize:vertical;line-height:1.6}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
+  .record-list{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft)}
+  .record-list h3{font-family:var(--serif);font-weight:900;font-size:18px;margin-bottom:14px}
+  .rec-entry{padding:14px 4px;border-bottom:1px solid var(--line-soft)}
+  .rec-entry:last-child{border-bottom:0}
+  .rec-entry-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .rec-co{font-weight:700;font-size:14.5px}
+  .rec-stage{font-size:12px;color:var(--teal);background:rgba(47,93,93,.08);padding:2px 9px;border-radius:999px;font-weight:600}
+  .rec-date{margin-left:auto;font-size:12px;color:var(--ink-faint);font-family:var(--latin);font-style:italic}
+  .rec-note{font-size:13.5px;color:var(--ink-soft)}
+  .insight-box{grid-column:1/-1;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft)}
+  .insight-box h3{font-family:var(--serif);font-weight:900;font-size:18px;margin-bottom:10px}
+  .insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .insight-item{display:flex;align-items:center;gap:12px;padding:10px 0}
+  .insight-bar{flex:1;height:8px;border-radius:999px;background:var(--paper-2);overflow:hidden}
+  .insight-bar i{display:block;height:100%;border-radius:999px}
+  .insight-item .il{font-size:13px;color:var(--ink-soft);width:90px}
+
+  /* 占位 */
+  .placeholder{background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:56px 30px;text-align:center;box-shadow:var(--shadow-soft)}
+  .placeholder h2{font-family:var(--serif);font-weight:900;font-size:22px;margin-bottom:10px}
+  .placeholder p{font-size:14px;color:var(--ink-soft);max-width:48ch;margin:0 auto 22px}
+
+  .footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-faint)}
+  .footer .brand-mini{font-family:var(--serif);font-weight:700;color:var(--ink)}
+  .footer .brand-mini .seal-s{width:22px;height:22px;font-size:13px;border-radius:6px;display:inline-grid;place-items:center;background:var(--seal);color:#fff8ee;margin-right:8px;transform:rotate(-4deg)}
+
+  @media (max-width:1000px){
+    .shell{grid-template-columns:72px 1fr}
+    .sidebar{padding:22px 10px}
+    .sb-brand-name,.sb-section,.nav-item span,.sb-user-name,.sb-user-sub,.sb-copyright{display:none}
+    .nav-item,.sb-user{justify-content:center}
+    .seal{margin:0 auto}
+  }
+  @media (max-width:820px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{position:relative;height:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px;gap:6px;align-items:center}
+    .sb-brand{border-bottom:0;padding:0 10px 0 0;margin-bottom:0}
+    .nav-item{white-space:nowrap;text-align:center}
+    .nav-item span{display:inline}
+    .sb-foot{margin-top:0;border-top:0;padding:0;flex-direction:row;align-items:center;margin-left:auto}
+    .sb-copyright{display:none}
+    .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="shell">
+
+  <!-- 侧栏 -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="seal">职</div>
+      <div class="sb-brand-name">职面<small>ZhiMian</small></div>
+    </div>
+    <div class="sb-section">Workbench</div>
+    <div class="nav-item active" data-view="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 15l4-4 3 3 5-5"/></svg><span>工作台总览</span>
+    </div>
+    <div class="sb-section">Core Modules</div>
+    <div class="nav-item" data-view="method">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg><span>面试方法论</span>
+    </div>
+    <div class="nav-item" data-view="skill">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg><span>岗位 → 技能地图</span>
+    </div>
+    <div class="nav-item" data-view="mock">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg><span>模拟面试</span>
+    </div>
+    <div class="nav-item" data-view="review">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg><span>面试复盘</span>
+    </div>
+    <div class="nav-item" data-view="jobs">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>招聘信息<em style="font-size:10px;color:var(--ink-faint);font-style:normal;margin-left:4px">后期</em></span>
+    </div>
+    <div class="sb-foot">
+      <div class="sb-user"><div class="avatar">Z</div><div><div class="sb-user-name">求职者</div><div class="sb-user-sub">冲刺 · 秋招</div></div></div>
+      <div class="sb-copyright">职面 ZhiMian · © 2025</div>
+    </div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">工作台总览</div>
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" placeholder="搜方法论 · 搜岗位 · 搜技能" />
+      </label>
+      <div class="avatar" style="width:40px;height:40px">Z</div>
+    </div>
+
+    <!-- ===== 总览 ===== -->
+    <section class="view active" id="overview">
+      <div class="hero">
+        <span class="eyebrow">Your Career Workbench</span>
+        <h1>你的<em>求职工作台</em><br/>从投递到复盘一站式搞定。</h1>
+        <p>左侧是常驻模块。练方法论、拆技能、AI 模拟面试、复盘面试——先做齐前四个，招聘信息稍后上场。</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" data-goto="mock">▶ 开始一次模拟面试</button>
+          <button class="btn btn-ghost" data-goto="method">今学一个方法论 →</button>
+        </div>
+      </div>
+      <section class="status-grid">
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">今日进度</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span></div><div class="stat-num">3<small>项待办</small></div><div class="stat-note">还有 <b>2 场</b> 模拟面试待完成</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">最近面试</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div><div class="stat-num">8<small>次记录</small></div><div class="stat-note">最近一次：<b>字节后端</b> · 待复盘</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">待补技能</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 12l9 5 9-5"/></svg></span></div><div class="stat-num">3<small>个岗位</small></div><div class="stat-note">关注岗位下还有 <b>5 项</b> 技能未学</div></div>
+      </section>
+      <div class="section-head"><h2><span class="num">01–04</span> 核心模块</h2></div>
+      <section class="module-grid">
+        <div class="mod" data-goto="method"><span class="mod-num">01</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><div><div class="mod-title">面试方法论</div><div class="mod-desc">STAR、讲好项目、一周突击、简历加分……</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">框架</span><span class="tag">思路</span></div></div></div>
+        <div class="mod" data-goto="skill"><span class="mod-num">02</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg></span><div><div class="mod-title">岗位 → 技能地图</div><div class="mod-desc">选岗位，拆技能，铺学习路径</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">拆解</span><span class="tag">路径</span></div></div></div>
+        <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">AI 当面试官，按你的目标岗位提问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
+        <div class="mod" data-goto="review"><span class="mod-num">04</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span><div><div class="mod-title">面试复盘</div><div class="mod-desc">记录每次面试，增强补弱</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">记录</span><span class="tag">分析</span></div></div></div>
+      </section>
+      <div class="section-head"><h2><span class="num">05</span> 招聘信息 <small style="color:var(--ink-faint);font-weight:400;font-size:13px">后期接入</small></h2></div>
+      <section class="module-grid">
+        <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息</div><div class="mod-desc">岗位聚合 + 筛选（规划在最后做）</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">后期</span></div></div></div>
+      </section>
+      <footer class="footer"><div class="brand-mini"><span class="seal-s">职</span>职面 ZhiMian · 你的求职工作台</div><div>© 2025 ZhiMian · 求职 · 面试 · 复盘</div></footer>
+    </section>
+
+    <!-- ===== 面试方法论 ===== -->
+    <section class="view" id="method">
+      <div class="hero">
+        <span class="eyebrow">Methodology</span>
+        <h1>面试<em>方法论</em>。<br/>不是背题，是掌握思路。</h1>
+        <p>重点在「怎么想、怎么讲」。每个方法都给你一套可套用的框架，还能直接练。</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" data-open="star">✎ 用 STAR 练习器练一段</button>
+        </div>
+      </div>
+      <div class="method-toolbar">
+        <div class="filter-row" id="methodCats"></div>
+        <label class="method-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="text" id="methodSearch" placeholder="搜方法论：如 STAR / 简历 / 项目……" />
+        </label>
+      </div>
+      <div id="methodStats" class="method-stats"></div>
+      <section class="method-grid" id="methodGrid"></section>
+      <div id="methodEmpty" class="method-empty" style="display:none">
+        <h3>没有匹配的方法论</h3>
+        <p>换个关键词或分类试试。</p>
+      </div>
+    </section>
+
+    <!-- 方法论详情弹层 -->
+    <div class="modal" id="methodModal">
+      <div class="modal-box">
+        <button class="modal-close" data-close="methodModal">×</button>
+        <div id="methodDetail"></div>
+      </div>
+    </div>
+
+    <!-- STAR 练习器弹层 -->
+    <div class="modal" id="starModal">
+      <div class="modal-box modal-wide">
+        <button class="modal-close" data-close="starModal">×</button>
+        <div class="star-head">
+          <span class="eyebrow">STAR Practice</span>
+          <h2>STAR 练习器</h2>
+          <p>填好四个部分，一键生成一段可直接讲给面试官的答案。写不出来的字段可以先留空。</p>
+        </div>
+        <div class="star-grid">
+          <div class="field"><label>S · Situation（背景情境）</label><textarea id="starS" placeholder="例：负责的后端服务在大促时 qps 飙到 2 万，出现雪崩风险……"></textarea></div>
+          <div class="field"><label>T · Task（你的任务）</label><textarea id="starT" placeholder="例：我是这个模块的负责人，要保证大促期间服务稳定……"></textarea></div>
+          <div class="field"><label>A · Action（你具体做了什么）</label><textarea id="starA" placeholder="例：做了限流、缓存、灰度发布，并搭建了监控告警……"></textarea></div>
+          <div class="field"><label>R · Result（结果 + 学到了什么）</label><textarea id="starR" placeholder="例：大促零事故，接口可用性 99.99%，我也学会了……"></textarea></div>
+        </div>
+        <button class="btn btn-primary" id="starGenerate">生成答案</button>
+        <div class="star-output" id="starOutput">
+          <label>生成结果（可一键复制）</label>
+          <textarea id="starResult" placeholder="点击「生成答案」后，这里会出现一段完整可用的回答……"></textarea>
+          <div class="star-actions">
+            <button class="btn btn-ghost" id="starCopy">复制</button>
+            <button class="btn btn-ghost" id="starClear">清空</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 岗位→技能地图 ===== -->
+    <section class="view" id="skill">
+      <div class="hero">
+        <span class="eyebrow">Skill Map</span>
+        <h1>从想投的<em>岗位</em>，<br/>拆出你该学的技能。</h1>
+        <p>选一个心仪岗位，我们帮你拆解要掌握哪些技能、怎么学、学到什么程度。</p>
+      </div>
+      <section class="skill-map">
+        <div class="role-select">
+          <label>你想投的岗位</label>
+          <div class="role-input"><input type="text" id="roleInput" placeholder="如：AGI 工程师 / 前端 / 产品经理" /><button class="btn btn-primary" id="roleGo">拆解 →</button></div>
+          <div class="role-preset"><span class="chip active">AGI 工程师</span><span class="chip">前端开发</span><span class="chip">产品经理</span><span class="chip">数据分析</span></div>
+          <p style="font-size:12.5px;color:var(--ink-faint);margin-top:10px">数据来自内置技能图谱，后续可接岗位 JD 自动解析扩充。</p>
+        </div>
+        <div class="skill-tree">
+          <div class="tree-node done">
+            <div class="tree-mark">✓</div>
+            <div class="tree-body"><div class="tree-name">基础 · 数学与编程 <span class="lv">Lv.1</span></div><div class="tree-desc">线性代数、概率统计、Python/深度学习框架基础</div><div class="tree-act">目标：能写训练脚本，看懂 loss</div></div>
+            <div class="tree-status">已掌握</div>
+          </div>
+          <div class="tree-node wait">
+            <div class="tree-mark">2</div>
+            <div class="tree-body"><div class="tree-name">核心 · 机器学习与深度学习 <span class="lv">Lv.2</span></div><div class="tree-desc">模型原理、调参、训练技巧、常见网络结构</div><div class="tree-act">目标：独立训练并调优一个模型</div></div>
+            <div class="tree-status">待学</div>
+          </div>
+          <div class="tree-node wait">
+            <div class="tree-mark">3</div>
+            <div class="tree-body"><div class="tree-name">进阶 · 大模型 / AGI 专项 <span class="lv">Lv.3</span></div><div class="tree-desc">Transformer、RAG、微调、Agent、评测</div><div class="tree-act">目标：能上手做 AGI 相关项目</div></div>
+            <div class="tree-status">待学</div>
+          </div>
+          <div class="tree-node wait">
+            <div class="tree-mark">4</div>
+            <div class="tree-body"><div class="tree-name">工程 · 项目落地能力 <span class="lv">Lv.4</span></div><div class="tree-desc">工具链、部署、数据、工程化</div><div class="tree-act">目标：把一个项目真正跑到上线</div></div>
+            <div class="tree-status">待学</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== 模拟面试 ===== -->
+    <section class="view" id="mock">
+      <div class="hero">
+        <span class="eyebrow">Mock Interview</span>
+        <h1>AI <em>面试官</em>。<br/>按你的目标岗位来问。</h1>
+        <p>把想投的岗位要求贴进来，AI 以该岗位招聘负责人的口吻，从自我介绍开始，一步步问你。</p>
+      </div>
+      <section class="mock-wrap">
+        <div class="mock-setup">
+          <h3>面试设置</h3>
+          <div>
+            <div class="mock-step-label">① 粘贴该岗位的招聘要求</div>
+            <div class="paste-box">
+              <textarea id="mockJd" placeholder="把 BOSS直聘 / 官网看到的岗位 JD 或要求粘贴到这里，截图或文字都行……"></textarea>
+              <div class="paste-actions">
+                <button class="btn btn-primary" id="mockStart">开始面试 →</button>
+                <button class="btn btn-ghost">粘贴示例 JD</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="mock-step-label">② 面试角色</div>
+            <p style="font-size:13.5px;color:var(--ink-soft)">AI 将扮演 <b style="color:var(--teal)">该岗位的招聘负责人/业务面试官</b>，按你贴的要求出题。</p>
+          </div>
+          <p style="font-size:12.5px;color:var(--ink-faint)">说明：本文先跑通交互流程，AI 回复用示例文本；接入大模型 API 后即为真实智能提问。</p>
+        </div>
+        <div class="mock-chat">
+          <div class="mock-chat-head">
+            <div class="mock-role">面</div>
+            <div><div class="mock-role-name">AI 面试官 · 招聘负责人</div><div class="mock-role-sub">针对「目标岗位」</div></div>
+            <div class="mock-live">面试中</div>
+          </div>
+          <div class="mock-messages" id="mockMessages">
+            <div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">你好，我是你应聘岗位的招聘负责人。我们就正式开始了，先请你用 1 分钟做个自我介绍。</div></div>
+          </div>
+          <div class="mock-input">
+            <input type="text" id="mockAnswer" placeholder="你的回答……" />
+            <button class="btn btn-primary" id="mockSend">发送</button>
+          </div>
+          <div class="mock-score">
+            <div class="score-ring">76</div>
+            <div class="score-info"><strong>本次模拟评分</strong><span>表达 78 · 结构 74 · 深度 77（示例）</span></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== 面试复盘 ===== -->
+    <section class="view" id="review">
+      <div class="hero">
+        <span class="eyebrow">Review</span>
+        <h1>把每一次面试，<br/><em>复盘</em>成下一次的经验。</h1>
+        <p>记录公司、岗位、轮次、题目和你的表现，系统帮你看出强弱项，增强补弱。</p>
+      </div>
+      <section class="review-grid">
+        <div class="record-form">
+          <h3>记录一次面试</h3>
+          <div class="form-row">
+            <div class="field"><label>公司</label><input type="text" placeholder="如：字节跳动" /></div>
+            <div class="field"><label>岗位</label><input type="text" placeholder="如：后端开发" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>轮次</label><select><option>初面</option><option>二面</option><option>HR面</option></select></div>
+            <div class="field"><label>结果</label><select><option>待定</option><option>通过</option><option>未通过</option></select></div>
+          </div>
+          <div class="field"><label>面试复盘 / 经验</label><textarea placeholder="问了哪些题？哪些答得好、哪些卡住了？下次怎么改进？"></textarea></div>
+          <button class="btn btn-primary">保存记录</button>
+        </div>
+        <div class="record-list">
+          <h3>复盘记录</h3>
+          <div class="rec-entry">
+            <div class="rec-entry-top"><span class="rec-co">字节跳动</span><span class="rec-stage">二面 · 后端</span><span class="rec-date">10/02</span></div>
+            <div class="rec-note">问了系统设计和并发，Redis 那块没答好，下次要把一致性讲透。</div>
+          </div>
+          <div class="rec-entry">
+            <div class="rec-entry-top"><span class="rec-co">腾讯</span><span class="rec-stage">初面 · 前端</span><span class="rec-date">09/28</span></div>
+            <div class="rec-note">项目讲得不错，但算法题超时了，需要加强手写。</div>
+          </div>
+          <div class="rec-entry">
+            <div class="rec-entry-top"><span class="rec-co">美团</span><span class="rec-stage">HR面</span><span class="rec-date">09/20</span></div>
+            <div class="rec-note">整体顺利，反问环节有点短，下次准备 2 个有深度的问题。</div>
+          </div>
+        </div>
+        <div class="insight-box">
+          <h3>强弱项分析（示例）</h3>
+          <div class="insight-grid">
+            <div class="insight-item"><span class="il">项目表达</span><div class="insight-bar"><i style="width:88%;background:var(--teal)"></i></div><b style="font-size:13px">88</b></div>
+            <div class="insight-item"><span class="il">结构逻辑</span><div class="insight-bar"><i style="width:80%;background:var(--teal)"></i></div><b style="font-size:13px">80</b></div>
+            <div class="insight-item"><span class="il">基础知识</span><div class="insight-bar"><i style="width:64%;background:var(--seal)"></i></div><b style="font-size:13px">64</b></div>
+            <div class="insight-item"><span class="il">算法手写</span><div class="insight-bar"><i style="width:52%;background:var(--seal)"></i></div><b style="font-size:13px">52</b></div>
+          </div>
+          <p style="font-size:13px;color:var(--ink-soft);margin-top:12px">👉 建议：优先补 <b style="color:var(--seal)">算法手写</b> 和 <b style="color:var(--seal)">基础知识</b>，这两个是当前最明显的短板。</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== 招聘信息（占位，后期） ===== -->
+    <section class="view" id="jobs">
+      <div class="hero">
+        <span class="eyebrow">Jobs</span>
+        <h1>招聘信息 <em>（后期）</em></h1>
+        <p>这里将聚合各平台岗位，城市/岗位/薪资/经验一键筛选。</p>
+      </div>
+      <div class="placeholder">
+        <h2>该模块规划在最后做</h2>
+        <p>已调研：主流平台无公开 API，届时基于登录态 + 浏览器协议抓取（参考 boss-zhipin-scraper）。当前 MVP 用「用户贴岗位信息」跑通模拟面试与技能分析。</p>
+        <button class="btn btn-ghost" data-goto="mock">先去做模拟面试 →</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const views = ['overview','method','skill','mock','review','jobs'];
+  const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
+
+  function go(view){
+    views.forEach(v=>{
+      document.getElementById(v).classList.toggle('active', v===view);
+    });
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view));
+    const titleEl = document.getElementById('pageTitle');
+    if(titleEl) titleEl.textContent = titles[view];
+    if(location.hash !== '#'+view) history.replaceState(null,'','#'+view);
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  // 深链：进入页面时读取 #hash，未指定则回总览
+  (function init(){
+    const h = (location.hash||'').replace('#','');
+    go(views.includes(h) ? h : 'overview');
+  })();
+  window.addEventListener('hashchange', ()=>{
+    const h = (location.hash||'').replace('#','');
+    if(views.includes(h)) go(h);
+  });
+
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    item.addEventListener('click', ()=>go(item.dataset.view));
+  });
+  document.querySelectorAll('[data-goto]').forEach(el=>{
+    el.addEventListener('click', ()=>go(el.dataset.goto));
+  });
+
+  // 模拟面试：发送答案（示例）
+  document.getElementById('mockSend').addEventListener('click', ()=>{
+    const input = document.getElementById('mockAnswer');
+    const text = input.value.trim();
+    if(!text) return;
+    const msgs = document.getElementById('mockMessages');
+    msgs.insertAdjacentHTML('beforeend', `<div class="msg user"><div class="msg-ava">我</div><div class="msg-bubble">${text}</div></div>`);
+    input.value='';
+    setTimeout(()=>{
+      msgs.insertAdjacentHTML('beforeend', `<div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">收到。这个问题你讲得不错。那我们顺着你刚才的点再深入一下——如果你负责的这个模块遇到高并发，你会怎么设计？</div></div>`);
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 700);
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+
+  document.getElementById('mockStart').addEventListener('click', ()=>{
+    const msgs = document.getElementById('mockMessages');
+    msgs.innerHTML = `<div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">你好，我是你应聘岗位的招聘负责人。我已看过你贴的岗位要求，我们正式开始了，先请你用 1 分钟做个自我介绍。</div></div>`;
+  });
+
+  /* ================= 面试方法论 · 完整功能 ================= */
+  const METHOD = {
+    cats: ['全部','行为面','技术面','简历','突击','软技能'],
+    list: [
+      {
+        id:'star', cat:'行为面', tag:'Behavior', title:'STAR 法则',
+        summary:'把每次经历讲得有条理、有分量，全类型面试通用。',
+        steps:[
+          ['S·Situation','交代背景情境：当时是什么场景、项目、规模'],
+          ['T·Task','说清你的任务：你被分配 / 主动承担了什么'],
+          ['A·Action','你具体做了什么：你的动作、决策、策略（重点是“你”）'],
+          ['R·Result','结果如何、学到什么：可用数据量化 + 复盘沉淀']
+        ],
+        lead:'面试官问你“讲讲你做过的一个项目 / 一次经历”时，最怕你从头流水账。STAR 帮你把经历切成四段，讲得清楚、有条理、能体现你的贡献。',
+        detail:'STAR 的核心是「以结果为导向」地讲故事。很多人讲经历会陷入“当时我们团队…然后我们…最后我们…”，面试官听完也不知道你干了啥。用 STAR 强制你回答四个问题：什么背景、你的任务、你的动作、你的结果。关键在 A（Action）要落到“你”身上，R（Result）尽量用数字证明。',
+        example:'S：入职时负责的后端服务在双十一 qps 会飙到 2 万，出现雪崩风险。 T：我是该模块 owner，要保证大促期间零事故。 A：我做了限流 + 本地缓存 + 灰度发布，并搭了监控告警，大促前一轮压测调优。 R：大促零事故，可用性 99.99%，接口平均耗时下降 40%。',
+        pitfalls:['A 和 R 是重点，别把时间浪费在铺陈背景上','结果一定尽量数字化，否则没有说服力','别把团队功劳全说成自己的，也要点出你在其中不可替代的部分'],
+        usage:'项目经历介绍、行为面试“讲讲某次…”、自我介绍里的亮点展开'
+      },
+      {
+        id:'project', cat:'技术面', tag:'Project', title:'如何讲好一个项目',
+        summary:'别流水账。先给画面，再讲你的贡献与决策。',
+        steps:[
+          ['1','一句话概括项目价值 / 解决什么问题'],
+          ['2','交代难点、规模、背景（让面试官有画面）'],
+          ['3','你负责的部分 + 关键决策'],
+          ['4','结果 + 复盘与改进']
+        ],
+        lead:'这是技术面试的重头。讲好一个项目，比背十个八股文更有说服力。核心是“让面试官听懂、然后记住你”。',
+        detail:'讲项目要用“金字塔结构”：先抛结论（项目是什么、解决了什么、你的角色），再展开。避免从需求文档一路讲到上线。主动点出难点（高并发、复杂业务、分布式、性能瓶颈），因为难点才是你能力的展示点。最后一定要讲“你的贡献”和“你的思考”，而不是“系统做了什么”。',
+        example:'结论：我主导了一个从 0 到 1 的订单中台，承接日均 500 万单。背景：原先订单逻辑散落在各业务里，重复且难维护。难点：多业务方、数据一致性、性能。我的部分：设计了核心订单模型和状态机，抽离了通用结算链路。结果：把新业务接入时间从 2 周降到 2 天。',
+        pitfalls:['不要只讲技术栈，要讲“为什么这么做”','提前准备 2–3 个能被追问的深度点','别把“别人做的”说成“我做的”'],
+        usage:'自我介绍中的主项目、技术二面/三面的项目深挖'
+      },
+      {
+        id:'timeline', cat:'技术面', tag:'Interview', title:'如何回答技术八股',
+        summary:'别只背答案。先给框架，再分层展开，最后落到实践。',
+        steps:[
+          ['1','一句话定性：这是什么、解决什么问题'],
+          ['2','核心原理：用你自己的话讲清楚机制'],
+          ['3','对比/边界：它和相近方案的差异、适用场景'],
+          ['4','实践落地：你在项目里怎么用的、踩过什么坑']
+        ],
+        lead:'八股文不是死记硬背，而是展示你“理解得有多深”。同样的问题，会答的人给出的是框架和边界。',
+        detail:'面试官问“讲讲 Redis 缓存”，差的回答是背视频里的概念；好的回答先定性“它是内存型 KV 存储，用来扛读压力”，再展开数据类型、持久化、过期策略，然后对比它和本地缓存 / Memcached，最后落到“我在项目里用它缓存了什么，遇到过缓存穿透怎么解”。这样既显深度，又显实践。',
+        example:'问：讲讲 HashMap 的底层。 答：HashMap 是数组 + 链表/红黑树的结构，靠 hash 定位桶。JDK8 引入红黑树是为了把冲突严重时的查找从 O(n) 降到 O(log n)。扩容有个 2 倍机制和树化阈值。实际用的时候我会预估容量避免频繁扩容。',
+        pitfalls:['别只堆名词，要能串成逻辑','一定结合“你在项目里怎么用”','答不上的诚实说，别硬编']
+      },
+      {
+        id:'resume', cat:'简历', tag:'Resume', title:'简历项目怎么写加分',
+        summary:'用结果说话，动词开头 + 量化，把“做了什么”讲成“带来什么”。',
+        steps:[
+          ['1','动词开头：主导 / 优化 / 落地 / 搭建'],
+          ['2','量化结果：数字、百分比、耗时、规模'],
+          ['3','点出难点与你独特贡献'],
+          ['4','每条都能扩展成一个面试题']
+        ],
+        lead:'简历上的每个点，都可能是面试官追问的钩子。写得好的项目描述，既让 HR 看懂，也让技术面试官有得问。',
+        detail:'错误写法：“负责订单模块开发”。正确写法：“主导订单中台从 0 到 1，承接日均 500 万单，将新业务接入时间从 2 周降至 2 天”。用动词开头、给出规模和数据、点出你的独特贡献。记住：简历不是职责清单，是“成果清单”。',
+        example:'✗：负责用户中心。  ✓：主导用户中心重构，将登录接口 P99 耗时从 380ms 降至 90ms，支撑 3000 万 DAU。',
+        pitfalls:['少用“参与/协助”，多用“主导/负责”','一定要有数字，模糊等于没写','每条经历都要能讲成一个 5 分钟的面试故事'],
+        usage:'简历撰写、简历优化、面试前回顾自己的项目亮点'
+      },
+      {
+        id:'resume-frame', cat:'简历', tag:'Resume', title:'简历整体结构怎么排',
+        summary:'排序有讲究：把你最厉害、最匹配岗位的放最前。',
+        steps:[
+          ['1','个人信息 + 求职意向（岗位/城市）'],
+          ['2','技能清单（按岗位关键词）'],
+          ['3','项目经历（放最重要，倒序）'],
+          ['4','教育背景 / 实习 / 其他加分项']
+        ],
+        lead:'HR 看简历给 10 秒。前三分之一就要让人看到“你匹配这个岗位”。',
+        detail:'把跟目标岗位最相关的技能和项目放在最前面。技术岗项目经历通常优先于教育背景；如果是校招，可把实习/项目提到前面。技能清单用关键词（如 Java、Spring、Redis），方便 HR 和 ATS 检索。',
+        example:'求职意向：后端开发工程师（北京）  ·  技能：Java / Spring Boot / MySQL / Redis  ·  项目：订单中台（详见下文）。',
+        pitfalls:['不要一上来放一堆不相关的获奖','技能别写成“了解/掌握/熟练”三档模糊词，用项目证明','一页为佳，重点突出']
+      },
+      {
+        id:'oneweek', cat:'突击', tag:'Sprint', title:'如何用一周突击产品面',
+        summary:'时间紧也有打法：抓高频 + 练表达 + 反套路。',
+        steps:[
+          ['1','首日：扫高频题，分好类'],
+          ['2','中段：模拟 + 复盘表达'],
+          ['3','末段：深挖 2–3 个项目'],
+          ['4','保持状态，准备反问']
+        ],
+        lead:'别想着一周都学会，要抓“面试最常考”和“你能讲好”的那部分。策略性备考。',
+        detail:'先花一天把高频考点分类（产品感、竞品分析、需求分析、项目经历），优先背最常问的。然后进入“模拟 + 复盘”：对着镜头或录音讲，会发现很多逻辑漏洞。最后深挖 2–3 个你最熟的项目，把 STAR 讲顺。面试前准备 2 个有深度的问题反问面试官，会加分。',
+        example:'Day1：整理 20 道高频题 + 分类；Day2-4：每天 2 场模拟 + 录音复盘；Day5-6：深挖项目 + 背 STAR；Day7：查漏 + 准备反问 + 调整状态。',
+        pitfalls:['不要贪多，抓大放小','项目一定要讲顺，这是最能拿分的','别忽略反问环节，它体现你的思考'],
+        usage:'临面试前突击、时间紧张的求职者'
+      },
+      {
+        id:'mental', cat:'软技能', tag:'Mindset', title:'面试心态与临场表达',
+        summary:'紧张、卡壳都正常。学会慢下来、结构化表达、不慌。',
+        steps:[
+          ['1','先深呼吸，别急着抢答'],
+          ['2','没听清就确认，别硬答'],
+          ['3','用“第一/第二/第三”结构化输出'],
+          ['4','卡壳时诚实、然后往回带']
+        ],
+        lead:'面试不只看知识，也看你的沟通与心态。说得清楚比说得绝对重要。',
+        detail:'遇到不会的题，先别慌。可以跟面试官确认“您指的是 XX 吗”，争取思考时间。回答时用“第一点…第二点…”的结构，显得有条理。真不会就说“这块我了解不深，但我的理解是…”，诚实 + 展示思路，比硬编好得多。',
+        example:'问到你没准备过的题：“这个问题我暂时没有系统研究过，不过按我的理解，可能要从 A 和 B 两个角度去看，C 是我目前不确定的部分。”',
+        pitfalls:['不要长时间沉默，宁可先给方向','不要不懂装懂，面试官能看出来','语速放慢，比语速快但乱要好']
+      },
+      {
+        id:'askback', cat:'软技能', tag:'Ask', title:'面试最后怎么反问',
+        summary:'别问“没有”。准备 2 个有深度的问题，反而加分。',
+        steps:[
+          ['1','问团队/业务：团队在做什么、最大的挑战'],
+          ['2','问岗位：这个岗位最看重什么、怎么衡量'],
+          ['3','问成长：进来后能学到什么、发展路径'],
+          ['4','避开：薪资福利、加班、无关八卦']
+        ],
+        lead:'“你有什么想问的”不是客气，是给你展示思考和对岗位兴趣的机会。',
+        detail:'好的反问体现你对岗位的认真和思考深度。可以问“团队目前最大的技术/业务挑战是什么”“这个岗位入职后前三个月最希望我做出什么”。避免一上来就问薪资、加班，这些留给 HR 环节或拿到 offer 后谈。',
+        example:'“如果想加入咱们团队，您觉得前三个月最需要我做出什么成绩？”  “团队目前在技术上最大的瓶颈是什么？”',
+        pitfalls:['别回答“没有了”，浪费加分机会','别问网上能搜到的常识','别在技术面直接谈薪资']
+      }
+    ]
+  };
+
+  // 收藏状态（localStorage）
+  let favs = [];
+  try { favs = JSON.parse(localStorage.getItem('zm_method_fav')||'[]'); } catch(e){ favs = []; }
+  function saveFavs(){ try{ localStorage.setItem('zm_method_fav', JSON.stringify(favs)); }catch(e){} }
+
+  let curCat = '全部';
+  let curQ = '';
+
+  // 渲染分类 chips + 统计
+  function renderCats(){
+    const box = document.getElementById('methodCats');
+    box.innerHTML = METHOD.cats.map(c=>`<span class="chip ${c===curCat?'active':''}" data-cat="${c}">${c}</span>`).join('');
+    box.querySelectorAll('[data-cat]').forEach(e=>e.addEventListener('click',()=>{
+      curCat = e.dataset.cat; renderCats(); renderGrid();
+    }));
+  }
+
+  // 当前可视列表
+  function visible(){
+    return METHOD.list.filter(m=>{
+      const okCat = curCat==='全部' || m.cat===curCat;
+      const q = curQ.trim().toLowerCase();
+      const okQ = !q || (m.title+' '+m.summary+' '+m.cat+' '+m.detail).toLowerCase().includes(q);
+      return okCat && okQ;
+    });
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('methodGrid');
+    const empty = document.getElementById('methodEmpty');
+    const list = visible();
+    const stats = document.getElementById('methodStats');
+    stats.textContent = `共 ${METHOD.list.length} 篇 · 当前 ${list.length} 篇${curCat!=='全部'?'（'+curCat+'）':''}`;
+    empty.style.display = list.length ? 'none' : 'block';
+    grid.innerHTML = list.map(m=>{
+      const fav = favs.includes(m.id);
+      const steps = m.steps.map(s=>`<div class="mc-step"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
+      return `<div class="method-card ${fav?'is-fav':''}" data-id="${m.id}">
+        <button class="mc-fav ${fav?'on':''}" data-fav="${m.id}" title="收藏">${fav?'★':'☆'}</button>
+        <span class="mc-tag">${m.tag}</span>
+        <h3>${m.title}</h3>
+        <p>${m.summary}</p>
+        <div class="mc-steps">${steps}</div>
+        <div class="mc-foot" style="display:flex;align-items:center;gap:10px;margin-top:16px">
+          <span class="tag mc-cat">${m.cat}</span>
+          <button class="mc-open" data-open-id="${m.id}">查看完整内容 →</button>
+        </div>
+      </div>`;
+    }).join('');
+    // 绑定卡片内交互
+    grid.querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation(); const id=b.dataset.fav;
+      if(favs.includes(id)){ favs=favs.filter(x=>x!==id); } else { favs.push(id); }
+      saveFavs(); renderGrid();
+    }));
+    grid.querySelectorAll('.method-card').forEach(card=>{
+      card.querySelector('[data-open-id]')?.addEventListener('click',e=>{
+        e.stopPropagation(); openMethod(card.dataset.id);
+      });
+    });
+  }
+
+  // 打开详情
+  function openMethod(id){
+    const m = METHOD.list.find(x=>x.id===id); if(!m) return;
+    const fav = favs.includes(m.id);
+    document.getElementById('methodDetail').innerHTML = `
+      <div class="md-hero"><span class="md-tag">${m.tag}</span><span class="tag mc-cat">${m.cat}</span>
+        <button class="mc-fav ${fav?'on':''}" data-fav="${m.id}" style="margin-left:auto;font-size:20px">${fav?'★':'☆'}</button></div>
+      <h2>${m.title}</h2>
+      <p class="md-lead">${m.lead}</p>
+      <div class="md-section"><h4>核心步骤</h4><div class="md-steps">${m.steps.map(s=>`<div class="md-step"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}</div></div>
+      <div class="md-section"><h4>怎么理解</h4><p>${m.detail}</p></div>
+      <div class="md-section"><h4>示例</h4><div class="md-example">${m.example}</div></div>
+      <div class="md-section"><h4>常见坑</h4>${m.pitfalls.map(p=>`<div class="md-pit"><span>⚠️</span><span>${p}</span></div>`).join('')}</div>
+      <div class="md-meta">${m.usage.split('、').map(u=>`<span class="tag">${u}</span>`).join('')}</div>
+      <div class="md-actions">
+        <button class="btn btn-primary" data-close="methodModal">知道了</button>
+        <button class="btn btn-ghost" data-fav="${m.id}">${fav?'取消收藏':'收藏'}</button>
+        ${m.id==='star'?'<button class="btn btn-ghost" data-open="star">用 STAR 练一段</button>':''}
+      </div>`;
+    document.getElementById('methodModal').classList.add('open');
+    // 详情内重新绑定
+    document.querySelectorAll('#methodDetail [data-fav]').forEach(b=>b.addEventListener('click',e=>{
+      const id=b.dataset.fav;
+      if(favs.includes(id)){ favs=favs.filter(x=>x!==id); } else { favs.push(id); }
+      saveFavs(); openMethod(id);
+    }));
+    document.querySelectorAll('#methodDetail [data-open]').forEach(b=>b.addEventListener('click',()=>{
+      closeAllModals(); openModal('starModal');
+    }));
+  }
+
+  // STAR 生成器
+  function buildStar(){
+    const s=document.getElementById('starS').value.trim();
+    const t=document.getElementById('starT').value.trim();
+    const a=document.getElementById('starA').value.trim();
+    const r=document.getElementById('starR').value.trim();
+    let out='';
+    if(s) out+=`【情境】${s}\n`;
+    if(t) out+=`【任务】${t}\n`;
+    if(a) out+=`【行动】${a}\n`;
+    if(r) out+=`【结果】${r}\n`;
+    if(!out) out='请至少填写一部分内容（S 或 A 是重点）。';
+    document.getElementById('starResult').value=out.trim();
+  }
+  function openModal(id){ const el=document.getElementById(id); if(el) el.classList.add('open'); }
+  function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open')); }
+
+  // 初始化方法论
+  renderCats();
+  renderGrid();
+  document.getElementById('methodSearch').addEventListener('input', e=>{ curQ=e.target.value; renderGrid(); });
+  document.getElementById('starGenerate').addEventListener('click', buildStar);
+  document.getElementById('starCopy').addEventListener('click', ()=>{
+    const t=document.getElementById('starResult'); t.select();
+    try{ document.execCommand('copy'); }catch(e){}
+  });
+  document.getElementById('starClear').addEventListener('click', ()=>{
+    ['starS','starT','starA','starR','starResult'].forEach(id=>document.getElementById(id).value='');
+  });
+  // “展开讲透 / 练一段”类按钮
+  document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.open;
+    if(t==='star'){ openModal('starModal'); }
+  }));
+  // 弹层关闭
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.close;
+    const el=document.getElementById(t); if(el) el.classList.remove('open');
+    if(t==='methodModal') document.getElementById('methodModal').classList.remove('open');
+  }));
+  document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
+    if(e.target===m) m.classList.remove('open');
+  }));
+</script>
+</body>
+</html>

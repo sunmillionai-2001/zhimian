@@ -1,0 +1,11 @@
+# 预览/生成产物
+preview/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+
+# 依赖（本阶段无，保留以备后续）
+node_modules/
+dist/

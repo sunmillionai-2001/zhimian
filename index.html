@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>职面 ZhiMian · 你的求职工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f4eee2;
+    --paper-2:#ede3d0;
+    --card:#fbf6ea;
+    --card-hi:#fffdf6;
+    --ink:#211c14;
+    --ink-soft:#5a4f40;
+    --ink-faint:#8a7d6a;
+    --line:#d9cbb0;
+    --line-soft:#e6dcc6;
+    --seal:#c13a1e;
+    --seal-deep:#9c2a12;
+    --seal-soft:#f0d9cd;
+    --gold:#b88a2e;
+    --teal:#2f5d5d;
+    --shadow: 0 1px 0 rgba(33,28,20,.06), 0 14px 40px -18px rgba(33,28,20,.28);
+    --shadow-soft: 0 1px 0 rgba(33,28,20,.05), 0 8px 26px -16px rgba(33,28,20,.22);
+    --serif:"Noto Serif SC","Songti SC",serif;
+    --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+    --latin:"Fraunces","Georgia",serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---- 纸面噪点 + 温润底光 ---- */
+  body::before{
+    content:"";
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1200px 600px at 12% -8%, rgba(184,138,46,.10), transparent 60%),
+      radial-gradient(1000px 700px at 110% 4%, rgba(47,93,93,.09), transparent 55%),
+      radial-gradient(900px 900px at 70% 120%, rgba(193,58,30,.06), transparent 55%);
+  }
+  .grain{
+    position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  .frame{position:relative;z-index:2;max-width:1220px;margin:0 auto;padding:26px 28px 70px}
+
+  /* ============ 顶栏 ============ */
+  .topbar{
+    display:flex;align-items:center;gap:20px;padding:16px 0 18px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none}
+  .seal{
+    width:46px;height:46px;flex:none;border-radius:10px;
+    background:var(--seal);color:#fff8ee;
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:900;font-size:24px;line-height:1;
+    box-shadow:inset 0 0 0 1.5px rgba(255,248,238,.35), 0 4px 10px -4px rgba(156,42,18,.6);
+    transform:rotate(-4deg);letter-spacing:0;
+  }
+  .brand-name{font-family:var(--serif);font-weight:900;font-size:22px;letter-spacing:.5px}
+  .brand-name small{
+    font-family:var(--latin);font-style:italic;font-weight:500;font-size:13px;
+    letter-spacing:3px;color:var(--ink-faint);margin-left:8px;text-transform:uppercase;
+  }
+  .search{
+    flex:1;display:flex;align-items:center;gap:10px;max-width:520px;margin-left:auto;margin-right:auto;
+    padding:11px 16px;border:1px solid var(--line);border-radius:12px;background:var(--card-hi);
+    box-shadow:var(--shadow-soft);transition:border-color .25s, box-shadow .25s;
+  }
+  .search:focus-within{border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12), var(--shadow-soft)}
+  .search svg{width:18px;height:18px;stroke:var(--ink-faint);flex:none}
+  .search input{border:0;outline:0;background:transparent;font-family:var(--sans);font-size:15px;width:100%;color:var(--ink)}
+  .search input::placeholder{color:var(--ink-faint)}
+  .topbar-right{display:flex;align-items:center;gap:12px}
+  .avatar{
+    width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--teal),#22413f);color:#f6f1e6;font-family:var(--serif);font-weight:700;
+    box-shadow:inset 0 0 0 1.5px rgba(246,241,230,.25);
+  }
+  .pill{
+    border:1px solid var(--line);background:var(--card);color:var(--ink-soft);
+    font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;cursor:pointer;
+    transition:.2s;white-space:nowrap;
+  }
+  .pill:hover{border-color:var(--seal);color:var(--seal)}
+
+  /* ============ Hero ============ */
+  .hero{padding:44px 0 30px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-family:var(--latin);font-style:italic;
+    font-size:13px;letter-spacing:2px;color:var(--seal);text-transform:uppercase;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--seal)}
+  .hero h1{
+    font-family:var(--serif);font-weight:900;font-size:clamp(30px,5vw,54px);
+    line-height:1.12;letter-spacing:.5px;max-width:15ch;
+  }
+  .hero h1 em{font-style:normal;color:var(--seal);position:relative}
+  .hero h1 em::after{
+    content:"";position:absolute;left:0;right:0;bottom:2px;height:.16em;z-index:-1;
+    background:var(--seal-soft);border-radius:2px;
+  }
+  .hero p{margin-top:16px;font-size:17px;color:var(--ink-soft);max-width:46ch}
+  .hero-actions{margin-top:26px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;
+    font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;
+    transition:transform .18s, box-shadow .18s, background .18s;
+  }
+  .btn-primary{background:var(--seal);color:#fff8ee;box-shadow:0 12px 26px -12px rgba(193,58,30,.8);border-color:var(--seal-deep)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(193,58,30,.85)}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--ink);background:var(--card-hi)}
+  .hero-badge{
+    position:absolute;right:24px;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:6px;
+    transform:rotate(5deg);opacity:.9;
+  }
+  .hero-badge .stamp{
+    font-family:var(--serif);font-weight:900;color:var(--seal);font-size:34px;letter-spacing:2px;line-height:1;
+    border:3px double var(--seal);border-radius:8px;padding:12px 14px;transform:rotate(-6deg);
+  }
+  .hero-badge small{font-family:var(--latin);font-style:italic;color:var(--ink-faint);font-size:12px;letter-spacing:2px}
+
+  /* ============ 区块标题 ============ */
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:34px 0 18px}
+  .section-head h2{font-family:var(--serif);font-weight:900;font-size:22px;letter-spacing:.5px;display:flex;align-items:center;gap:12px}
+  .section-head h2 .num{font-family:var(--latin);font-style:italic;font-weight:400;color:var(--ink-faint);font-size:15px;letter-spacing:1px}
+  .section-head a{color:var(--seal);font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap}
+  .section-head a:hover{text-decoration:underline}
+
+  /* ============ 状态卡 ============ */
+  .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .stat-card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;
+    box-shadow:var(--shadow-soft);position:relative;overflow:hidden;transition:transform .2s, box-shadow .2s;
+  }
+  .stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .stat-card::after{
+    content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;
+    background:radial-gradient(circle, rgba(193,58,30,.07), transparent 68%);
+  }
+  .stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .stat-label{font-size:14px;color:var(--ink-soft);font-weight:500}
+  .stat-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--seal-soft);color:var(--seal)}
+  .stat-icon svg{width:19px;height:19px;stroke:currentColor}
+  .stat-num{font-family:var(--serif);font-weight:900;font-size:38px;line-height:1;letter-spacing:-.5px}
+  .stat-num small{font-size:15px;font-weight:500;color:var(--ink-faint);margin-left:4px;font-family:var(--sans)}
+  .stat-note{margin-top:8px;font-size:13px;color:var(--ink-faint)}
+  .stat-note b{color:var(--teal);font-weight:700}
+
+  /* ============ 模块入口 ============ */
+  .module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .mod{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 26px;
+    position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-soft);
+    transition:transform .22s, box-shadow .22s, border-color .22s;
+  }
+  .mod:hover{transform:translateY(-4px);border-color:var(--seal);box-shadow:var(--shadow)}
+  .mod:hover .mod-arrow{transform:translate(4px,-4px);color:var(--seal)}
+  .mod .mod-num{
+    position:absolute;top:18px;right:22px;font-family:var(--latin);font-style:italic;font-size:15px;
+    color:var(--ink-faint);letter-spacing:1px;
+  }
+  .mod-head{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+  .mod-badge{
+    width:52px;height:52px;flex:none;border-radius:14px;display:grid;place-items:center;
+    background:var(--paper-2);color:var(--ink);border:1px solid var(--line);
+  }
+  .mod-badge svg{width:26px;height:26px;stroke:currentColor}
+  .mod-title{font-family:var(--serif);font-weight:900;font-size:21px;letter-spacing:.5px}
+  .mod-desc{font-size:14px;color:var(--ink-soft);margin-top:3px}
+  .mod-foot{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .mod-tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{font-size:12px;color:var(--teal);background:rgba(47,93,93,.08);padding:4px 10px;border-radius:999px;font-weight:500}
+  .mod-arrow{width:26px;height:26px;stroke:var(--ink-faint);transition:.2s}
+
+  /* ============ 下栏：招聘 + 推荐 ============ */
+  .lower-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft)}
+  .panel h3{font-family:var(--serif);font-weight:900;font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+  .job{display:flex;align-items:center;gap:14px;padding:13px 6px;border-bottom:1px solid var(--line-soft);transition:.18s;border-radius:10px}
+  .job:hover{background:var(--card-hi)}
+  .job:last-child{border-bottom:0}
+  .job-logo{width:44px;height:44px;flex:none;border-radius:10px;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:20px;color:#fff}
+  .job-main{flex:1;min-width:0}
+  .job-title{font-weight:700;font-size:15px;line-height:1.35}
+  .job-meta{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+  .job-salary{font-weight:700;color:var(--seal);font-size:14px;white-space:nowrap}
+  .fresh{font-size:11px;color:var(--teal);background:rgba(47,93,93,.1);padding:2px 8px;border-radius:999px;font-weight:500;margin-left:6px}
+
+  .rec-item{display:flex;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line-soft);align-items:flex-start;transition:.18s;border-radius:10px}
+  .rec-item:hover{background:var(--card-hi)}
+  .rec-item:last-child{border-bottom:0}
+  .rec-num{font-family:var(--latin);font-style:italic;color:var(--ink-faint);font-size:16px;line-height:1;padding-top:2px}
+  .rec-title{font-weight:700;font-size:14.5px;line-height:1.4}
+  .rec-sub{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+
+  /* ============ footer ============ */
+  .footer{
+    margin-top:52px;padding-top:24px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    font-size:13px;color:var(--ink-faint);
+  }
+  .footer .brand-mini{font-family:var(--serif);font-weight:700;color:var(--ink)}
+  .footer .brand-mini .seal-s{width:22px;height:22px;font-size:13px;border-radius:6px;display:inline-grid;place-items:center;background:var(--seal);color:#fff8ee;margin-right:8px;transform:rotate(-4deg)}
+
+  /* ============ 入场动画 ============ */
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .reveal{opacity:0;animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.19s}
+  .d4{animation-delay:.26s}.d5{animation-delay:.33s}.d6{animation-delay:.4s}
+  .d7{animation-delay:.47s}.d8{animation-delay:.54s}.d9{animation-delay:.61s}
+  .d10{animation-delay:.68s}
+
+  @media (prefers-reduced-motion:reduce){
+    .reveal{opacity:1;animation:none}
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width:900px){
+    .status-grid{grid-template-columns:1fr}
+    .module-grid{grid-template-columns:1fr}
+    .lower-grid{grid-template-columns:1fr}
+    .search{max-width:none;order:3;width:100%;margin:12px 0 0}
+    .topbar{flex-wrap:wrap}
+    .hero-badge{display:none}
+    .stat-num{font-size:32px}
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="frame">
+
+  <!-- 顶栏 -->
+  <header class="topbar reveal d1">
+    <div class="brand">
+      <div class="seal">职</div>
+      <div class="brand-name">职面<small>ZhiMian</small></div>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" placeholder="搜岗位 · 搜题目 · 搜技能 · 搜面经" />
+    </label>
+    <div class="topbar-right">
+      <button class="pill">写面经</button>
+      <div class="avatar">Z</div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero reveal d2">
+    <span class="eyebrow">Your Career Workbench</span>
+    <h1>你的<em>求职工作台</em>，从投递到复盘一站式搞定。</h1>
+    <p>凡是和求职相关的事，都在这一桌完成——练题、模拟、规划技能、复盘面试，再到刷岗位。</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary">▶ 开始一次模拟面试</button>
+      <button class="btn btn-ghost">今日待办 3 项 →</button>
+    </div>
+    <div class="hero-badge">
+      <div class="stamp">面试</div>
+      <small>Ready · 随时迎战</small>
+    </div>
+  </section>
+
+  <!-- 状态卡 -->
+  <section class="status-grid">
+    <div class="stat-card reveal d3">
+      <div class="stat-top">
+        <span class="stat-label">今日进度</span>
+        <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+      </div>
+      <div class="stat-num">3<small>项待办</small></div>
+      <div class="stat-note">还有 <b>2 场</b> 模拟面试待完成</div>
+    </div>
+    <div class="stat-card reveal d4">
+      <div class="stat-top">
+        <span class="stat-label">最近面试</span>
+        <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </div>
+      <div class="stat-num">8<small>次记录</small></div>
+      <div class="stat-note">最近一次：<b>字节后端</b> · 待复盘</div>
+    </div>
+    <div class="stat-card reveal d5">
+      <div class="stat-top">
+        <span class="stat-label">待补技能</span>
+        <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 12l9 5 9-5"/></svg></span>
+      </div>
+      <div class="stat-num">3<small>个岗位</small></div>
+      <div class="stat-note">关注岗位下还有 <b>5 项</b> 技能未学</div>
+    </div>
+  </section>
+
+  <!-- 模块入口 -->
+  <div class="section-head reveal d6">
+    <h2><span class="num">01–04</span> 核心模块</h2>
+    <a href="#">全部功能 →</a>
+  </div>
+  <section class="module-grid">
+    <div class="mod reveal d6">
+      <span class="mod-num">01</span>
+      <div class="mod-head">
+        <span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+        <div>
+          <div class="mod-title">面试方法论</div>
+          <div class="mod-desc">套路、框架、思路，面试到底在考什么</div>
+        </div>
+      </div>
+      <div class="mod-foot">
+        <div class="mod-tags"><span class="tag">STAR</span><span class="tag">高频框架</span></div>
+        <svg class="mod-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </div>
+    </div>
+
+    <div class="mod reveal d7">
+      <span class="mod-num">02</span>
+      <div class="mod-head">
+        <span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>
+        <div>
+          <div class="mod-title">模拟面试</div>
+          <div class="mod-desc">AI 当面试官，在线答题、打分、复盘</div>
+        </div>
+      </div>
+      <div class="mod-foot">
+        <div class="mod-tags"><span class="tag">在线</span><span class="tag">打分</span></div>
+        <svg class="mod-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </div>
+    </div>
+
+    <div class="mod reveal d8">
+      <span class="mod-num">03</span>
+      <div class="mod-head">
+        <span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg></span>
+        <div>
+          <div class="mod-title">岗位 → 技能地图</div>
+          <div class="mod-desc">想投的岗，帮你拆出该学啥、怎么学</div>
+        </div>
+      </div>
+      <div class="mod-foot">
+        <div class="mod-tags"><span class="tag">技能拆解</span><span class="tag">学习路径</span></div>
+        <svg class="mod-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </div>
+    </div>
+
+    <div class="mod reveal d9">
+      <span class="mod-num">04</span>
+      <div class="mod-head">
+        <span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span>
+        <div>
+          <div class="mod-title">面试复盘</div>
+          <div class="mod-desc">记录每次面试，把失败变成下一次的经验</div>
+        </div>
+      </div>
+      <div class="mod-foot">
+        <div class="mod-tags"><span class="tag">记录</span><span class="tag">复盘</span><span class="tag">复盘清单</span></div>
+        <svg class="mod-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 下栏：招聘 + 推荐 -->
+  <div class="section-head reveal d9">
+    <h2><span class="num">05</span> 热门岗位</h2>
+    <a href="#">查看更多 →</a>
+  </div>
+  <section class="lower-grid">
+    <div class="panel reveal d9">
+      <h3>🔥 近期在招</h3>
+      <div class="job">
+        <div class="job-logo" style="background:#2f5d5d">字</div>
+        <div class="job-main">
+          <div class="job-title">后端开发工程师（校招）<span class="fresh">急招</span></div>
+          <div class="job-meta">字节跳动 · 北京 · 经验不限</div>
+        </div>
+        <div class="job-salary">20-40K</div>
+      </div>
+      <div class="job">
+        <div class="job-logo" style="background:#c13a1e">阿</div>
+        <div class="job-main">
+          <div class="job-title">产品经理（实习）</div>
+          <div class="job-meta">阿里巴巴 · 杭州 · 可转正</div>
+        </div>
+        <div class="job-salary">200/天</div>
+      </div>
+      <div class="job">
+        <div class="job-logo" style="background:#b88a2e">腾</div>
+        <div class="job-main">
+          <div class="job-title">前端工程师（社招）<span class="fresh">急招</span></div>
+          <div class="job-meta">腾讯 · 深圳 · 3-5 年</div>
+        </div>
+        <div class="job-salary">30-50K</div>
+      </div>
+      <div class="job">
+        <div class="job-logo" style="background:#5a4f40">OP</div>
+        <div class="job-main">
+          <div class="job-title">数据分析师</div>
+          <div class="job-meta">OPPO · 东莞 · 1-3 年</div>
+        </div>
+        <div class="job-salary">15-25K</div>
+      </div>
+    </div>
+
+    <div class="panel reveal d10">
+      <h3>📌 推荐 · 热门</h3>
+      <div class="rec-item">
+        <span class="rec-num">01</span>
+        <div><div class="rec-title">大厂后端高频题 Top 100</div><div class="rec-sub">1.2 万人正在刷</div></div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-num">02</span>
+        <div><div class="rec-title">STAR 法则：讲好一个项目</div><div class="rec-sub">方法论 · 8 分钟</div></div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-num">03</span>
+        <div><div class="rec-title">如何用一周突击产品面</div><div class="rec-sub">面经 · 实战复盘</div></div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-num">04</span>
+        <div><div class="rec-title">简历上的项目怎么写加分</div><div class="rec-sub">技能课 · 12 分钟</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <footer class="footer reveal d10">
+    <div class="brand-mini"><span class="seal-s">职</span>职面 ZhiMian · 你的求职工作台</div>
+    <div>© 2025 ZhiMian · 求职 · 面试 · 复盘</div>
+  </footer>
+
+</div>
+
+<script>
+  // 顶栏滚动轻微加投影
+  const topbar = document.querySelector('.topbar');
+  window.addEventListener('scroll', () => {
+    const on = window.scrollY > 8;
+    topbar.style.boxShadow = on ? '0 8px 26px -18px rgba(33,28,20,.4)' : 'none';
+  });
+
+  // 模块点击占位提示（当前 MVP 仅总览页）
+  document.querySelectorAll('.mod').forEach(m => {
+    m.addEventListener('click', () => {
+      const t = m.querySelector('.mod-title').textContent;
+      console.log('跳转模块：' + t);
+      // 后续接入各模块路由
+    });
+  });
+</script>
+</body>
+</html>
