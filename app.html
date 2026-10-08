@@ -363,6 +363,17 @@
   .insight-bar{flex:1;height:8px;border-radius:999px;background:var(--paper-2);overflow:hidden}
   .insight-bar i{display:block;height:100%;border-radius:999px}
   .insight-item .il{font-size:13px;color:var(--ink-soft);width:90px}
+  /* 复盘 · 功能补充 */
+  .tag-pick{display:flex;flex-wrap:wrap;gap:7px}
+  .tag-pick .chip{padding:5px 12px;font-size:12.5px}
+  .tag-pick .chip.on{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
+  .rec-del{margin-left:auto;background:transparent;border:0;color:var(--ink-faint);cursor:pointer;font-size:12.5px;font-family:var(--sans)}
+  .rec-del:hover{color:var(--seal);text-decoration:underline}
+  .rv-empty{font-size:13.5px;color:var(--ink-faint);padding:18px 2px;line-height:1.7}
+  .rv-stats{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:16px}
+  .rv-stat b{font-family:var(--serif);font-weight:900;font-size:26px;display:block;line-height:1.1}
+  .rv-stat span{font-size:12.5px;color:var(--ink-faint)}
+  .rec-entry-top{flex-wrap:wrap}
 
   /* 占位 */
   .placeholder{background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:56px 30px;text-align:center;box-shadow:var(--shadow-soft)}
@@ -603,40 +614,26 @@
         <div class="record-form">
           <h3>记录一次面试</h3>
           <div class="form-row">
-            <div class="field"><label>公司</label><input type="text" placeholder="如：字节跳动" /></div>
-            <div class="field"><label>岗位</label><input type="text" placeholder="如：后端开发" /></div>
+            <div class="field"><label>公司</label><input type="text" id="rvCompany" placeholder="如：字节跳动" /></div>
+            <div class="field"><label>岗位</label><input type="text" id="rvRole" placeholder="如：后端开发" /></div>
           </div>
           <div class="form-row">
-            <div class="field"><label>轮次</label><select><option>初面</option><option>二面</option><option>HR面</option></select></div>
-            <div class="field"><label>结果</label><select><option>待定</option><option>通过</option><option>未通过</option></select></div>
+            <div class="field"><label>轮次</label><select id="rvStage"><option>初面</option><option>二面</option><option>三面</option><option>HR面</option></select></div>
+            <div class="field"><label>结果</label><select id="rvResult"><option>待定</option><option>通过</option><option>未通过</option></select></div>
           </div>
-          <div class="field"><label>面试复盘 / 经验</label><textarea placeholder="问了哪些题？哪些答得好、哪些卡住了？下次怎么改进？"></textarea></div>
-          <button class="btn btn-primary">保存记录</button>
+          <div class="field"><label>日期</label><input type="date" id="rvDate" /></div>
+          <div class="field"><label>薄弱点 / 下次要补的（可多选）</label><div class="tag-pick" id="rvTags"></div></div>
+          <div class="field"><label>复盘内容 / 经验</label><textarea id="rvNote" placeholder="问了哪些题？哪些答得好、哪些卡住了？下次怎么改进？"></textarea></div>
+          <button class="btn btn-primary" id="rvSave">保存记录</button>
+          <p class="mock-note" id="rvMsg"></p>
         </div>
         <div class="record-list">
-          <h3>复盘记录</h3>
-          <div class="rec-entry">
-            <div class="rec-entry-top"><span class="rec-co">字节跳动</span><span class="rec-stage">二面 · 后端</span><span class="rec-date">10/02</span></div>
-            <div class="rec-note">问了系统设计和并发，Redis 那块没答好，下次要把一致性讲透。</div>
-          </div>
-          <div class="rec-entry">
-            <div class="rec-entry-top"><span class="rec-co">腾讯</span><span class="rec-stage">初面 · 前端</span><span class="rec-date">09/28</span></div>
-            <div class="rec-note">项目讲得不错，但算法题超时了，需要加强手写。</div>
-          </div>
-          <div class="rec-entry">
-            <div class="rec-entry-top"><span class="rec-co">美团</span><span class="rec-stage">HR面</span><span class="rec-date">09/20</span></div>
-            <div class="rec-note">整体顺利，反问环节有点短，下次准备 2 个有深度的问题。</div>
-          </div>
+          <h3>复盘记录 <span id="rvCount" style="font-size:13px;color:var(--ink-faint);font-weight:400"></span></h3>
+          <div id="rvList"></div>
         </div>
         <div class="insight-box">
-          <h3>强弱项分析（示例）</h3>
-          <div class="insight-grid">
-            <div class="insight-item"><span class="il">项目表达</span><div class="insight-bar"><i style="width:88%;background:var(--teal)"></i></div><b style="font-size:13px">88</b></div>
-            <div class="insight-item"><span class="il">结构逻辑</span><div class="insight-bar"><i style="width:80%;background:var(--teal)"></i></div><b style="font-size:13px">80</b></div>
-            <div class="insight-item"><span class="il">基础知识</span><div class="insight-bar"><i style="width:64%;background:var(--seal)"></i></div><b style="font-size:13px">64</b></div>
-            <div class="insight-item"><span class="il">算法手写</span><div class="insight-bar"><i style="width:52%;background:var(--seal)"></i></div><b style="font-size:13px">52</b></div>
-          </div>
-          <p style="font-size:13px;color:var(--ink-soft);margin-top:12px">👉 建议：优先补 <b style="color:var(--seal)">算法手写</b> 和 <b style="color:var(--seal)">基础知识</b>，这两个是当前最明显的短板。</p>
+          <h3>强弱项分析</h3>
+          <div id="rvInsight"></div>
         </div>
       </section>
     </section>
@@ -1260,6 +1257,107 @@
   renderSkillTree();
   document.getElementById('roleGo')?.addEventListener('click', skillSearch);
   document.getElementById('roleInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') skillSearch(); });
+
+  /* ================= 面试复盘 · 完整功能 ================= */
+  const REVIEW_TAGS = ['算法手写','系统设计','项目表达','基础知识','沟通表达','心态紧张','简历问题','时间不够'];
+  let rvTags = [], reviews = [];
+  try{ reviews = JSON.parse(localStorage.getItem('zm_reviews')||'[]'); }catch(e){ reviews = []; }
+  function saveReviews(){ try{ localStorage.setItem('zm_reviews', JSON.stringify(reviews)); }catch(e){} }
+  function rvMsg(t){
+    const el = document.getElementById('rvMsg'); if(!el) return;
+    el.textContent = t; setTimeout(()=>{ el.textContent=''; }, 2200);
+  }
+
+  function renderRvTags(){
+    const box = document.getElementById('rvTags'); if(!box) return;
+    box.innerHTML = REVIEW_TAGS.map(t=>`<span class="chip ${rvTags.includes(t)?'on':''}" data-t="${t}">${t}</span>`).join('');
+    box.querySelectorAll('[data-t]').forEach(c=>c.addEventListener('click',()=>{
+      const t = c.dataset.t;
+      rvTags = rvTags.includes(t) ? rvTags.filter(x=>x!==t) : rvTags.concat(t);
+      renderRvTags();
+    }));
+  }
+
+  function renderReviews(){
+    const list = document.getElementById('rvList'); if(!list) return;
+    const cnt = document.getElementById('rvCount');
+    if(cnt) cnt.textContent = reviews.length ? `（${reviews.length} 条）` : '';
+    if(!reviews.length){
+      list.innerHTML = '<div class="rv-empty">还没有记录。左边记一次面试，这里会累计你的复盘并自动汇总短板。</div>';
+    } else {
+      list.innerHTML = reviews.map(r=>`
+        <div class="rec-entry">
+          <div class="rec-entry-top">
+            <span class="rec-co">${esc(r.company||'未填公司')}</span>
+            <span class="rec-stage">${esc(r.stage)}${r.role?' · '+esc(r.role):''}</span>
+            <button class="rec-del" data-del="${r.id}">删除</button>
+            <span class="rec-date">${esc(r.date||'')}</span>
+          </div>
+          ${(r.tags&&r.tags.length)?`<div class="tree-skills" style="margin:6px 0">${r.tags.map(t=>`<span>${t}</span>`).join('')}</div>`:''}
+          ${r.note?`<div class="rec-note">${esc(r.note)}</div>`:''}
+          <div style="font-size:12px;color:var(--ink-faint);margin-top:6px">结果：${esc(r.result)}</div>
+        </div>`).join('');
+      list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+        reviews = reviews.filter(x=>String(x.id)!==b.dataset.del);
+        saveReviews(); renderReviews();
+      }));
+    }
+    renderInsight();
+  }
+
+  function renderInsight(){
+    const box = document.getElementById('rvInsight'); if(!box) return;
+    const total = reviews.length;
+    const passed = reviews.filter(r=>r.result==='通过').length;
+    const failed = reviews.filter(r=>r.result==='未通过').length;
+    const rate = total ? Math.round(passed/total*100) : 0;
+    const freq = {};
+    reviews.forEach(r=>(r.tags||[]).forEach(t=>freq[t]=(freq[t]||0)+1));
+    const arr = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+    const max = arr.length ? arr[0][1] : 1;
+    let html = `<div class="rv-stats">
+      <div class="rv-stat"><b>${total}</b><span>累计面试</span></div>
+      <div class="rv-stat"><b>${passed}</b><span>通过</span></div>
+      <div class="rv-stat"><b>${failed}</b><span>未通过</span></div>
+      <div class="rv-stat"><b>${rate}%</b><span>通过率</span></div>
+    </div>`;
+    if(!arr.length){
+      html += '<p class="rv-empty">记录时勾选「薄弱点」，这里会自动汇总出你最该补强的项。</p>';
+    } else {
+      html += '<div class="insight-grid">' + arr.slice(0,6).map(([t,c])=>`
+        <div class="insight-item"><span class="il">${t}</span>
+          <div class="insight-bar"><i style="width:${Math.round(c/max*100)}%;background:${c===max?'var(--seal)':'var(--teal)'}"></i></div>
+          <b style="font-size:13px">${c}</b></div>`).join('') + '</div>';
+      const top = arr.slice(0,2).map(x=>x[0]).join('、');
+      html += `<p style="font-size:13px;color:var(--ink-soft);margin-top:12px">👉 建议：优先补 <b style="color:var(--seal)">${top}</b>，出现频率最高。</p>`;
+    }
+    box.innerHTML = html;
+  }
+
+  function saveReview(){
+    const company = document.getElementById('rvCompany').value.trim();
+    const role = document.getElementById('rvRole').value.trim();
+    const stage = document.getElementById('rvStage').value;
+    const result = document.getElementById('rvResult').value;
+    const rawDate = document.getElementById('rvDate').value;
+    const note = document.getElementById('rvNote').value.trim();
+    if(!company && !note){ rvMsg('请至少填写公司或复盘内容'); return; }
+    const date = rawDate ? rawDate.slice(5).replace('-','/') : new Date().toLocaleDateString('zh-CN').slice(5);
+    reviews.unshift({ id:Date.now(), company, role, stage, result, date, tags:rvTags.slice(), note });
+    saveReviews();
+    ['rvCompany','rvRole','rvNote'].forEach(id=>{ document.getElementById(id).value=''; });
+    rvTags = []; renderRvTags();
+    renderReviews();
+    rvMsg('已保存 ✓');
+  }
+
+  document.getElementById('rvSave')?.addEventListener('click', saveReview);
+  (function initReviewDate(){
+    const d = document.getElementById('rvDate');
+    if(d && !d.value){ const n = new Date(); d.value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); }
+  })();
+  renderRvTags();
+  renderReviews();
 </script>
 </body>
 </html>
