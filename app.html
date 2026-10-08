@@ -375,6 +375,25 @@
   .rv-stat span{font-size:12.5px;color:var(--ink-faint)}
   .rec-entry-top{flex-wrap:wrap}
 
+  /* 招聘信息 · 岗位池 */
+  .job-pool{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;align-items:start}
+  .job-add{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;gap:14px}
+  .job-add h3{font-family:var(--serif);font-weight:900;font-size:18px}
+  .job-board{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow-soft)}
+  .job-board-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .job-board-head h3{font-family:var(--serif);font-weight:900;font-size:17px}
+  .job-board-head .method-search{margin-left:auto}
+  .jp-card{border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--card-hi);transition:.2s}
+  .jp-card:hover{border-color:var(--seal);box-shadow:var(--shadow-soft)}
+  .jp-top{display:flex;align-items:flex-start;gap:12px}
+  .jp-logo{width:42px;height:42px;flex:none;border-radius:11px;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:19px;color:#fff}
+  .jp-main{flex:1;min-width:0}
+  .jp-title{font-weight:700;font-size:15.5px}
+  .jp-meta{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+  .jp-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+  .jp-actions .btn{padding:8px 14px;font-size:13.5px}
+  .jp-empty{font-size:13.5px;color:var(--ink-faint);padding:24px 4px;line-height:1.7}
+
   /* 占位 */
   .placeholder{background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:56px 30px;text-align:center;box-shadow:var(--shadow-soft)}
   .placeholder h2{font-family:var(--serif);font-weight:900;font-size:22px;margin-bottom:10px}
@@ -399,7 +418,7 @@
     .nav-item span{display:inline}
     .sb-foot{margin-top:0;border-top:0;padding:0;flex-direction:row;align-items:center;margin-left:auto}
     .sb-copyright{display:none}
-    .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid{grid-template-columns:1fr}
+    .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid,.job-pool{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -431,7 +450,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg><span>面试复盘</span>
     </div>
     <div class="nav-item" data-view="jobs">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>招聘信息<em style="font-size:10px;color:var(--ink-faint);font-style:normal;margin-left:4px">后期</em></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>招聘信息</span>
     </div>
     <div class="sb-foot">
       <div class="sb-user"><div class="avatar">Z</div><div><div class="sb-user-name">求职者</div><div class="sb-user-sub">冲刺 · 秋招</div></div></div>
@@ -455,7 +474,7 @@
       <div class="hero">
         <span class="eyebrow">Your Career Workbench</span>
         <h1>你的<em>求职工作台</em><br/>从投递到复盘一站式搞定。</h1>
-        <p>左侧是常驻模块。练方法论、拆技能、AI 模拟面试、复盘面试——先做齐前四个，招聘信息稍后上场。</p>
+        <p>左侧是常驻模块。练方法论、拆技能、模拟面试、复盘面试，再把自己的目标岗位攒成池子——一站式。</p>
         <div class="hero-actions">
           <button class="btn btn-primary" data-goto="mock">▶ 开始一次模拟面试</button>
           <button class="btn btn-ghost" data-goto="method">今学一个方法论 →</button>
@@ -473,9 +492,9 @@
         <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">AI 当面试官，按你的目标岗位提问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
         <div class="mod" data-goto="review"><span class="mod-num">04</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span><div><div class="mod-title">面试复盘</div><div class="mod-desc">记录每次面试，增强补弱</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">记录</span><span class="tag">分析</span></div></div></div>
       </section>
-      <div class="section-head"><h2><span class="num">05</span> 招聘信息 <small style="color:var(--ink-faint);font-weight:400;font-size:13px">后期接入</small></h2></div>
+      <div class="section-head"><h2><span class="num">05</span> 招聘信息</h2></div>
       <section class="module-grid">
-        <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息</div><div class="mod-desc">岗位聚合 + 筛选（规划在最后做）</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">后期</span></div></div></div>
+        <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息 · 岗位池</div><div class="mod-desc">把想投的岗位攒成池，一键去模拟面试</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">岗位池</span><span class="tag">联动</span></div></div></div>
       </section>
       <footer class="footer"><div class="brand-mini"><span class="seal-s">职</span>职面 ZhiMian · 你的求职工作台</div><div>© 2025 ZhiMian · 求职 · 面试 · 复盘</div></footer>
     </section>
@@ -638,18 +657,41 @@
       </section>
     </section>
 
-    <!-- ===== 招聘信息（占位，后期） ===== -->
+    <!-- ===== 招聘信息 · 岗位池 ===== -->
     <section class="view" id="jobs">
       <div class="hero">
-        <span class="eyebrow">Jobs</span>
-        <h1>招聘信息 <em>（后期）</em></h1>
-        <p>这里将聚合各平台岗位，城市/岗位/薪资/经验一键筛选。</p>
+        <span class="eyebrow">Job Pool</span>
+        <h1>你的<em>岗位池</em>。<br/>把想投的岗位攒起来。</h1>
+        <p>把看到的岗位 JD 贴进来，存成岗位卡片；之后一键拿去模拟面试，或查看它需要的技能地图。</p>
       </div>
-      <div class="placeholder">
-        <h2>该模块规划在最后做</h2>
-        <p>已调研：主流平台无公开 API，届时基于登录态 + 浏览器协议抓取（参考 boss-zhipin-scraper）。当前 MVP 用「用户贴岗位信息」跑通模拟面试与技能分析。</p>
-        <button class="btn btn-ghost" data-goto="mock">先去做模拟面试 →</button>
-      </div>
+      <section class="job-pool">
+        <div class="job-add">
+          <h3>添加岗位</h3>
+          <div class="form-row">
+            <div class="field"><label>公司</label><input type="text" id="jpCompany" placeholder="如：字节跳动" /></div>
+            <div class="field"><label>岗位</label><input type="text" id="jpRole" placeholder="如：后端开发" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>城市</label><input type="text" id="jpCity" placeholder="如：北京" /></div>
+            <div class="field"><label>薪资</label><input type="text" id="jpSalary" placeholder="如：20-40K" /></div>
+          </div>
+          <div class="field"><label>岗位 JD / 要求（粘贴）</label><textarea id="jpJd" placeholder="把 BOSS直聘 / 官网的岗位描述粘贴到这里……"></textarea></div>
+          <div class="field"><label>识别到的技能关键词</label><div class="mock-keywords" id="jpKeywords"><span class="kw-none">粘贴 JD 后自动识别</span></div></div>
+          <button class="btn btn-primary" id="jpSave">保存到岗位池</button>
+          <p class="mock-note" id="jpMsg"></p>
+          <p class="mock-note">说明：本模块不抓取任何平台数据。岗位由你自行粘贴保存，规避爬虫的合规与稳定性风险；想接真实数据源时再单独评估。</p>
+        </div>
+        <div class="job-board">
+          <div class="job-board-head">
+            <h3>岗位池 <span id="jpCount" style="font-size:13px;color:var(--ink-faint);font-weight:400"></span></h3>
+            <label class="method-search" style="min-width:210px">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="text" id="jpFilter" placeholder="筛选：公司 / 岗位 / 城市" />
+            </label>
+          </div>
+          <div id="jpList"></div>
+        </div>
+      </section>
     </section>
 
   </main>
@@ -1355,6 +1397,96 @@
   })();
   renderRvTags();
   renderReviews();
+
+  /* ================= 招聘信息 · 岗位池 ================= */
+  let jobs = [];
+  try{ jobs = JSON.parse(localStorage.getItem('zm_jobs')||'[]'); }catch(e){ jobs = []; }
+  function saveJobs(){ try{ localStorage.setItem('zm_jobs', JSON.stringify(jobs)); }catch(e){} }
+  let jpFilter = '';
+
+  function jpKeywords(jd){
+    const t = (jd||'').toLowerCase(); const found = [];
+    QUIZ_BANK.forEach(i=>{ if(i.keys && i.keys.some(k=>t.includes(k.toLowerCase()))) found.push(i.topic); });
+    return found;
+  }
+  function renderJpKeywords(){
+    const box = document.getElementById('jpKeywords'); if(!box) return;
+    const kws = jpKeywords(document.getElementById('jpJd')?.value || '');
+    box.innerHTML = kws.length ? kws.map(k=>`<span class="kw hit">${k}</span>`).join('') : '<span class="kw-none">粘贴 JD 后自动识别</span>';
+  }
+  function jpMsg(t){
+    const el = document.getElementById('jpMsg'); if(!el) return;
+    el.textContent = t; setTimeout(()=>{ el.textContent=''; }, 2200);
+  }
+  function matchRole(text){
+    const raw = text || '';
+    const t = raw.toLowerCase();
+    const hit = SKILL_ROLES.find(r=> t.includes(r) || (raw && r.includes(raw)));
+    if(hit) return hit;
+    const kw = {'前端':'前端开发','后端':'后端开发','产品':'产品经理','数据':'数据分析','算法':'算法工程师','ai':'AGI 工程师','agi':'AGI 工程师','大模型':'AGI 工程师','人工智能':'AGI 工程师'};
+    const k = Object.keys(kw).find(k=>t.includes(k));
+    return k ? kw[k] : SKILL_ROLES[0];
+  }
+  function renderJobs(){
+    const list = document.getElementById('jpList'); if(!list) return;
+    const cnt = document.getElementById('jpCount');
+    const q = jpFilter.trim().toLowerCase();
+    const arr = jobs.filter(j=>!q || ((j.company||'')+(j.role||'')+(j.city||'')).toLowerCase().includes(q));
+    if(cnt) cnt.textContent = jobs.length ? `（${jobs.length} 个${q?`，筛出 ${arr.length}`:''}）` : '';
+    if(!arr.length){
+      list.innerHTML = `<div class="jp-empty">${jobs.length ? '没有匹配的岗位。' : '岗位池还是空的。左边粘贴一个岗位 JD，存进来吧。'}</div>`;
+      return;
+    }
+    list.innerHTML = arr.map(j=>`
+      <div class="jp-card">
+        <div class="jp-top">
+          <span class="jp-logo" style="background:${j.color||'#2f5d5d'}">${esc((j.company||j.role||'岗').slice(0,1))}</span>
+          <div class="jp-main">
+            <div class="jp-title">${esc(j.role||'未填岗位')}</div>
+            <div class="jp-meta">${[j.company,j.city,j.salary].filter(Boolean).map(esc).join(' · ')||'—'}</div>
+          </div>
+          <button class="rec-del" data-jpdel="${j.id}">删除</button>
+        </div>
+        ${(j.kws&&j.kws.length)?`<div class="tree-skills" style="margin:9px 0 0">${j.kws.slice(0,8).map(k=>`<span>${k}</span>`).join('')}</div>`:''}
+        <div class="jp-actions">
+          <button class="btn btn-seal" data-jpmock="${j.id}">▶ 用这个岗位模拟面试</button>
+          <button class="btn btn-ghost" data-jpskill="${j.id}">看技能地图 →</button>
+        </div>
+      </div>`).join('');
+    list.querySelectorAll('[data-jpdel]').forEach(b=>b.addEventListener('click',()=>{
+      jobs = jobs.filter(x=>String(x.id)!==b.dataset.jpdel); saveJobs(); renderJobs();
+    }));
+    list.querySelectorAll('[data-jpmock]').forEach(b=>b.addEventListener('click',()=>{
+      const j = jobs.find(x=>String(x.id)===b.dataset.jpmock); if(!j) return;
+      const jdEl = document.getElementById('mockJd');
+      if(jdEl) jdEl.value = j.jd || ((j.role||'') + ' ' + (j.company||''));
+      go('mock'); parseJd(); startMock();
+    }));
+    list.querySelectorAll('[data-jpskill]').forEach(b=>b.addEventListener('click',()=>{
+      const j = jobs.find(x=>String(x.id)===b.dataset.jpskill); if(!j) return;
+      curRole = matchRole(j.role || '');
+      go('skill'); renderPresets(); renderSkillTree();
+    }));
+  }
+  function saveJob(){
+    const company = document.getElementById('jpCompany').value.trim();
+    const role = document.getElementById('jpRole').value.trim();
+    const city = document.getElementById('jpCity').value.trim();
+    const salary = document.getElementById('jpSalary').value.trim();
+    const jd = document.getElementById('jpJd').value.trim();
+    if(!company && !role && !jd){ jpMsg('请至少填写公司 / 岗位，或粘贴 JD'); return; }
+    const colors = ['#2f5d5d','#c13a1e','#b88a2e','#5a4f40','#3f5a7a'];
+    jobs.unshift({ id:Date.now(), company, role, city, salary, jd, kws:jpKeywords(jd), color:colors[jobs.length % colors.length] });
+    saveJobs();
+    ['jpCompany','jpRole','jpCity','jpSalary','jpJd'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderJpKeywords(); renderJobs(); jpMsg('已加入岗位池 ✓');
+  }
+
+  document.getElementById('jpSave')?.addEventListener('click', saveJob);
+  document.getElementById('jpJd')?.addEventListener('input', renderJpKeywords);
+  document.getElementById('jpFilter')?.addEventListener('input', e=>{ jpFilter = e.target.value; renderJobs(); });
+  renderJpKeywords();
+  renderJobs();
 </script>
 </body>
 </html>
