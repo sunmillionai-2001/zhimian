@@ -290,6 +290,54 @@
   .score-info strong{font-size:14px}
   .score-info span{font-size:12.5px;color:var(--ink-faint);display:block}
 
+  /* 模拟面试 · 结构化功能 */
+  .mock-note{font-size:12.5px;color:var(--ink-faint);line-height:1.6}
+  .mock-keywords{display:flex;flex-wrap:wrap;gap:7px;min-height:24px}
+  .mock-keywords .kw{font-size:12px;color:var(--teal);background:rgba(47,93,93,.09);padding:4px 10px;border-radius:999px}
+  .mock-keywords .kw.hit{background:var(--seal-soft);color:var(--seal-deep);font-weight:600}
+  .mock-keywords .kw-none{font-size:12.5px;color:var(--ink-faint)}
+  .mock-stage{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-soft);min-height:460px;display:flex;flex-direction:column;overflow:hidden}
+  .stage-empty{padding:60px 26px;text-align:center;color:var(--ink-soft);margin:auto}
+  .stage-empty h3{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--ink);margin-bottom:8px}
+  .stage-bar{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--line)}
+  .stage-bar .who{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--teal);color:#f4eee2;font-family:var(--serif);font-weight:900}
+  .stage-bar .who-name{font-weight:700;font-size:14.5px}
+  .stage-bar .who-sub{font-size:12px;color:var(--ink-faint)}
+  .stage-timer{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .stage-timer .t{font-family:var(--latin);font-style:italic;font-size:15px;color:var(--ink);letter-spacing:1px}
+  .stage-timer .step{font-size:12.5px;color:var(--ink-faint)}
+  .stage-body{flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;max-height:330px}
+  .q-card{background:var(--paper-2);border-radius:14px;border-top-left-radius:4px;padding:14px 16px;max-width:88%}
+  .q-card .q-topic{font-family:var(--latin);font-style:italic;font-size:11.5px;letter-spacing:1.2px;color:var(--seal);text-transform:uppercase}
+  .q-card .q-text{font-size:15px;line-height:1.7;margin-top:5px}
+  .a-card{align-self:flex-end;max-width:88%;background:var(--card-hi);border:1px solid var(--line);border-radius:14px;border-top-right-radius:4px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .stage-foot{border-top:1px solid var(--line);padding:14px}
+  .stage-foot textarea{width:100%;min-height:92px;border:1px solid var(--line);border-radius:12px;padding:12px;font-family:var(--sans);font-size:14.5px;background:var(--card-hi);color:var(--ink);resize:vertical;line-height:1.6}
+  .stage-foot textarea:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
+  .stage-actions{display:flex;gap:10px;margin-top:10px;align-items:center}
+  .stage-actions .hint{font-size:12.5px;color:var(--ink-faint);margin-left:auto}
+  .report{padding:22px}
+  .report h3{font-family:var(--serif);font-weight:900;font-size:20px;margin-bottom:4px}
+  .report .sub{font-size:13px;color:var(--ink-faint);margin-bottom:18px}
+  .report-item{border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--card-hi)}
+  .report-item .ri-q{font-weight:700;font-size:14.5px;margin-bottom:8px;display:flex;gap:8px}
+  .report-item .ri-q b{color:var(--seal);font-family:var(--latin);font-style:italic;flex:none}
+  .report-item .ri-a{font-size:13.5px;color:var(--ink-soft);background:var(--paper-2);border-radius:10px;padding:10px 12px;line-height:1.6;white-space:pre-wrap}
+  .report-item .ri-a.empty{color:var(--ink-faint);font-style:italic}
+  .report-item .ri-points{margin-top:10px}
+  .report-item .ri-points .pt{font-size:13px;color:var(--ink-soft);display:flex;gap:8px;padding:3px 0;line-height:1.55}
+  .report-item .ri-points .pt span{color:var(--teal);flex:none}
+  .report-actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .self-rate{display:flex;gap:8px;align-items:center;margin:14px 0 6px}
+  .self-rate span{font-size:13px;color:var(--ink-soft)}
+  .self-rate .chip{padding:5px 12px;font-size:12.5px}
+  .self-rate .chip.on{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
+  .mock-history{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .mock-history h4{font-family:var(--serif);font-weight:900;font-size:15px;margin-bottom:8px}
+  .mh-item{font-size:13px;color:var(--ink-soft);padding:7px 2px;border-bottom:1px solid var(--line-soft);display:flex;gap:10px}
+  .mh-item:last-child{border-bottom:0}
+  .mh-item .d{color:var(--ink-faint);font-family:var(--latin);font-style:italic;white-space:nowrap}
+
   /* 复盘 */
   .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   .record-form{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;gap:14px}
@@ -507,8 +555,8 @@
     <section class="view" id="mock">
       <div class="hero">
         <span class="eyebrow">Mock Interview</span>
-        <h1>AI <em>面试官</em>。<br/>按你的目标岗位来问。</h1>
-        <p>把想投的岗位要求贴进来，AI 以该岗位招聘负责人的口吻，从自我介绍开始，一步步问你。</p>
+        <h1>结构化 <em>模拟面试</em>。<br/>按你的岗位真实开练。</h1>
+        <p>贴入岗位 JD，自动解析关键词并生成针对性问题；逐题作答、计时，结束后给出每题的答题要点参考。</p>
       </div>
       <section class="mock-wrap">
         <div class="mock-setup">
@@ -516,35 +564,29 @@
           <div>
             <div class="mock-step-label">① 粘贴该岗位的招聘要求</div>
             <div class="paste-box">
-              <textarea id="mockJd" placeholder="把 BOSS直聘 / 官网看到的岗位 JD 或要求粘贴到这里，截图或文字都行……"></textarea>
+              <textarea id="mockJd" placeholder="把 BOSS直聘 / 官网看到的岗位 JD 粘贴到这里……（也可点下方「填入示例 JD」）"></textarea>
               <div class="paste-actions">
-                <button class="btn btn-primary" id="mockStart">开始面试 →</button>
-                <button class="btn btn-ghost">粘贴示例 JD</button>
+                <button class="btn btn-ghost" id="mockSample">填入示例 JD</button>
+                <button class="btn btn-ghost" id="mockParse">解析关键词</button>
               </div>
             </div>
           </div>
           <div>
-            <div class="mock-step-label">② 面试角色</div>
-            <p style="font-size:13.5px;color:var(--ink-soft)">AI 将扮演 <b style="color:var(--teal)">该岗位的招聘负责人/业务面试官</b>，按你贴的要求出题。</p>
+            <div class="mock-step-label">② 识别到的岗位关键词</div>
+            <div class="mock-keywords" id="mockKeywords"><span class="kw-none">粘贴 JD 后点「解析关键词」</span></div>
           </div>
-          <p style="font-size:12.5px;color:var(--ink-faint)">说明：本文先跑通交互流程，AI 回复用示例文本；接入大模型 API 后即为真实智能提问。</p>
+          <div>
+            <div class="mock-step-label">③ 题量</div>
+            <div class="role-preset" id="mockCount"></div>
+          </div>
+          <button class="btn btn-primary" id="mockStart">开始面试 →</button>
+          <p class="mock-note">说明：当前用内置题库做结构化提问（不依赖网络）；接入大模型 API 后可升级为实时智能追问。</p>
+          <div class="mock-history" id="mockHistory"></div>
         </div>
-        <div class="mock-chat">
-          <div class="mock-chat-head">
-            <div class="mock-role">面</div>
-            <div><div class="mock-role-name">AI 面试官 · 招聘负责人</div><div class="mock-role-sub">针对「目标岗位」</div></div>
-            <div class="mock-live">面试中</div>
-          </div>
-          <div class="mock-messages" id="mockMessages">
-            <div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">你好，我是你应聘岗位的招聘负责人。我们就正式开始了，先请你用 1 分钟做个自我介绍。</div></div>
-          </div>
-          <div class="mock-input">
-            <input type="text" id="mockAnswer" placeholder="你的回答……" />
-            <button class="btn btn-primary" id="mockSend">发送</button>
-          </div>
-          <div class="mock-score">
-            <div class="score-ring">76</div>
-            <div class="score-info"><strong>本次模拟评分</strong><span>表达 78 · 结构 74 · 深度 77（示例）</span></div>
+        <div class="mock-stage" id="mockStage">
+          <div class="stage-empty">
+            <h3>准备开始</h3>
+            <p>左侧粘贴岗位 JD，点「开始面试」即可进入模拟。</p>
           </div>
         </div>
       </section>
@@ -647,25 +689,172 @@
     el.addEventListener('click', ()=>go(el.dataset.goto));
   });
 
-  // 模拟面试：发送答案（示例）
-  document.getElementById('mockSend').addEventListener('click', ()=>{
-    const input = document.getElementById('mockAnswer');
-    const text = input.value.trim();
-    if(!text) return;
-    const msgs = document.getElementById('mockMessages');
-    msgs.insertAdjacentHTML('beforeend', `<div class="msg user"><div class="msg-ava">我</div><div class="msg-bubble">${text}</div></div>`);
-    input.value='';
-    setTimeout(()=>{
-      msgs.insertAdjacentHTML('beforeend', `<div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">收到。这个问题你讲得不错。那我们顺着你刚才的点再深入一下——如果你负责的这个模块遇到高并发，你会怎么设计？</div></div>`);
-      msgs.scrollTop = msgs.scrollHeight;
-    }, 700);
-    msgs.scrollTop = msgs.scrollHeight;
-  });
+  /* ================= 模拟面试 · 结构化引擎 ================= */
+  const QUIZ_BANK = [
+    {topic:'开场 · 自我介绍', q:'请用 1–2 分钟做个自我介绍。', always:true,
+      points:['结构：我是谁 → 我做过什么 → 我为什么匹配这个岗位','控制在 1–2 分钟，别背简历','突出与岗位最相关的 1–2 段经历']},
+    {topic:'项目 · 经历', q:'挑一个你最有代表性的项目，讲讲你负责的部分和关键决策。', always:true,
+      points:['用 STAR 结构：背景 → 任务 → 行动 → 结果','重点讲「你」做了什么、为什么这么做','准备 2–3 个可被追问的深度点']},
+    {topic:'Redis', keys:['redis','缓存'], q:'介绍下 Redis，你在项目里用它解决了什么问题？',
+      points:['定性：内存型 KV，主要扛读压力','数据类型、持久化、过期与淘汰策略','结合项目：缓存了什么、怎么防穿透/雪崩/击穿']},
+    {topic:'MySQL', keys:['mysql','数据库','sql'], q:'说说 MySQL 索引原理，你做过哪些慢查询优化？',
+      points:['B+ 树、聚簇/非聚簇索引、最左前缀','用 explain 定位问题、避免索引失效','结合项目讲一次真实优化与效果']},
+    {topic:'Java / JVM', keys:['java','jvm','spring'], q:'讲讲 JVM 内存结构，你遇到过什么 GC 问题？',
+      points:['堆/栈/方法区、对象分配与回收','常见 GC 器与选择依据','结合一次线上 GC 排查讲过程']},
+    {topic:'Python', keys:['python'], q:'Python 里你怎么做性能优化？',
+      points:['先定位瓶颈（profile）再优化','常用手段：数据结构、向量化、并发/异步','结合项目给出量化提升']},
+    {topic:'前端框架', keys:['react','vue','前端','javascript'], q:'说说你对 Vue / React 响应式原理的理解。',
+      points:['Vue 数据劫持 + 依赖收集；React 状态驱动重渲染','diff / 虚拟 DOM 的作用与边界','结合项目讲一次性能优化']},
+    {topic:'算法与数据结构', keys:['算法','数据结构','leetcode'], q:'讲一道你印象最深的算法题，说说解题思路。',
+      points:['先说思路与复杂度，再写代码','关注边界条件与测试用例','能延伸到同类题型']},
+    {topic:'系统设计', keys:['系统设计','高并发','架构','分布式','微服务'], q:'如果让你设计一个高并发系统，你会考虑哪些点？',
+      points:['先明确需求与量级（QPS、数据量、一致性要求）','分层：接入、服务、存储、缓存、异步','讲清取舍：一致性 vs 可用性']},
+    {topic:'机器学习 / 深度学习', keys:['机器学习','深度学习','模型','pytorch','tensorflow','cnn'], q:'讲讲你做过的一个模型项目，怎么评估效果、怎么调优？',
+      points:['数据与特征处理是重点','评估指标要与业务目标对齐','讲一次调优迭代：尝试 → 验证 → 结论']},
+    {topic:'大模型 / LLM', keys:['大模型','llm','rag','transformer','agent','微调','aigc'], q:'你了解 RAG 吗？说说它的流程和你踩过的坑。',
+      points:['流程：切分 → 向量化 → 检索 → 拼上下文 → 生成','难点：切分粒度、召回质量、上下文长度','结合一次实际调优讲效果']},
+    {topic:'产品思维', keys:['产品','需求','prd','用户'], q:'讲一个你负责的需求，你怎么判断优先级？',
+      points:['从用户价值 + 业务价值 + 成本评估','用数据或调研支撑判断','讲一次取舍与结果']},
+    {topic:'数据分析', keys:['数据分析','指标','取数','报表'], q:'如果某个核心指标突然下降，你会怎么排查？',
+      points:['先确认数据口径与真实性','拆维度：时间、渠道、用户分层、版本','定位后给结论与建议']},
+    {topic:'团队协作', keys:['协作','沟通','团队','管理'], q:'讲一次你和同事意见不合的经历，最后怎么解决的？',
+      points:['对事不对人，讲清分歧点','用数据/事实推动决策','结果与反思']},
+    {topic:'收尾 · 反问', q:'最后，你有什么想问我的？', always:true,
+      points:['问团队/业务挑战、岗位期待，体现思考','避免一上来问薪资加班','准备 2 个有深度的问题']}
+  ];
+  const SAMPLE_JD = '岗位职责：\n1. 负责后端服务的设计与开发，保障高并发场景下的稳定性；\n2. 参与系统架构设计，优化 MySQL、Redis 等存储性能；\n3. 与产品、前端协作，推动需求落地。\n任职要求：\n1. 熟悉 Java/Go，了解 JVM 原理；\n2. 熟悉 MySQL、Redis，有高并发、分布式系统经验；\n3. 有良好的沟通协作能力。';
 
-  document.getElementById('mockStart').addEventListener('click', ()=>{
-    const msgs = document.getElementById('mockMessages');
-    msgs.innerHTML = `<div class="msg ai"><div class="msg-ava">面</div><div class="msg-bubble">你好，我是你应聘岗位的招聘负责人。我已看过你贴的岗位要求，我们正式开始了，先请你用 1 分钟做个自我介绍。</div></div>`;
-  });
+  let mockFound = [], mockQuestions = [], mockAnswers = [], mockIdx = 0;
+  let mockTimer = null, mockSec = 0, mockCount = 8, mockSelfRate = '';
+
+  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function parseJd(){
+    const jd = (document.getElementById('mockJd')?.value||'').toLowerCase();
+    mockFound = [];
+    if(jd.trim()){
+      QUIZ_BANK.forEach(item=>{
+        if(!item.keys) return;
+        if(item.keys.some(k=>jd.includes(k.toLowerCase()))) mockFound.push(item.topic);
+      });
+    }
+    renderKeywords();
+    return mockFound;
+  }
+  function renderKeywords(){
+    const box = document.getElementById('mockKeywords'); if(!box) return;
+    if(!mockFound.length){ box.innerHTML='<span class="kw-none">未识别到关键词，可直接开始（将使用通用题）</span>'; return; }
+    box.innerHTML = mockFound.map(t=>`<span class="kw hit">${t}</span>`).join('');
+  }
+  function buildQuestions(){
+    const opening = QUIZ_BANK.filter(i=>i.always && !i.topic.includes('反问'));
+    const closing = QUIZ_BANK.filter(i=>i.topic.includes('反问'));
+    const matched = QUIZ_BANK.filter(i=>i.keys && mockFound.includes(i.topic));
+    const others  = QUIZ_BANK.filter(i=>i.keys && !mockFound.includes(i.topic));
+    let list = opening.concat(matched);
+    const pool = others.slice();
+    while(list.length < mockCount-1 && pool.length) list.push(pool.shift());
+    list = list.slice(0, Math.max(1, mockCount-1));
+    return list.concat(closing);
+  }
+  function renderMockCount(){
+    const box = document.getElementById('mockCount'); if(!box) return;
+    box.innerHTML = [5,8,12].map(n=>`<span class="chip ${n===mockCount?'active':''}" data-n="${n}">${n} 题</span>`).join('');
+    box.querySelectorAll('[data-n]').forEach(c=>c.addEventListener('click',()=>{ mockCount=Number(c.dataset.n); renderMockCount(); }));
+  }
+  function renderMockHistory(){
+    const box = document.getElementById('mockHistory'); if(!box) return;
+    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('zm_mock_history')||'[]'); }catch(e){}
+    if(!hist.length){ box.innerHTML=''; return; }
+    box.innerHTML = '<h4>练习记录</h4>' + hist.map(h=>`<div class="mh-item"><span class="d">${h.date}</span><span>${h.count} 题 · 自评 ${h.rate}</span></div>`).join('');
+  }
+  function updateClock(){
+    const el=document.getElementById('mockClock'); if(!el) return;
+    el.textContent = String(Math.floor(mockSec/60)).padStart(2,'0')+':'+String(mockSec%60).padStart(2,'0');
+  }
+  function startTimer(){ stopTimer(); mockSec=0; updateClock(); mockTimer=setInterval(()=>{ mockSec++; updateClock(); },1000); }
+  function stopTimer(){ if(mockTimer){ clearInterval(mockTimer); mockTimer=null; } }
+
+  function startMock(){
+    if(!mockFound.length) parseJd();
+    mockQuestions = buildQuestions();
+    mockAnswers = new Array(mockQuestions.length).fill('');
+    mockIdx = 0; mockSec = 0; mockSelfRate = '';
+    renderQuestion();
+  }
+  function renderQuestion(){
+    const stage = document.getElementById('mockStage'); if(!stage) return;
+    const total = mockQuestions.length;
+    stage.innerHTML = `
+      <div class="stage-bar">
+        <div class="who">面</div>
+        <div><div class="who-name">面试官 · 业务负责人</div><div class="who-sub">围绕你的岗位与简历</div></div>
+        <div class="stage-timer"><span class="step">第 ${mockIdx+1}/${total} 题</span><span class="t" id="mockClock">00:00</span></div>
+      </div>
+      <div class="stage-body" id="mockBody">
+        ${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`
+          <div class="q-card"><div class="q-topic">${q.topic}</div><div class="q-text">${q.q}</div></div>
+          ${mockAnswers[i] ? `<div class="a-card">${esc(mockAnswers[i])}</div>` : ''}`).join('')}
+      </div>
+      <div class="stage-foot">
+        <textarea id="mockA" placeholder="写下你的回答要点……（先在脑中讲一遍，再记要点）"></textarea>
+        <div class="stage-actions">
+          <button class="btn btn-primary" id="mockNext">${mockIdx===total-1?'结束并生成报告':'下一题 →'}</button>
+          <button class="btn btn-ghost" id="mockSkip">跳过</button>
+          <span class="hint">计时用于感受自己的表达节奏</span>
+        </div>
+      </div>`;
+    const a = document.getElementById('mockA');
+    a.value = mockAnswers[mockIdx] || '';
+    a.focus();
+    const next = ()=>{ mockAnswers[mockIdx] = a.value.trim();
+      if(mockIdx===total-1){ stopTimer(); renderReport(); } else { mockIdx++; renderQuestion(); } };
+    document.getElementById('mockNext').addEventListener('click', next);
+    document.getElementById('mockSkip').addEventListener('click', ()=>{ a.value=''; next(); });
+    const body = document.getElementById('mockBody'); if(body) body.scrollTop = body.scrollHeight;
+    startTimer();
+  }
+  function renderReport(){
+    const stage = document.getElementById('mockStage'); if(!stage) return;
+    stage.innerHTML = `
+      <div class="report">
+        <h3>面试报告</h3>
+        <div class="sub">共 ${mockQuestions.length} 题 · 对照每题「答题要点参考」自查，看哪里需要补强。</div>
+        ${mockQuestions.map((q,i)=>`
+          <div class="report-item">
+            <div class="ri-q"><b>Q${i+1}</b><span>${q.q}</span></div>
+            <div class="ri-a ${mockAnswers[i]?'':'empty'}">${mockAnswers[i]?esc(mockAnswers[i]):'（未作答）'}</div>
+            <div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${p}</div>`).join('')}</div>
+          </div>`).join('')}
+        <div class="self-rate" id="mockRate"><span>本次自评：</span>
+          ${['优秀','良好','待提高'].map(r=>`<span class="chip" data-rate="${r}">${r}</span>`).join('')}</div>
+        <div class="report-actions">
+          <button class="btn btn-primary" id="mockSave">保存记录</button>
+          <button class="btn btn-ghost" id="mockRetry">再练一次</button>
+        </div>
+      </div>`;
+    document.querySelectorAll('#mockRate [data-rate]').forEach(c=>c.addEventListener('click',()=>{
+      mockSelfRate = c.dataset.rate;
+      document.querySelectorAll('#mockRate [data-rate]').forEach(x=>x.classList.toggle('on', x.dataset.rate===mockSelfRate));
+    }));
+    document.getElementById('mockSave').addEventListener('click', saveMock);
+    document.getElementById('mockRetry').addEventListener('click', startMock);
+  }
+  function saveMock(){
+    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('zm_mock_history')||'[]'); }catch(e){}
+    const rec = {date:new Date().toLocaleDateString('zh-CN'), count:mockQuestions.length, rate:mockSelfRate||'未评', keywords:mockFound.slice(0,3)};
+    hist.unshift(rec); hist = hist.slice(0,8);
+    try{ localStorage.setItem('zm_mock_history', JSON.stringify(hist)); }catch(e){}
+    renderMockHistory();
+    const btn = document.getElementById('mockSave');
+    if(btn){ btn.textContent='已保存 ✓'; btn.disabled=true; }
+  }
+
+  document.getElementById('mockSample')?.addEventListener('click', ()=>{ document.getElementById('mockJd').value = SAMPLE_JD; parseJd(); });
+  document.getElementById('mockParse')?.addEventListener('click', parseJd);
+  document.getElementById('mockStart')?.addEventListener('click', startMock);
+  renderMockCount();
+  renderMockHistory();
 
   /* ================= 面试方法论 · 完整功能 ================= */
   const METHOD = {
