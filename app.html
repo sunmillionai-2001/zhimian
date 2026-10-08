@@ -231,6 +231,29 @@
   .tree-status{font-size:12px;font-weight:600;color:var(--teal);white-space:nowrap}
   .tree-node.wait .tree-status{color:var(--seal)}
   .tree-act{margin-top:8px;font-size:12.5px;color:var(--ink-faint);font-family:var(--latin);font-style:italic}
+  /* 技能地图：进度 + 技能点 + 学习指引 */
+  .tree-node{cursor:pointer;border-radius:12px;padding:14px 10px;transition:background .18s}
+  .tree-node:hover{background:var(--card-hi)}
+  .tree-skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tree-skills span{font-size:12px;color:var(--teal);background:rgba(47,93,93,.08);padding:3px 9px;border-radius:999px}
+  .tree-learn{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+  .tree-learn div{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+  .tree-learn b{color:var(--ink);font-weight:600}
+  .tree-reset{margin-left:auto;font-size:12px;color:var(--ink-faint);background:transparent;border:0;cursor:pointer;font-family:var(--sans)}
+  .tree-reset:hover{color:var(--seal);text-decoration:underline}
+  .skill-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .skill-head h3{font-family:var(--serif);font-weight:900;font-size:18px}
+  .skill-head .role-name{color:var(--seal)}
+  .skill-progress{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:190px}
+  .skill-progress .bar{flex:1;height:8px;border-radius:999px;background:var(--paper-2);overflow:hidden}
+  .skill-progress .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--seal));transition:width .35s}
+  .skill-progress .pct{font-family:var(--latin);font-style:italic;font-size:13px;color:var(--ink-soft);white-space:nowrap}
+  .role-hint{font-size:13px;color:var(--ink-soft);margin-top:8px}
+  .role-hint b{color:var(--seal)}
+  .tree-node .tree-status{user-select:none}
+  .skill-empty{padding:30px 10px;text-align:center;color:var(--ink-soft)}
+  .skill-empty h4{font-family:var(--serif);font-weight:900;font-size:17px;margin-bottom:8px}
+  .skill-empty .chip{margin:10px 5px 0}
 
   /* 模拟面试 */
   .mock-wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;align-items:start}
@@ -463,37 +486,20 @@
       <div class="hero">
         <span class="eyebrow">Skill Map</span>
         <h1>从想投的<em>岗位</em>，<br/>拆出你该学的技能。</h1>
-        <p>选一个心仪岗位，我们帮你拆解要掌握哪些技能、怎么学、学到什么程度。</p>
+        <p>选一个心仪岗位，帮你拆出要掌握哪些技能、<b>怎么学、去哪学</b>、达到什么标准才能上任，并可逐项标记进度。</p>
       </div>
       <section class="skill-map">
         <div class="role-select">
           <label>你想投的岗位</label>
-          <div class="role-input"><input type="text" id="roleInput" placeholder="如：AGI 工程师 / 前端 / 产品经理" /><button class="btn btn-primary" id="roleGo">拆解 →</button></div>
-          <div class="role-preset"><span class="chip active">AGI 工程师</span><span class="chip">前端开发</span><span class="chip">产品经理</span><span class="chip">数据分析</span></div>
-          <p style="font-size:12.5px;color:var(--ink-faint);margin-top:10px">数据来自内置技能图谱，后续可接岗位 JD 自动解析扩充。</p>
+          <div class="role-input">
+            <input type="text" id="roleInput" placeholder="如：AGI 工程师 / 前端 / 产品经理" />
+            <button class="btn btn-primary" id="roleGo">拆解 →</button>
+          </div>
+          <div class="role-preset" id="rolePreset"></div>
+          <div class="role-hint" id="roleHint"></div>
+          <p style="font-size:12.5px;color:var(--ink-faint);margin-top:6px">数据来自内置技能图谱；点技能层级可标记「已掌握 / 待学」，进度自动保存在本机。</p>
         </div>
-        <div class="skill-tree">
-          <div class="tree-node done">
-            <div class="tree-mark">✓</div>
-            <div class="tree-body"><div class="tree-name">基础 · 数学与编程 <span class="lv">Lv.1</span></div><div class="tree-desc">线性代数、概率统计、Python/深度学习框架基础</div><div class="tree-act">目标：能写训练脚本，看懂 loss</div></div>
-            <div class="tree-status">已掌握</div>
-          </div>
-          <div class="tree-node wait">
-            <div class="tree-mark">2</div>
-            <div class="tree-body"><div class="tree-name">核心 · 机器学习与深度学习 <span class="lv">Lv.2</span></div><div class="tree-desc">模型原理、调参、训练技巧、常见网络结构</div><div class="tree-act">目标：独立训练并调优一个模型</div></div>
-            <div class="tree-status">待学</div>
-          </div>
-          <div class="tree-node wait">
-            <div class="tree-mark">3</div>
-            <div class="tree-body"><div class="tree-name">进阶 · 大模型 / AGI 专项 <span class="lv">Lv.3</span></div><div class="tree-desc">Transformer、RAG、微调、Agent、评测</div><div class="tree-act">目标：能上手做 AGI 相关项目</div></div>
-            <div class="tree-status">待学</div>
-          </div>
-          <div class="tree-node wait">
-            <div class="tree-mark">4</div>
-            <div class="tree-body"><div class="tree-name">工程 · 项目落地能力 <span class="lv">Lv.4</span></div><div class="tree-desc">工具链、部署、数据、工程化</div><div class="tree-act">目标：把一个项目真正跑到上线</div></div>
-            <div class="tree-status">待学</div>
-          </div>
-        </div>
+        <div class="skill-tree" id="skillTree"></div>
       </section>
     </section>
 
@@ -920,6 +926,151 @@
   document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
     if(e.target===m) m.classList.remove('open');
   }));
+  // 事件委托：动态生成的「关闭 / 打开 / 收藏」按钮一律响应
+  document.addEventListener('click', e=>{
+    const close = e.target.closest('[data-close]');
+    if(close){ const el=document.getElementById(close.dataset.close); if(el) el.classList.remove('open'); return; }
+    const openBtn = e.target.closest('[data-open]');
+    if(openBtn){ if(openBtn.dataset.open==='star') openModal('starModal'); return; }
+    const fav = e.target.closest('[data-fav]');
+    if(fav){
+      const id = fav.dataset.fav;
+      if(favs.includes(id)){ favs = favs.filter(x=>x!==id); } else { favs.push(id); }
+      saveFavs();
+      if(document.getElementById('methodModal')?.classList.contains('open')) openMethod(id);
+      else renderGrid();
+    }
+  });
+
+  /* ================= 岗位 → 技能地图 · 完整功能 ================= */
+  const SKILLMAP = {
+    'AGI 工程师': { intro:'大模型 / AGI 方向工程岗，偏落地与调优。', levels:[
+      {lv:1,name:'基础 · 数学与编程',desc:'线性代数、概率统计、Python 与深度学习框架',skills:['线性代数','概率统计','Python','PyTorch'],how:'跟一门系统课，边学边写代码，不求一次看懂',where:'吴恩达机器学习 / 李沐《动手学深度学习》',goal:'能独立写训练脚本、看懂 loss 曲线'},
+      {lv:2,name:'核心 · 机器学习与深度学习',desc:'模型原理、调参、训练技巧、常见网络结构',skills:['CNN','RNN','Transformer','调参','正则化'],how:'复现经典模型 + 打一次 Kaggle',where:'《动手学深度学习》/ Kaggle',goal:'能独立训练并调优一个模型到可用'},
+      {lv:3,name:'进阶 · 大模型 / AGI 专项',desc:'Transformer、RAG、微调、Agent、评测',skills:['Transformer','RAG','LoRA 微调','Agent','评测'],how:'读论文 + 动手做小项目（如搭一个 RAG 问答）',where:'HuggingFace / LangChain 文档 / arXiv',goal:'能上手做 AGI 项目并讲清原理'},
+      {lv:4,name:'工程 · 项目落地能力',desc:'工具链、部署、数据、工程化',skills:['推理部署','向量库','数据清洗','监控'],how:'把一个项目真正部署上线，跑通全链路',where:'官方部署文档 / 云平台',goal:'能把模型服务跑到上线并稳定运行'}
+    ]},
+    '前端开发': { intro:'Web 前端开发岗，重交互实现与工程化。', levels:[
+      {lv:1,name:'基础 · HTML / CSS / JS',desc:'页面结构、样式、脚本语言与 ES6',skills:['HTML','CSS','JavaScript','ES6'],how:'临摹真实网页，先把一个页面做到 1:1',where:'MDN / 阮一峰教程',goal:'能还原一个中等复杂度的设计稿'},
+      {lv:2,name:'核心 · 框架与工程化',desc:'Vue / React、构建工具、模块化',skills:['Vue/React','Vite/Webpack','模块化','路由'],how:'用框架做一个完整项目（含接口联调）',where:'官方文档 / 掘金',goal:'能独立开发一个 SPA 应用'},
+      {lv:3,name:'进阶 · 性能与原理',desc:'浏览器渲染、性能优化、框架源码',skills:['浏览器原理','性能优化','源码阅读'],how:'读框架源码 + 用 DevTools 做性能分析',where:'源码 / Chrome DevTools 文档',goal:'能把页面优化到秒开、能定位性能瓶颈'},
+      {lv:4,name:'工程 · 协作与质量',desc:'Git、测试、CI/CD、代码规范',skills:['Git','单测','CI/CD','规范'],how:'参与开源或团队项目，走一遍提交流程',where:'GitHub / 团队实践',goal:'能规范协作并保障上线质量'}
+    ]},
+    '后端开发': { intro:'服务端开发岗，重系统设计与稳定性。', levels:[
+      {lv:1,name:'基础 · 语言与计算机基础',desc:'一门主力语言、数据结构、算法、操作系统',skills:['Java/Go','数据结构','算法','操作系统'],how:'刷题 + 读教材，打牢底层功底',where:'LeetCode / 《深入理解计算机系统》',goal:'能手写常见算法题并通过笔试'},
+      {lv:2,name:'核心 · 数据库与网络',desc:'MySQL、Redis、TCP/IP、HTTP',skills:['MySQL','Redis','TCP/IP','HTTP'],how:'动手搭环境、造数据、压测',where:'官方文档 / 极客时间',goal:'能设计表结构、排查慢查询'},
+      {lv:3,name:'进阶 · 分布式与中间件',desc:'消息队列、分布式事务、微服务',skills:['MQ','分布式事务','微服务','注册中心'],how:'读源码 + 做一个小型分布式项目',where:'开源项目 / 官方文档',goal:'能设计一个高可用服务架构'},
+      {lv:4,name:'工程 · 系统设计与落地',desc:'高并发、缓存、限流、监控',skills:['高并发','缓存设计','限流','监控告警'],how:'参与真实项目并复盘每次故障',where:'工作实践 / 技术博客',goal:'能独立负责一个线上服务'}
+    ]},
+    '产品经理': { intro:'产品岗，重需求判断与推动落地。', levels:[
+      {lv:1,name:'基础 · 产品认知',desc:'需求分析、用户调研、竞品分析',skills:['需求分析','用户调研','竞品分析'],how:'拆解 10 个 App，各写一份分析',where:'人人都是产品经理 / 竞品官网',goal:'能写出一份合格的产品分析'},
+      {lv:2,name:'核心 · 文档与原型',desc:'PRD、原型工具、流程图',skills:['PRD','Axure/Figma','流程图'],how:'完整写一份 PRD + 画出原型',where:'Axure / Figma',goal:'能独立产出可评审的 PRD'},
+      {lv:3,name:'进阶 · 数据与增长',desc:'数据分析、A/B 测试、增长模型',skills:['数据分析','A/B 测试','增长模型'],how:'用真实数据写分析报告',where:'SQL 教程 / 增长类书籍',goal:'能基于数据提出产品决策'},
+      {lv:4,name:'项目 · 推动与落地',desc:'项目管理、跨部门协作',skills:['项目管理','跨部门协作','复盘'],how:'跟一个真实项目走完全流程',where:'团队实践',goal:'能推动一个需求从 0 到上线'}
+    ]},
+    '数据分析': { intro:'数据分析岗，重取数、分析与业务洞察。', levels:[
+      {lv:1,name:'基础 · 统计与 Excel',desc:'描述统计、Excel / 透视表',skills:['描述统计','Excel','透视表'],how:'拿真实数据集练手',where:'Kaggle / Excel 教程',goal:'能做基础数据汇总与可视化'},
+      {lv:2,name:'核心 · SQL 与数据库',desc:'查询、聚合、窗口函数',skills:['SQL','聚合','窗口函数'],how:'刷 SQL 题，直到能独立取数',where:'LeetCode SQL / 牛客',goal:'能独立取数并回答业务问题'},
+      {lv:3,name:'进阶 · Python 分析',desc:'pandas、numpy、可视化',skills:['pandas','numpy','可视化'],how:'做完整的分析项目并写报告',where:'Kaggle / pandas 文档',goal:'能完成一份数据分析报告'},
+      {lv:4,name:'业务 · 指标体系与洞察',desc:'指标体系、归因、专题报告',skills:['指标体系','归因分析','报告'],how:'结合业务做专题分析',where:'业务实践',goal:'能输出有洞察的分析并推动决策'}
+    ]},
+    '算法工程师': { intro:'算法岗，重模型能力与工程落地。', levels:[
+      {lv:1,name:'基础 · 数学与编程',desc:'数学基础、Python、数据结构',skills:['数学','Python','数据结构'],how:'系统补数学 + 刷编程题',where:'《统计学习方法》/ LeetCode',goal:'能看懂论文公式并实现基础算法'},
+      {lv:2,name:'核心 · 机器学习',desc:'经典算法、特征工程、模型评估',skills:['经典算法','特征工程','模型评估'],how:'复现经典算法 + 打比赛',where:'sklearn 文档 / Kaggle',goal:'能独立完成一个建模任务'},
+      {lv:3,name:'进阶 · 深度学习',desc:'CNN / RNN / Transformer、框架',skills:['CNN','RNN','Transformer','PyTorch'],how:'复现论文模型 + 做项目',where:'《动手学深度学习》/ arXiv',goal:'能复现并改进一个深度模型'},
+      {lv:4,name:'工程 · 模型落地',desc:'部署、推理加速、效果评估',skills:['模型部署','推理加速','A/B 评估'],how:'把一个模型真正上线跑起来',where:'官方部署文档 / 云平台',goal:'能把模型落地到线上并持续迭代'}
+    ]}
+  };
+
+  const SKILL_ROLES = Object.keys(SKILLMAP);
+  let skillProgress = {};
+  try{ skillProgress = JSON.parse(localStorage.getItem('zm_skill_progress')||'{}'); }catch(e){ skillProgress={}; }
+  function saveSkillProgress(){ try{ localStorage.setItem('zm_skill_progress', JSON.stringify(skillProgress)); }catch(e){} }
+  function isDone(role,lv){ return (skillProgress[role]||[]).includes(lv); }
+  function toggleDone(role,lv){
+    const arr = skillProgress[role]||[];
+    skillProgress[role] = arr.includes(lv) ? arr.filter(x=>x!==lv) : arr.concat(lv);
+    saveSkillProgress();
+  }
+  let curRole = 'AGI 工程师';
+
+  function renderPresets(){
+    const box = document.getElementById('rolePreset');
+    if(!box) return;
+    box.innerHTML = SKILL_ROLES.map(r=>`<span class="chip ${r===curRole?'active':''}" data-role="${r}">${r}</span>`).join('');
+    box.querySelectorAll('[data-role]').forEach(c=>c.addEventListener('click',()=>{
+      curRole = c.dataset.role; renderPresets(); renderSkillTree();
+    }));
+  }
+
+  function renderSkillTree(){
+    const tree = document.getElementById('skillTree');
+    const hint = document.getElementById('roleHint');
+    if(!tree) return;
+    const role = curRole, data = SKILLMAP[role];
+    if(!data){
+      hint.innerHTML = `未找到「<b>${role}</b>」的图谱，选一个相近岗位：`;
+      tree.innerHTML = `<div class="skill-empty"><h4>暂无该岗位数据</h4>
+        <p>内置图谱还在扩充中，先选一个相近岗位看拆解。</p>
+        <div>${SKILL_ROLES.map(r=>`<span class="chip" data-role="${r}">${r}</span>`).join('')}</div></div>`;
+      tree.querySelectorAll('[data-role]').forEach(c=>c.addEventListener('click',()=>{
+        curRole=c.dataset.role; renderPresets(); renderSkillTree();
+      }));
+      return;
+    }
+    const total = data.levels.length;
+    const done = data.levels.filter(l=>isDone(role,l.lv)).length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    hint.innerHTML = `当前：<b>${role}</b> — ${data.intro}`;
+    tree.innerHTML = `
+      <div class="skill-head">
+        <h3><span class="role-name">${role}</span> · 技能地图</h3>
+        <button class="tree-reset" id="skillReset">重置进度</button>
+        <div class="skill-progress"><div class="bar"><i style="width:${pct}%"></i></div><span class="pct">${done}/${total} 已掌握</span></div>
+      </div>
+      ${data.levels.map(l=>{
+        const ok = isDone(role,l.lv);
+        return `<div class="tree-node ${ok?'done':'wait'}" data-lv="${l.lv}" title="点击标记：已掌握 / 待学">
+          <div class="tree-mark">${ok?'✓':l.lv}</div>
+          <div class="tree-body">
+            <div class="tree-name">${l.name} <span class="lv">Lv.${l.lv}</span></div>
+            <div class="tree-desc">${l.desc}</div>
+            <div class="tree-skills">${l.skills.map(s=>`<span>${s}</span>`).join('')}</div>
+            <div class="tree-learn">
+              <div><b>怎么学：</b>${l.how}</div>
+              <div><b>去哪学：</b>${l.where}</div>
+              <div><b>达标：</b>${l.goal}</div>
+            </div>
+          </div>
+          <div class="tree-status">${ok?'已掌握':'待学'}</div>
+        </div>`;
+      }).join('')}`;
+    tree.querySelectorAll('.tree-node').forEach(n=>n.addEventListener('click',()=>{
+      toggleDone(role, Number(n.dataset.lv)); renderSkillTree();
+    }));
+    const rs = document.getElementById('skillReset');
+    if(rs) rs.addEventListener('click', e=>{ e.stopPropagation(); skillProgress[role]=[]; saveSkillProgress(); renderSkillTree(); });
+  }
+
+  function skillSearch(){
+    const input = document.getElementById('roleInput');
+    const q = (input?.value||'').trim();
+    if(!q) return;
+    const hit = SKILL_ROLES.find(r=>r.includes(q) || q.includes(r));
+    if(hit){ curRole = hit; }
+    else{
+      const kw = {'前端':'前端开发','后端':'后端开发','产品':'产品经理','数据':'数据分析','算法':'算法工程师','ai':'AGI 工程师','agi':'AGI 工程师','大模型':'AGI 工程师','人工智能':'AGI 工程师'};
+      const k = Object.keys(kw).find(k=>q.toLowerCase().includes(k));
+      curRole = k ? kw[k] : q;
+    }
+    renderPresets(); renderSkillTree();
+    if(input) input.value='';
+  }
+
+  renderPresets();
+  renderSkillTree();
+  document.getElementById('roleGo')?.addEventListener('click', skillSearch);
+  document.getElementById('roleInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') skillSearch(); });
 </script>
 </body>
 </html>
