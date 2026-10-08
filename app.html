@@ -1058,13 +1058,10 @@
         ${m.id==='star'?'<button class="btn btn-ghost" data-open="star">用 STAR 练一段</button>':''}
       </div>`;
     document.getElementById('methodModal').classList.add('open');
-    // 详情内重新绑定
-    document.querySelectorAll('#methodDetail [data-fav]').forEach(b=>b.addEventListener('click',e=>{
-      const id=b.dataset.fav;
-      if(favs.includes(id)){ favs=favs.filter(x=>x!==id); } else { favs.push(id); }
-      saveFavs(); openMethod(id);
-    }));
-    document.querySelectorAll('#methodDetail [data-open]').forEach(b=>b.addEventListener('click',()=>{
+    // 注意：收藏([data-fav])与关闭由全局事件委托统一处理。
+    // 这里若再直接绑定一次，会与委托重复触发，导致收藏被切换两次（等于没变）。
+    document.querySelectorAll('#methodDetail [data-open]').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
       closeAllModals(); openModal('starModal');
     }));
   }
