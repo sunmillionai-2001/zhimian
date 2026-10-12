@@ -4,11 +4,14 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { createReviewStore } = require('./review-store');
+const { runAi } = require('./ai-service');
 
 const ROOT = __dirname;                              // 本目录即站点根，含 app.html
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
 const DATA_DIR = path.join(ROOT, 'data');                    // 本地数据（已在 .gitignore）
 const PORT = Number(process.env.PORT || 8123);
+const reviewStore = createReviewStore(DATA_DIR);
 
 const DEFAULT_CONFIG = {
   baseUrl: 'https://api.deepseek.com/v1',
@@ -39,11 +42,23 @@ function writeConfig(cfg) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
 }
 function readBody(req) {
-  return new Promise((resolve) => {
-    let raw = '';
-    req.on('data', c => { raw += c; if (raw.length > 5e6) req.destroy(); });
-    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch (e) { resolve({}); } });
-    req.on('error', () => resolve({}));
+  return new Promise((resolve, reject) => {
+    let raw = '', size = 0, tooLarge = false;
+    req.on('data', c => {
+      size += c.length;
+      if (size > 5e6) { tooLarge = true; raw = ''; }
+      else if (!tooLarge) raw += c;
+    });
+    req.on('end', () => {
+      try {
+        if (tooLarge) throw Object.assign(new Error('请求体过大'), { status: 413 });
+        const body = raw ? JSON.parse(raw) : {};
+        if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('需要 JSON 对象');
+        resolve(body);
+      } catch (e) { reject(Object.assign(e, { status: e.status || 400 })); }
+    });
+    req.on('error', reject);
+    req.on('aborted', () => reject(new Error('请求已中止')));
   });
 }
 function sendJson(res, code, obj) {
@@ -55,13 +70,41 @@ function storeFileName(key) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = decodeURIComponent((req.url || '/').split('?')[0]);
+  try {
+  let url;
+  try { url = decodeURIComponent((req.url || '/').split('?')[0]); }
+  catch (e) { return sendJson(res, 400, { error: '非法 URL 编码' }); }
+  if (url.includes('\\') || url.includes('\0') || url.split('/').some(p => p === '.' || p === '..')) {
+    return sendJson(res, 403, { error: '禁止访问该路径' });
+  }
+  if (['POST','DELETE'].includes(req.method) && req.headers.origin && req.headers.origin !== 'http://' + req.headers.host) {
+    return sendJson(res, 403, { error: '只允许同源请求' });
+  }
+
+  // ---------- 面试复盘：记录与首页统计使用同一份服务端数据 ----------
+  if (url === '/api/reviews' && req.method === 'GET') return sendJson(res, 200, reviewStore.list());
+  if (url === '/api/reviews' && req.method === 'POST') {
+    return sendJson(res, 200, reviewStore.add(await readBody(req)));
+  }
+  if (url === '/api/reviews/import' && req.method === 'POST') {
+    const body = await readBody(req);
+    return sendJson(res, 200, reviewStore.import(body.records));
+  }
+  if (url.startsWith('/api/reviews/') && req.method === 'DELETE') {
+    const id = url.slice('/api/reviews/'.length);
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return sendJson(res, 400, { error: '复盘 ID 格式错误' });
+    return sendJson(res, 200, reviewStore.remove(id));
+  }
+
+  if (url.startsWith('/api/ai/') && req.method === 'POST') {
+    return sendJson(res, 200, await runAi(url.slice('/api/ai/'.length), await readBody(req), readConfig()));
+  }
 
   // ---------- 大模型代理（浏览器直连大模型常被 CORS 拦，这里由服务端转发）----------
   if (url === '/api/chat' && req.method === 'POST') {
     const body = await readBody(req);
     const cfg = readConfig();
-    if (!cfg.apiKey) return sendJson(res, 400, { error: '未配置 API Key，请在页面「设置」里填写，或编辑 server.config.json。' });
+    if (!cfg.apiKey) return sendJson(res, 400, { error: '未配置 API Key，请打开「AI 设置」填写，或编辑 server.config.json。' });
     const payload = {
       model: body.model || cfg.model,
       messages: body.messages || [],
@@ -72,6 +115,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const upstream = await fetch(cfg.baseUrl.replace(/\/$/, '') + '/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(60000),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
         body: JSON.stringify(payload)
       });
@@ -94,9 +138,21 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/config' && req.method === 'POST') {
     const body = await readBody(req);
     const cfg = readConfig();
-    if (typeof body.baseUrl === 'string' && body.baseUrl.trim()) cfg.baseUrl = body.baseUrl.trim();
-    if (typeof body.model === 'string' && body.model.trim()) cfg.model = body.model.trim();
-    if (typeof body.apiKey === 'string' && body.apiKey.trim()) cfg.apiKey = body.apiKey.trim();
+    if (body.baseUrl !== undefined) {
+      let parsed;
+      try { parsed = new URL(body.baseUrl); } catch (e) { return sendJson(res, 400, { error: '接口地址格式错误' }); }
+      if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) return sendJson(res, 400, { error: '接口地址需要 HTTP(S)，且不含凭据、查询参数或片段' });
+      cfg.baseUrl = parsed.href.replace(/\/$/, '');
+    }
+    if (body.model !== undefined) {
+      if (typeof body.model !== 'string' || !body.model.trim() || body.model.length > 200) return sendJson(res, 400, { error: '模型名称格式错误' });
+      cfg.model = body.model.trim();
+    }
+    if (body.apiKey !== undefined) {
+      if (typeof body.apiKey !== 'string' || body.apiKey.length > 1000) return sendJson(res, 400, { error: 'Key 格式错误' });
+      if (body.apiKey.trim()) cfg.apiKey = body.apiKey.trim();
+    }
+    if (body.clearKey === true) cfg.apiKey = '';
     writeConfig(cfg);
     return sendJson(res, 200, { ok: true, hasKey: !!cfg.apiKey, baseUrl: cfg.baseUrl, model: cfg.model });
   }
@@ -124,21 +180,22 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ---------- 静态文件 ----------
+  // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const abs = path.join(ROOT, rel);
-  if (!abs.startsWith(ROOT)) { res.writeHead(403); return res.end('403'); }
-  fs.readFile(abs, (err, data) => {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end('404 ' + rel);
-    }
-    res.writeHead(200, {
-      'Content-Type': TYPES[path.extname(abs).toLowerCase()] || 'application/octet-stream',
-      'Cache-Control': 'no-store'
-    });
-    res.end(data);
-  });
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html']);
+  if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
+  const abs = path.resolve(ROOT, '.' + rel);
+  let real;
+  try { real = fs.realpathSync(abs); } catch (e) { return sendJson(res, 404, { error: '页面不存在' }); }
+  if (real !== path.join(fs.realpathSync(ROOT), rel)) return sendJson(res, 403, { error: '禁止访问该路径' });
+  const data = await fs.promises.readFile(real);
+  res.writeHead(200, { 'Content-Type': TYPES[path.extname(real)] || 'application/octet-stream',
+    'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+  res.end(req.method === 'HEAD' ? undefined : data);
+  } catch (e) {
+    if (!res.headersSent && !res.destroyed) sendJson(res, e.status || 500, { error: e.status ? e.message : '服务处理失败' });
+  }
 });
 
 ensureDirs();

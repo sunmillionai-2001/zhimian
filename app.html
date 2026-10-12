@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet" />
 <style>
+  [hidden]{display:none !important}
   :root{
     --paper:#f4eee2;--paper-2:#ede3d0;--card:#fbf6ea;--card-hi:#fffdf6;
     --ink:#211c14;--ink-soft:#5a4f40;--ink-faint:#8a7d6a;
@@ -335,7 +336,9 @@
   .self-rate .chip.on{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
   .mock-history{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
   .mock-history h4{font-family:var(--serif);font-weight:900;font-size:15px;margin-bottom:8px}
-  .mh-item{font-size:13px;color:var(--ink-soft);padding:7px 2px;border-bottom:1px solid var(--line-soft);display:flex;gap:10px}
+  .mh-item{font-size:13px;color:var(--ink-soft);padding:7px 2px;border-bottom:1px solid var(--line-soft);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .mh-item .btn{flex:none;white-space:nowrap}
+  #mockRole{border:1px solid var(--line);border-radius:12px;background:var(--card-hi);font-family:var(--sans);color:var(--ink)}
   .mh-item:last-child{border-bottom:0}
   .mh-item .d{color:var(--ink-faint);font-family:var(--latin);font-style:italic;white-space:nowrap}
 
@@ -420,7 +423,36 @@
     .sb-foot{margin-top:0;border-top:0;padding:0;flex-direction:row;align-items:center;margin-left:auto}
     .sb-copyright{display:none}
     .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid,.job-pool{grid-template-columns:1fr}
+    .stage-actions{flex-wrap:wrap}
+    .stage-actions .btn{flex:none;white-space:nowrap}
+    .stage-actions .hint{width:100%;margin-left:0}
+    .self-rate{flex-wrap:wrap}
   }
+  .sidebar .nav-button{border:0;width:100%;font:500 14.5px/1.6 var(--sans)}
+  .sidebar .nav-button:not(.active){background:transparent}
+  .nav-button{font:inherit;text-align:left;color:inherit;cursor:pointer}
+  .ai-settings{margin:12px 0 24px;border:1px solid var(--line);border-radius:16px;padding:16px 20px;background:var(--card)}
+  .ai-settings summary{font-weight:700;cursor:pointer;min-height:44px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .ai-settings summary span{font-size:12px;color:var(--ink-faint);font-weight:400}
+  .ai-config-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin:14px 0}
+  .resume-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start}
+  .resume-layout .field textarea{min-height:120px}
+  .resume-section,.ai-feedback{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--card-hi);margin-top:16px;overflow-wrap:anywhere}
+  .resume-section h4,.ai-feedback h4{font-family:var(--serif);margin:0 0 12px;font-size:17px}
+  .resume-section blockquote,.ai-feedback blockquote{white-space:pre-wrap;background:var(--paper-2);border-left:3px solid var(--teal);padding:12px;margin:12px 0;color:var(--ink-soft)}
+  .ai-feedback ul,.resume-section ul{padding-left:22px;line-height:1.7}
+  .ai-feedback .meta{font-size:12px;color:var(--ink-faint);margin-top:12px}
+  .ai-scores{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .ai-scores span{font-size:12px;padding:5px 9px;background:var(--paper-2);border-radius:8px}
+  .ai-confirm{display:flex;gap:10px;align-items:flex-start;margin:16px 0;line-height:1.6;font-size:13px}
+  .ai-confirm input{width:20px;height:20px;flex:none}
+  .resume-version{border-top:1px solid var(--line);padding:16px 0}
+  .resume-version pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;color:var(--ink-soft)}
+  button:focus-visible,summary:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+  #resume .btn,#aiSettings .btn,#mockAiBox .btn{min-height:44px}
+  @media(max-width:820px){.resume-layout,.ai-config-grid{grid-template-columns:1fr}.resume-work{min-width:0}.ai-settings{padding:14px}.resume-layout .record-form{padding:18px}}
+  @media(max-width:480px){.main{padding-left:16px;padding-right:16px}.topbar .search{display:none}.topbar{flex-wrap:wrap}.stage-bar{flex-wrap:wrap}.stage-actions{flex-wrap:wrap}.resume-section{padding:14px}}
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -444,6 +476,7 @@
     <div class="nav-item" data-view="skill">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg><span>岗位 → 技能地图</span>
     </div>
+    <button class="nav-item nav-button" data-view="resume" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6zM9 10h6M9 14h6M9 18h4"/></svg><span>简历助手</span></button>
     <div class="nav-item" data-view="mock">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg><span>模拟面试</span>
     </div>
@@ -470,6 +503,17 @@
       <div class="avatar" style="width:40px;height:40px">Z</div>
     </div>
 
+    <details class="ai-settings" id="aiSettings">
+      <summary>AI 设置 <span id="aiConfigState">正在读取配置</span></summary>
+      <p class="mock-note">模拟面试和简历助手共用此连接。点击 AI 操作时，会将填写的材料发送到你配置的模型服务。</p>
+      <div class="ai-config-grid">
+        <div class="field"><label for="aiBaseUrl">兼容接口地址</label><input id="aiBaseUrl" placeholder="https://api.deepseek.com/v1" /></div>
+        <div class="field"><label for="aiModel">模型名称</label><input id="aiModel" placeholder="deepseek-chat" /></div>
+        <div class="field"><label for="aiKey">API Key</label><input id="aiKey" type="password" autocomplete="off" placeholder="留空保留已有 Key" /></div>
+      </div>
+      <div class="paste-actions"><button class="btn btn-primary" id="aiConfigSave">保存配置</button><button class="btn btn-ghost" id="aiConfigTest">测试连接</button><button class="btn btn-ghost" id="aiConfigClear">清除 Key</button></div>
+      <p class="mock-note" id="aiConfigMsg" role="status" aria-live="polite"></p>
+    </details>
     <!-- ===== 总览 ===== -->
     <section class="view active" id="overview">
       <div class="hero">
@@ -481,18 +525,26 @@
           <button class="btn btn-ghost" data-goto="method">今学一个方法论 →</button>
         </div>
       </div>
+      <p class="mock-note" id="overviewDataStatus" role="status" aria-live="polite">正在载入面试复盘数据……</p>
+      <button class="btn btn-ghost" id="reviewRetry" hidden>重新连接复盘数据</button>
       <section class="status-grid">
-        <div class="stat-card"><div class="stat-top"><span class="stat-label">今日进度</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span></div><div class="stat-num">3<small>项待办</small></div><div class="stat-note">还有 <b>2 场</b> 模拟面试待完成</div></div>
-        <div class="stat-card"><div class="stat-top"><span class="stat-label">最近面试</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div><div class="stat-num">8<small>次记录</small></div><div class="stat-note">最近一次：<b>字节后端</b> · 待复盘</div></div>
-        <div class="stat-card"><div class="stat-top"><span class="stat-label">待补技能</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 12l9 5 9-5"/></svg></span></div><div class="stat-num">3<small>个岗位</small></div><div class="stat-note">关注岗位下还有 <b>5 项</b> 技能未学</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">累计面试记录</span></div><div class="stat-num"><span id="overviewTotal">—</span><small>次复盘</small></div><div class="stat-note" id="overviewLatest">暂无数据</div><button class="btn btn-ghost" data-goto="review">记录 / 查看复盘 →</button></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">面试通过率</span></div><div class="stat-num"><span id="overviewPassRate">—</span><small>%</small></div><div class="stat-note" id="overviewResults">仅统计已出结果的面试轮次</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">待补强项</span></div><div class="stat-num"><span id="overviewWeakCount">—</span><small>类薄弱点</small></div><div class="stat-note" id="overviewWeakTop">根据复盘标签汇总</div></div>
+      </section>
+      <section class="record-form" style="margin-top:16px">
+        <h3>最近的面试复盘</h3>
+        <div id="overviewReviews">正在载入……</div>
+        <button class="btn btn-ghost" data-goto="review">查看全部面试复盘 →</button>
       </section>
       <div class="section-head"><h2><span class="num">01–04</span> 核心模块</h2></div>
       <section class="module-grid">
         <div class="mod" data-goto="method"><span class="mod-num">01</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><div><div class="mod-title">面试方法论</div><div class="mod-desc">STAR、讲好项目、一周突击、简历加分……</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">框架</span><span class="tag">思路</span></div></div></div>
         <div class="mod" data-goto="skill"><span class="mod-num">02</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg></span><div><div class="mod-title">岗位 → 技能地图</div><div class="mod-desc">选岗位，拆技能，铺学习路径</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">拆解</span><span class="tag">路径</span></div></div></div>
-        <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">AI 当面试官，按你的目标岗位提问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
+        <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">按岗位练习，AI 点评回答并针对细节追问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
         <div class="mod" data-goto="review"><span class="mod-num">04</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span><div><div class="mod-title">面试复盘</div><div class="mod-desc">记录每次面试，增强补弱</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">记录</span><span class="tag">分析</span></div></div></div>
       </section>
+      <section class="module-grid" style="margin-top:16px"><button class="mod nav-button" data-goto="resume" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">简历助手</div><div class="mod-desc">诊断 → 补事实 → 改写 → 用于模拟面试</div></div></div></button></section>
       <div class="section-head"><h2><span class="num">05</span> 招聘信息</h2></div>
       <section class="module-grid">
         <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息 · 岗位池</div><div class="mod-desc">把想投的岗位攒成池，一键去模拟面试</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">岗位池</span><span class="tag">联动</span></div></div></div>
@@ -587,6 +639,23 @@
       </section>
     </section>
 
+    <!-- ===== 简历助手 ===== -->
+    <section class="view" id="resume">
+      <div class="hero"><span class="eyebrow">Resume Studio</span><h1>从事实开始，<br/>写好你的<em>简历</em>。</h1><p>先看岗位匹配和表达缺口，再补充真实经历，逐段改写。每次采用都保留原文与版本。</p></div>
+      <div class="resume-layout">
+        <section class="record-form">
+          <h3>01 · 简历与目标岗位</h3>
+          <div class="field"><label for="resumeText">粘贴简历正文</label><textarea id="resumeText" rows="12" maxlength="30000" placeholder="粘贴工作经历、项目经历、教育和技能……"></textarea></div>
+          <div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
+          <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
+          <p class="mock-note" id="resumeMsg" role="status" aria-live="polite">正文、补充和改写保存在当前浏览器。</p>
+          <div class="paste-actions"><button class="btn btn-ghost" id="resumeExport">导出当前简历</button><button class="btn btn-ghost" id="resumePractice">用这份简历模拟面试 →</button></div>
+        </section>
+        <section class="resume-work"><div id="resumeResults" class="record-form"><h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p></div></section>
+      </div>
+      <section class="record-form" style="margin-top:20px"><h3>03 · 已采用的简历版本</h3><div id="resumeVersions"><p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p></div></section>
+    </section>
+
     <!-- ===== 模拟面试 ===== -->
     <section class="view" id="mock">
       <div class="hero">
@@ -612,11 +681,23 @@
             <div class="mock-keywords" id="mockKeywords"><span class="kw-none">粘贴 JD 后点「解析关键词」</span></div>
           </div>
           <div>
-            <div class="mock-step-label">③ 题量</div>
+            <div class="mock-step-label">③ 岗位方向与题量</div>
+            <select id="mockRole" aria-label="岗位方向" style="width:100%;padding:10px;margin:8px 0">
+              <option value="auto">自动识别岗位</option>
+              <option>通用</option><option>后端</option><option>前端</option><option>产品</option><option>数据</option><option>算法</option><option>AI</option><option>销售</option><option>售前</option><option>项目</option><option>运营</option>
+            </select>
             <div class="role-preset" id="mockCount"></div>
           </div>
+          <div class="field"><label for="mockProfile">个人简历 / 经历（可选）</label><textarea id="mockProfile" rows="4" maxlength="30000" placeholder="可从简历助手带入，用于个性化点评与追问。"></textarea></div>
           <button class="btn btn-primary" id="mockStart">开始面试 →</button>
-          <p class="mock-note">说明：当前用内置题库做结构化提问（不依赖网络）；接入大模型 API 后可升级为实时智能追问。</p>
+          <p class="mock-note">内置题库可离线练习；作答后可点击 AI 点评，每题最多一次追问。先在「AI 设置」配置模型。</p>
+          <p id="mockStorageMsg" class="mock-note" role="status" aria-live="polite"></p>
+          <div class="paste-actions">
+            <button class="btn btn-ghost" id="mockResume">恢复草稿</button>
+            <button class="btn btn-ghost" id="mockExport">导出面试备份</button>
+            <button class="btn btn-ghost" id="mockImport">导入面试备份</button>
+            <input id="mockImportFile" type="file" accept="application/json,.json" hidden />
+          </div>
           <div class="mock-history" id="mockHistory"></div>
         </div>
         <div class="mock-stage" id="mockStage">
@@ -650,7 +731,7 @@
           <div class="field"><label>薄弱点 / 下次要补的（可多选）</label><div class="tag-pick" id="rvTags"></div></div>
           <div class="field"><label>复盘内容 / 经验</label><textarea id="rvNote" placeholder="问了哪些题？哪些答得好、哪些卡住了？下次怎么改进？"></textarea></div>
           <button class="btn btn-primary" id="rvSave">保存记录</button>
-          <p class="mock-note" id="rvMsg"></p>
+          <p class="mock-note" id="rvMsg" role="status" aria-live="polite"></p>
         </div>
         <div class="record-list">
           <h3>复盘记录 <span id="rvCount" style="font-size:13px;color:var(--ink-faint);font-weight:400"></span></h3>
@@ -704,8 +785,9 @@
 </div>
 
 <script>
-  const views = ['overview','method','skill','mock','review','jobs'];
-  const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
+  const views = ['overview','method','skill','resume','mock','review','jobs'];
+  const initialViewHash=location.hash;
+  const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','resume':'简历助手','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
 
   function go(view){
     views.forEach(v=>{
@@ -715,13 +797,14 @@
     const titleEl = document.getElementById('pageTitle');
     if(titleEl) titleEl.textContent = titles[view];
     if(location.hash !== '#'+view) history.replaceState(null,'','#'+view);
-    window.scrollTo({top:0, behavior:'smooth'});
+    window.scrollTo({top:0, behavior:'instant'});
   }
   // 深链：进入页面时读取 #hash，未指定则回总览
   (function init(){
     const h = (location.hash||'').replace('#','');
     go(views.includes(h) ? h : 'overview');
   })();
+  window.addEventListener('load',()=>requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'})));
   window.addEventListener('hashchange', ()=>{
     const h = (location.hash||'').replace('#','');
     if(views.includes(h)) go(h);
@@ -769,137 +852,255 @@
   ];
   const SAMPLE_JD = '岗位职责：\n1. 负责后端服务的设计与开发，保障高并发场景下的稳定性；\n2. 参与系统架构设计，优化 MySQL、Redis 等存储性能；\n3. 与产品、前端协作，推动需求落地。\n任职要求：\n1. 熟悉 Java/Go，了解 JVM 原理；\n2. 熟悉 MySQL、Redis，有高并发、分布式系统经验；\n3. 有良好的沟通协作能力。';
 
-  let mockFound = [], mockQuestions = [], mockAnswers = [], mockIdx = 0;
-  let mockTimer = null, mockSec = 0, mockCount = 8, mockSelfRate = '';
-
-  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
+  const GENERAL_QUESTIONS = [
+    ['岗位动机','你为什么想做这个岗位？你的哪些经历能证明匹配度？',['结合岗位职责','用具体经历证明','说明希望创造的价值']],
+    ['问题解决','讲一次你遇到复杂问题并解决它的经历。',['定义问题','解释方案取舍','给出结果与反思']],
+    ['优先级','同时有几件紧急任务时，你如何安排优先级？',['明确目标与影响','评估时间和依赖','及时同步取舍']],
+    ['协作沟通','讲一次你与同事意见不同的经历，你如何推进？',['描述分歧','使用事实沟通','说明共同结果']],
+    ['失败复盘','讲一次没有达到预期的经历，你后来做了什么改变？',['承担自己的责任','找到原因','说明改进验证']],
+    ['学习能力','进入一个陌生领域，你如何快速达到工作要求？',['定位知识差距','安排实践反馈','证明学习成果']],
+    ['结果衡量','你如何判断自己的工作产生了价值？',['明确业务目标','解释指标口径','区分个人贡献']],
+    ['压力应对','面临时间紧、资源不足的任务时，你会怎么做？',['拆出最小交付','提前沟通风险','安排备用方案']],
+    ['入职计划','如果入职这个岗位，前一个月你会如何开展工作？',['了解业务和团队','明确岗位目标','制定可验证计划']]
+  ].map(([topic,q,points])=>({topic,q,points,general:true}));
+  const TOPIC_ROLES = {
+    'Redis':['后端'], 'MySQL':['后端'], 'Java / JVM':['后端'], 'Python':['后端','算法','AI'],
+    '前端框架':['前端'], '算法与数据结构':['后端','前端','算法','AI'], '系统设计':['后端','AI'],
+    '机器学习 / 深度学习':['算法','AI'], '大模型 / LLM':['AI'], '产品思维':['产品'], '数据分析':['数据','运营']
+  };
+  const ROLE_RULES = [
+    ['后端',/后端|java\s*(开发|工程师)|服务端/i],['前端',/前端|frontend/i],
+    ['产品',/产品经理|产品设计|产品运营经理/i],['数据',/数据分析|数据工程师/i],
+    ['AI',/大模型|AGI|AI\s*工程师|人工智能|LLM/i],['算法',/算法工程师|机器学习/i],
+    ['售前',/售前/i],['销售',/销售/i],['项目',/项目经理/i],['运营',/运营/i]
+  ];
+  let mockFound=[], mockQuestions=[], mockAnswers=[], mockIdx=0;
+  let mockTimer=null, mockSec=0, mockCount=8, mockSelfRate='', mockSession=null, mockRole='通用', mockAiBusy=false;
+  const MOCK_KEY='zm_mock_store_v2';
+  let mockStore={schemaVersion:2,records:[],draft:null};
+  let mockStorageBlocked=false;
+  function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function storageMsg(t){ const el=document.getElementById('mockStorageMsg'); if(el) el.textContent=t; }
+  function validRecord(r, draft=false){
+    const str=(v,max=200000)=>typeof v==='string' && v.length<=max;
+    if(!r || typeof r!=='object' || Array.isArray(r) || !str(r.date,100) || !Number.isInteger(r.count) || r.count<1 || r.count>12 || !str(r.rate,100)) return false;
+    if(!Array.isArray(r.keywords) || r.keywords.length>30 || !r.keywords.every(k=>str(k,200))) return false;
+    if(r.legacy===true) return !draft && str(r.id,100);
+    if(r.roleSelection!==undefined && !['auto','通用',...ROLE_RULES.map(x=>x[0])].includes(r.roleSelection))return false;
+    if(r.schemaVersion!==2 || !str(r.id,100) || !str(r.jd) || !str(r.role,100) || !['active','report','saved'].includes(r.status)) return false;
+    if(!Array.isArray(r.questions) || r.questions.length!==r.count || !r.questions.every(q=>q && str(q.topic,200) && str(q.q,5000) && Array.isArray(q.points) && q.points.length<=20 && q.points.every(p=>str(p,5000)))) return false;
+    if(r.resume!==undefined&&!str(r.resume,30000))return false;
+    if(r.ai!==undefined&&(!Array.isArray(r.ai)||r.ai.length!==r.count||!r.ai.every((e,i)=>validAiEntry(e,r.answers?.[i]||''))))return false;
+    return Array.isArray(r.answers) && r.answers.length===r.count && r.answers.every(a=>str(a)) &&
+      Array.isArray(r.durations) && r.durations.length===r.count && r.durations.every(n=>Number.isFinite(n)&&n>=0&&n<=1e9) &&
+      Number.isInteger(r.index) && r.index>=0 && r.index<r.count && (!draft || r.status!=='saved');
+  }
+  function validStore(v){ return v && v.schemaVersion===2 && Array.isArray(v.records) && v.records.length<=10000 && v.records.every(r=>validRecord(r)) && (v.draft===null || validRecord(v.draft,true)); }
+  function writeMockStore(next){
+    if(mockStorageBlocked){ storageMsg('面试存储格式异常，已停止覆盖原数据。请先导出备份并检查。'); return false; }
+    try{ localStorage.setItem(MOCK_KEY,JSON.stringify(next)); mockStore=next; storageMsg('已保存到当前浏览器；换设备前请导出面试备份。'); return true; }
+    catch(e){ storageMsg('保存失败：浏览器存储不可用或空间不足。请立即导出面试备份。'); return false; }
+  }
+  function loadMockStore(){
+    try{
+      const raw=localStorage.getItem(MOCK_KEY);
+      if(raw){ const v=JSON.parse(raw); if(!validStore(v)) throw new Error('格式异常'); mockStore=v; }
+      else{
+        const old=JSON.parse(localStorage.getItem('zm_mock_history')||'[]');
+        if(!Array.isArray(old)) throw new Error('旧记录格式异常');
+        const records=old.map((r,i)=>({...r,id:'legacy-'+i,legacy:true,keywords:r.keywords||[]}));
+        if(!records.every(r=>validRecord(r))) throw new Error('旧记录格式异常');
+        mockStore.records=records; // 旧摘要原样保留；原始存储键也不删除。
+      }
+    }catch(e){ mockStorageBlocked=true; storageMsg('无法读取面试存储，原数据已保留。请导出备份检查后再使用。'); }
+  }
+  function detectRole(jd){
+    const title=(jd||'').split('\n').slice(0,2).join(' ').slice(0,160);
+    const hits=ROLE_RULES.map(([role,re])=>({role,index:title.search(re)})).filter(x=>x.index>=0).sort((a,b)=>a.index-b.index);
+    return hits[0]?.role || '通用';
+  }
   function parseJd(){
-    const jd = (document.getElementById('mockJd')?.value||'').toLowerCase();
-    mockFound = [];
-    if(jd.trim()){
-      QUIZ_BANK.forEach(item=>{
-        if(!item.keys) return;
-        if(item.keys.some(k=>jd.includes(k.toLowerCase()))) mockFound.push(item.topic);
-      });
-    }
-    renderKeywords();
-    return mockFound;
+    const jd=(document.getElementById('mockJd')?.value||'').toLowerCase();
+    const selection=document.getElementById('mockRole')?.value||'auto';
+    mockRole=selection==='auto'?detectRole(jd):selection;
+    mockFound=QUIZ_BANK.filter(item=>item.keys && (!TOPIC_ROLES[item.topic] || mockRole==='通用' || TOPIC_ROLES[item.topic].includes(mockRole)) && item.keys.some(k=>jd.includes(k.toLowerCase()))).map(item=>item.topic);
+    renderKeywords();return mockFound;
   }
   function renderKeywords(){
-    const box = document.getElementById('mockKeywords'); if(!box) return;
-    if(!mockFound.length){ box.innerHTML='<span class="kw-none">未识别到关键词，可直接开始（将使用通用题）</span>'; return; }
-    box.innerHTML = mockFound.map(t=>`<span class="kw hit">${t}</span>`).join('');
+    const box=document.getElementById('mockKeywords'); if(!box)return;
+    box.innerHTML=`<span class="kw">岗位：${esc(mockRole)}</span>`+mockFound.map(t=>`<span class="kw hit">${esc(t)}</span>`).join('')+(mockFound.length?'':'<span class="kw-none">未识别专业关键词，将使用通用行为题；可手动选择岗位方向。</span>');
   }
   function buildQuestions(){
-    const opening = QUIZ_BANK.filter(i=>i.always && !i.topic.includes('反问'));
-    const closing = QUIZ_BANK.filter(i=>i.topic.includes('反问'));
-    const matched = QUIZ_BANK.filter(i=>i.keys && mockFound.includes(i.topic));
-    const others  = QUIZ_BANK.filter(i=>i.keys && !mockFound.includes(i.topic));
-    let list = opening.concat(matched);
-    const pool = others.slice();
-    while(list.length < mockCount-1 && pool.length) list.push(pool.shift());
-    list = list.slice(0, Math.max(1, mockCount-1));
-    return list.concat(closing);
+    const opening=QUIZ_BANK.filter(i=>i.always&&!i.topic.includes('反问'));
+    const closing=QUIZ_BANK.filter(i=>i.topic.includes('反问'));
+    const matched=QUIZ_BANK.filter(i=>i.keys&&mockFound.includes(i.topic));
+    const general=GENERAL_QUESTIONS.filter(i=>i.topic!=='协作沟通'||!mockFound.includes('团队协作'));
+    return opening.concat(matched,general).slice(0,mockCount-1).concat(closing).map(q=>({topic:q.topic,q:q.q,points:q.points.slice()}));
   }
   function renderMockCount(){
-    const box = document.getElementById('mockCount'); if(!box) return;
-    box.innerHTML = [5,8,12].map(n=>`<span class="chip ${n===mockCount?'active':''}" data-n="${n}">${n} 题</span>`).join('');
-    box.querySelectorAll('[data-n]').forEach(c=>c.addEventListener('click',()=>{ mockCount=Number(c.dataset.n); renderMockCount(); }));
+    const box=document.getElementById('mockCount');if(!box)return;
+    box.innerHTML=[5,8,12].map(n=>`<button class="chip ${n===mockCount?'active':''}" data-n="${n}">${n} 题</button>`).join('');
+    box.querySelectorAll('[data-n]').forEach(c=>c.addEventListener('click',()=>{mockCount=Number(c.dataset.n);renderMockCount();}));
   }
+  function displayMockDate(date){const d=new Date(date);return Number.isNaN(d.getTime())?date:d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
   function renderMockHistory(){
-    const box = document.getElementById('mockHistory'); if(!box) return;
-    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('zm_mock_history')||'[]'); }catch(e){}
-    if(!hist.length){ box.innerHTML=''; return; }
-    box.innerHTML = '<h4>练习记录</h4>' + hist.map(h=>`<div class="mh-item"><span class="d">${h.date}</span><span>${h.count} 题 · 自评 ${h.rate}</span></div>`).join('');
+    const box=document.getElementById('mockHistory');if(!box)return;
+    box.innerHTML='<h4>练习记录</h4>'+mockStore.records.map((h,i)=>`<div class="mh-item"><span class="d">${esc(displayMockDate(h.date))}</span><span>${h.count} 题 · ${esc(h.rate)}</span>${h.legacy?'<span>旧版摘要（未保存回答）</span>':`<button class="btn btn-ghost" data-history="${i}">查看报告</button>`}</div>`).join('');
+    box.querySelectorAll('[data-history]').forEach(b=>b.addEventListener('click',()=>viewHistory(Number(b.dataset.history))));
+    const resume=document.getElementById('mockResume');if(resume)resume.disabled=!mockStore.draft;
   }
-  function updateClock(){
-    const el=document.getElementById('mockClock'); if(!el) return;
-    el.textContent = String(Math.floor(mockSec/60)).padStart(2,'0')+':'+String(mockSec%60).padStart(2,'0');
+  function updateClock(){ const el=document.getElementById('mockClock');if(el)el.textContent=String(Math.floor(mockSec/60)).padStart(2,'0')+':'+String(mockSec%60).padStart(2,'0'); }
+  let mockTick=0;
+  function startTimer(){stopTimer();mockTick=Date.now();updateClock();mockTimer=setInterval(()=>{captureTime();updateClock();if(mockSec%5===0)persistDraft();},1000);}
+  function captureTime(){if(mockTick){const now=Date.now(),n=Math.floor((now-mockTick)/1000);mockSec+=n;mockTick+=n*1000;}}
+  function stopTimer(){captureTime();if(mockTimer)clearInterval(mockTimer);mockTimer=null;mockTick=0;}
+  function snapshot(){
+    if(!mockSession)return null;
+    captureTime();mockSession.durations[mockIdx]=mockSec;
+    return {...mockSession,index:mockIdx,questions:mockQuestions,answers:mockAnswers.slice(),rate:mockSelfRate||'未评',keywords:mockSession.keywords.slice()};
   }
-  function startTimer(){ stopTimer(); mockSec=0; updateClock(); mockTimer=setInterval(()=>{ mockSec++; updateClock(); },1000); }
-  function stopTimer(){ if(mockTimer){ clearInterval(mockTimer); mockTimer=null; } }
-
+  function persistDraft(){
+    if(!mockSession || mockSession.status==='saved')return false;
+    const r=snapshot();return writeMockStore({...mockStore,draft:r});
+  }
   function startMock(){
-    if(!mockFound.length) parseJd();
-    mockQuestions = buildQuestions();
-    mockAnswers = new Array(mockQuestions.length).fill('');
-    mockIdx = 0; mockSec = 0; mockSelfRate = '';
-    renderQuestion();
+    if(mockAiBusy){storageMsg('AI 正在点评，请稍候。');return;}
+    if(mockStorageBlocked){storageMsg('原数据异常，请先导出备份检查。');return;}
+    if(mockStore.draft && !confirm('开始新面试会替换当前草稿。建议先导出备份。继续吗？'))return;
+    stopTimer();parseJd();mockQuestions=buildQuestions();mockAnswers=new Array(mockQuestions.length).fill('');mockIdx=0;mockSec=0;mockSelfRate='';
+    mockSession={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:document.getElementById('mockJd').value.trim(),role:mockRole,roleSelection:document.getElementById('mockRole').value,resume:document.getElementById('mockProfile').value.trim(),ai:Array(mockQuestions.length).fill(null),count:mockQuestions.length,keywords:mockFound.slice(),durations:new Array(mockQuestions.length).fill(0),status:'active'};
+    persistDraft();renderQuestion();renderMockHistory();
   }
   function renderQuestion(){
-    const stage = document.getElementById('mockStage'); if(!stage) return;
-    const total = mockQuestions.length;
-    stage.innerHTML = `
-      <div class="stage-bar">
-        <div class="who">面</div>
-        <div><div class="who-name">面试官 · 业务负责人</div><div class="who-sub">围绕你的岗位与简历</div></div>
-        <div class="stage-timer"><span class="step">第 ${mockIdx+1}/${total} 题</span><span class="t" id="mockClock">00:00</span></div>
-      </div>
-      <div class="stage-body" id="mockBody">
-        ${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`
-          <div class="q-card"><div class="q-topic">${q.topic}</div><div class="q-text">${q.q}</div></div>
-          ${mockAnswers[i] ? `<div class="a-card">${esc(mockAnswers[i])}</div>` : ''}`).join('')}
-      </div>
-      <div class="stage-foot">
-        <textarea id="mockA" placeholder="写下你的回答要点……（先在脑中讲一遍，再记要点）"></textarea>
-        <div class="stage-actions">
-          <button class="btn btn-primary" id="mockNext">${mockIdx===total-1?'结束并生成报告':'下一题 →'}</button>
-          <button class="btn btn-ghost" id="mockSkip">跳过</button>
-          <span class="hint">计时用于感受自己的表达节奏</span>
-        </div>
-      </div>`;
-    const a = document.getElementById('mockA');
-    a.value = mockAnswers[mockIdx] || '';
-    a.focus();
-    const next = ()=>{ mockAnswers[mockIdx] = a.value.trim();
-      if(mockIdx===total-1){ stopTimer(); renderReport(); } else { mockIdx++; renderQuestion(); } };
-    document.getElementById('mockNext').addEventListener('click', next);
-    document.getElementById('mockSkip').addEventListener('click', ()=>{ a.value=''; next(); });
-    const body = document.getElementById('mockBody'); if(body) body.scrollTop = body.scrollHeight;
-    startTimer();
+    const stage=document.getElementById('mockStage');if(!stage)return;
+    stage.innerHTML=`<div class="stage-bar"><div class="who">面</div><div><div class="who-name">面试官 · 业务负责人</div><div class="who-sub">${esc(mockSession.role)} · 内置题库</div></div><div class="stage-timer"><span class="step">第 ${mockIdx+1}/${mockQuestions.length} 题</span><span class="t" id="mockClock"></span></div></div>
+      <div class="stage-body" id="mockBody">${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`<div class="q-card"><div class="q-topic">${esc(q.topic)}</div><div class="q-text">${esc(q.q)}</div></div>${mockAnswers[i]?`<div class="a-card">${esc(mockAnswers[i])}</div>`:''}`).join('')}</div>
+      <div class="stage-foot"><textarea id="mockA" aria-label="本题回答" placeholder="写下你的回答要点……"></textarea><div class="stage-actions"><button class="btn btn-primary" id="mockNext">${mockIdx===mockQuestions.length-1?'结束并生成报告':'下一题 →'}</button><button class="btn btn-ghost" id="mockSkip">跳过</button><span class="hint">回答自动保存，可刷新后恢复</span></div><div id="mockAiBox"></div></div>`;
+    const a=document.getElementById('mockA');a.value=mockAnswers[mockIdx]||'';a.focus();
+    a.addEventListener('input',()=>{mockAnswers[mockIdx]=a.value;if(mockSession.ai)mockSession.ai[mockIdx]=null;persistDraft();renderMockAi();});
+    const next=()=>{if(mockAiBusy)return;mockAnswers[mockIdx]=a.value;stopTimer();mockSession.durations[mockIdx]=mockSec;
+      if(mockIdx===mockQuestions.length-1){mockSession.status='report';persistDraft();renderReport();}
+      else{mockIdx++;mockSec=mockSession.durations[mockIdx];persistDraft();renderQuestion();}};
+    document.getElementById('mockNext').addEventListener('click',next);
+    document.getElementById('mockSkip').addEventListener('click',()=>{a.value='';next();});
+    renderMockAi();const body=document.getElementById('mockBody');if(body)body.scrollTop=body.scrollHeight;startTimer();
+  }
+  function reportHtml(r){
+    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div><details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
+      r.questions.map((q,i)=>`<div class="report-item"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div><div class="ri-a ${r.answers[i]?'':'empty'}" style="white-space:pre-wrap">${esc(r.answers[i]||'（未作答）')}</div><div class="sub">本题 ${r.durations[i]} 秒</div><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${esc(p)}</div>`).join('')}</div>${reportAiHtml(r.ai?.[i])}</div>`).join('');
   }
   function renderReport(){
-    const stage = document.getElementById('mockStage'); if(!stage) return;
-    stage.innerHTML = `
-      <div class="report">
-        <h3>面试报告</h3>
-        <div class="sub">共 ${mockQuestions.length} 题 · 对照每题「答题要点参考」自查，看哪里需要补强。</div>
-        ${mockQuestions.map((q,i)=>`
-          <div class="report-item">
-            <div class="ri-q"><b>Q${i+1}</b><span>${q.q}</span></div>
-            <div class="ri-a ${mockAnswers[i]?'':'empty'}">${mockAnswers[i]?esc(mockAnswers[i]):'（未作答）'}</div>
-            <div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${p}</div>`).join('')}</div>
-          </div>`).join('')}
-        <div class="self-rate" id="mockRate"><span>本次自评：</span>
-          ${['优秀','良好','待提高'].map(r=>`<span class="chip" data-rate="${r}">${r}</span>`).join('')}</div>
-        <div class="report-actions">
-          <button class="btn btn-primary" id="mockSave">保存记录</button>
-          <button class="btn btn-ghost" id="mockRetry">再练一次</button>
-        </div>
-      </div>`;
-    document.querySelectorAll('#mockRate [data-rate]').forEach(c=>c.addEventListener('click',()=>{
-      mockSelfRate = c.dataset.rate;
-      document.querySelectorAll('#mockRate [data-rate]').forEach(x=>x.classList.toggle('on', x.dataset.rate===mockSelfRate));
-    }));
-    document.getElementById('mockSave').addEventListener('click', saveMock);
-    document.getElementById('mockRetry').addEventListener('click', startMock);
+    const r=snapshot(),saved=mockSession.status==='saved',stage=document.getElementById('mockStage');if(!stage)return;
+    stage.innerHTML=`<div class="report">${reportHtml(r)}<div class="self-rate" id="mockRate"><span>本次自评：</span>${['优秀','良好','待提高'].map(rate=>`<button class="chip ${rate===mockSelfRate?'on':''}" data-rate="${rate}" ${saved?'disabled':''}>${rate}</button>`).join('')}</div><div class="report-actions"><button class="btn btn-primary" id="mockSave" ${saved?'disabled':''}>${saved?'已保存 ✓':'保存记录'}</button><button class="btn btn-ghost" id="mockRetry">再练一次</button></div></div>`;
+    document.querySelectorAll('#mockRate [data-rate]').forEach(c=>c.addEventListener('click',()=>{mockSelfRate=c.dataset.rate;persistDraft();renderReport();}));
+    document.getElementById('mockSave').addEventListener('click',saveMock);document.getElementById('mockRetry').addEventListener('click',startMock);
   }
   function saveMock(){
-    let hist=[]; try{ hist=JSON.parse(localStorage.getItem('zm_mock_history')||'[]'); }catch(e){}
-    const rec = {date:new Date().toLocaleDateString('zh-CN'), count:mockQuestions.length, rate:mockSelfRate||'未评', keywords:mockFound.slice(0,3)};
-    hist.unshift(rec); hist = hist.slice(0,8);
-    try{ localStorage.setItem('zm_mock_history', JSON.stringify(hist)); }catch(e){}
-    renderMockHistory();
-    const btn = document.getElementById('mockSave');
-    if(btn){ btn.textContent='已保存 ✓'; btn.disabled=true; }
+    const rec={...snapshot(),status:'saved'};
+    const records=[rec,...mockStore.records.filter(r=>r.id!==rec.id)];
+    if(writeMockStore({...mockStore,records,draft:null})){mockSession.status='saved';renderMockHistory();renderReport();}
+  }
+  function resumeDraft(){
+    if(mockAiBusy)return;
+    if(mockSession && mockSession.status!=='saved' && !persistDraft())return;
+    const r=mockStore.draft;if(!r)return;stopTimer();mockSession=JSON.parse(JSON.stringify(r));mockQuestions=mockSession.questions;mockAnswers=mockSession.answers;mockIdx=r.index;mockSec=r.durations[mockIdx];mockSelfRate=r.rate==='未评'?'':r.rate;mockFound=r.keywords.slice();mockRole=r.role;mockCount=r.count;
+    document.getElementById('mockJd').value=r.jd;document.getElementById('mockProfile').value=r.resume||'';document.getElementById('mockRole').value=r.roleSelection||'auto';renderKeywords();renderMockCount();
+    if(r.status==='report')renderReport();else renderQuestion();
+  }
+  function viewHistory(i){
+    if(mockAiBusy)return;
+    if(mockSession?.status==='active'||mockSession?.status==='report'){stopTimer();if(!persistDraft()){startTimer();return;}}mockSession=null;
+    const r=mockStore.records[i];if(!r||r.legacy)return;
+    document.getElementById('mockStage').innerHTML=`<div class="report">${reportHtml(r)}<p>自评：${esc(r.rate)}</p><p>可从左侧恢复当前草稿。</p></div>`;
+  }
+  function exportMock(){
+    if(mockSession && mockSession.status!=='saved'){const r=snapshot();mockStore={...mockStore,draft:r};}
+    const data=mockStorageBlocked?{error:'原始存储待检查',raw:localStorage.getItem(MOCK_KEY),legacy:localStorage.getItem('zm_mock_history')}:mockStore;
+    const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='zhimian-interviews-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  async function importMock(file){
+    if(!file)return;
+    try{
+      if(file.size>5e6)throw new Error('备份超过 5 MB');
+      const data=JSON.parse(await file.text());if(!validStore(data))throw new Error('备份格式不正确或版本不支持');
+      if(mockStorageBlocked)throw new Error('当前存储异常，禁止覆盖原数据');
+      if(mockSession && mockSession.status!=='saved' && !persistDraft())return;
+      const known=new Set(mockStore.records.map(r=>r.id));const added=data.records.filter(r=>{if(known.has(r.id))return false;known.add(r.id);return true;});
+      const draft=mockStore.draft||data.draft;
+      const next={schemaVersion:2,records:mockStore.records.concat(added),draft};if(!validStore(next))throw new Error('合并记录超过上限');
+      if(writeMockStore(next)){renderMockHistory();storageMsg(`已导入 ${added.length} 条面试记录；同 ID 记录去重，已有草稿优先保留。`);}
+    }catch(e){storageMsg('导入失败：'+e.message+'。现有记录保持不变。');}
+    document.getElementById('mockImportFile').value='';
+  }
+  function isInterviewEnvelope(data){
+    const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>typeof x==='string'&&x.length<=2000);
+    return !!(data?.meta && typeof data.meta.model==='string' && typeof data.meta.promptVersion==='string' && typeof data.meta.createdAt==='string' && data.result &&
+      ['relevance','structure','evidence','depth'].every(k=>Number.isInteger(data.result.scores?.[k])&&data.result.scores[k]>=0&&data.result.scores[k]<=5) &&
+      ['strengths','gaps','suggestions','evidenceQuotes'].every(k=>strings(data.result[k])) && typeof data.result.followUp==='string'&&data.result.followUp.length<=2000);
+  }
+  function validAiEntry(entry,answer){
+    if(entry===null)return true;
+    return !!(entry && entry.sourceAnswer===answer && typeof entry.followUpAnswer==='string'&&entry.followUpAnswer.length<=12000 &&
+      isInterviewEnvelope(entry.initial)&&entry.initial.result.evidenceQuotes.every(q=>answer.includes(q))&&
+      (entry.final===null||(isInterviewEnvelope(entry.final)&&entry.final.result.evidenceQuotes.every(q=>(answer+'\n'+entry.followUpAnswer).includes(q)))));
+  }
+  function aiFeedbackHtml(envelope,title='AI 点评'){
+    const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
+    return `<div class="ai-feedback"><h4>${esc(title)}</h4><div class="ai-scores">${Object.entries(labels).map(([k,l])=>`<span>${l} ${r.scores[k]}/5</span>`).join('')}</div><p class="mock-note">用于练习参考，不代表录用概率。</p>${[['strengths','优点'],['gaps','缺失'],['suggestions','下一次怎么答']].map(([key,label])=>`<b>${label}</b><ul>${r[key].map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`).join('')}<b>依据你的回答</b>${r.evidenceQuotes.map(q=>`<blockquote>${esc(q)}</blockquote>`).join('')}<div class="meta">${esc(envelope.meta.model)} · 评价标准 ${esc(envelope.meta.promptVersion)}</div></div>`;
+  }
+  function renderMockAi(){
+    const box=document.getElementById('mockAiBox');if(!box||!mockSession)return;
+    const entry=mockSession.ai?.[mockIdx];
+    if(!entry){box.innerHTML='<button class="btn btn-ghost" id="mockAiEvaluate">AI 点评并追问</button><p class="mock-note" id="mockAiMsg" role="status">写下回答后，可请求点评；失败可重试或继续题库练习。</p>';}
+    else{
+      box.innerHTML=aiFeedbackHtml(entry.initial)+`<div class="ai-feedback"><h4>针对性追问</h4><p>${esc(entry.initial.result.followUp)}</p><div class="field"><label for="mockFollowUpAnswer">补充回答</label><textarea id="mockFollowUpAnswer" rows="4" maxlength="12000" ${entry.final?'readonly':''}></textarea></div>${entry.final?aiFeedbackHtml(entry.final,'追问后的点评'):'<button class="btn btn-primary" id="mockAiFollowUp">提交追问并点评</button>'}<p class="mock-note" id="mockAiMsg" role="status">每题最多一次追问；可直接进入下一题。</p></div>`;
+      const field=document.getElementById('mockFollowUpAnswer');field.value=entry.followUpAnswer;
+      field.addEventListener('input',()=>{entry.followUpAnswer=field.value;persistDraft();});
+    }
+    document.getElementById('mockAiEvaluate')?.addEventListener('click',()=>evaluateMock(false));
+    document.getElementById('mockAiFollowUp')?.addEventListener('click',()=>evaluateMock(true));
+  }
+  function setMockAiBusy(busy){
+    mockAiBusy=busy;
+    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockStart','mockResume'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
+  }
+  async function evaluateMock(followUp){
+    if(mockAiBusy||!mockSession)return;
+    const id=mockSession.id,index=mockIdx,answer=mockAnswers[index],entry=mockSession.ai?.[index];
+    const msg=t=>{const el=document.getElementById('mockAiMsg');if(el)el.textContent=t;};
+    if(!answer.trim()){msg('请先填写本题回答。');return;}
+    if(answer.length>12000){msg('AI 点评支持最多 12000 字回答，请精简后重试。');return;}
+    if(followUp && (!entry||!entry.followUpAnswer.trim())){msg('请先填写追问的补充回答。');return;}
+    stopTimer();persistDraft();setMockAiBusy(true);msg('AI 正在阅读回答，最多等待 50 秒……');
+    try{
+      const body={jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',question:mockQuestions[index].q,answer};
+      if(followUp)body.followUp={question:entry.initial.result.followUp,answer:entry.followUpAnswer};
+      const data=await requestAi('interview',body);
+      if(!isInterviewEnvelope(data))throw new Error('点评格式异常，请重试。');
+      if(mockSession?.id!==id||mockIdx!==index||mockAnswers[index]!==answer)return;
+      if(!mockSession.ai)mockSession.ai=Array(mockQuestions.length).fill(null);
+      if(followUp)entry.final=data;else mockSession.ai[index]={sourceAnswer:answer,initial:data,followUpAnswer:'',final:null};
+      persistDraft();renderMockAi();
+    }catch(e){msg(e.message+' 回答已保留，可重试或继续下一题。');}
+    finally{setMockAiBusy(false);if(mockSession?.id===id&&mockSession.status==='active')startTimer();}
+  }
+  function reportAiHtml(entry){
+    if(!entry)return '';
+    return aiFeedbackHtml(entry.initial)+`<div class="ai-feedback"><b>AI 追问</b><p>${esc(entry.initial.result.followUp)}</p><blockquote>${esc(entry.followUpAnswer||'未回答追问')}</blockquote></div>`+(entry.final?aiFeedbackHtml(entry.final,'追问后的点评'):'');
   }
 
-  document.getElementById('mockSample')?.addEventListener('click', ()=>{ document.getElementById('mockJd').value = SAMPLE_JD; parseJd(); });
-  document.getElementById('mockParse')?.addEventListener('click', parseJd);
-  document.getElementById('mockStart')?.addEventListener('click', startMock);
-  renderMockCount();
-  renderMockHistory();
+  document.getElementById('mockSample')?.addEventListener('click',()=>{document.getElementById('mockJd').value=SAMPLE_JD;parseJd();});
+  document.getElementById('mockParse')?.addEventListener('click',parseJd);
+  document.getElementById('mockRole')?.addEventListener('change',parseJd);
+  document.getElementById('mockStart')?.addEventListener('click',startMock);
+  document.getElementById('mockResume')?.addEventListener('click',resumeDraft);
+  document.getElementById('mockExport')?.addEventListener('click',exportMock);
+  document.getElementById('mockImport')?.addEventListener('click',()=>document.getElementById('mockImportFile').click());
+  document.getElementById('mockImportFile')?.addEventListener('change',e=>importMock(e.target.files[0]));
+  window.addEventListener('pagehide',()=>{if(mockSession?.status==='active'||mockSession?.status==='report')persistDraft();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&(mockSession?.status==='active'||mockSession?.status==='report'))persistDraft();});
+  loadMockStore();renderMockCount();renderMockHistory();
+  if(mockStore.draft){if(!initialViewHash||initialViewHash==='#mock')go('mock');resumeDraft();storageMsg('已恢复上次面试草稿。');}
 
   /* ================= 面试方法论 · 完整功能 ================= */
   const METHOD = {
@@ -1604,18 +1805,119 @@
 
   /* ================= 面试复盘 · 完整功能 ================= */
   const REVIEW_TAGS = ['算法手写','系统设计','项目表达','基础知识','沟通表达','心态紧张','简历问题','时间不够'];
-  let rvTags = [], reviews = [];
-  try{ reviews = JSON.parse(localStorage.getItem('zm_reviews')||'[]'); }catch(e){ reviews = []; }
-  function saveReviews(){ try{ localStorage.setItem('zm_reviews', JSON.stringify(reviews)); }catch(e){} }
+  let rvTags = [], reviews = [], reviewSummary = null;
+  let reviewReady = false, reviewBusy = false, pendingReview = null;
+  const reviewApiMode = location.protocol === 'http:' || location.protocol === 'https:';
+  const REVIEW_CACHE = 'zm_reviews_cache_v1';
+  const REVIEW_MIGRATED = 'zm_reviews_api_migrated_v1';
   function rvMsg(t){
-    const el = document.getElementById('rvMsg'); if(!el) return;
-    el.textContent = t; setTimeout(()=>{ el.textContent=''; }, 2200);
+    const el=document.getElementById('rvMsg');if(el)el.textContent=t;
+  }
+  function reviewStatus(text, retry=false){
+    document.getElementById('overviewDataStatus').textContent=text;
+    document.getElementById('reviewRetry').hidden=!retry;
+  }
+  function validReviews(items){
+    return Array.isArray(items) && items.every(r=>r && /^[a-zA-Z0-9_-]{1,100}$/.test(String(r.id)) &&
+      ['company','role','date','note'].every(k=>typeof r[k]==='string') &&
+      ['初面','二面','三面','HR面'].includes(r.stage) && ['待定','通过','未通过'].includes(r.result) &&
+      Array.isArray(r.tags) && r.tags.every(t=>typeof t==='string'&&t.length<=100));
+  }
+  function localReviewSummary(items){
+    const total=items.length,passed=items.filter(r=>r.result==='通过').length,failed=items.filter(r=>r.result==='未通过').length;
+    const freq=new Map();items.forEach(r=>new Set(r.tags).forEach(t=>freq.set(t,(freq.get(t)||0)+1)));
+    return {total,passed,failed,pending:total-passed-failed,decided:passed+failed,
+      passRate:passed+failed?Math.round(passed/(passed+failed)*100):0,
+      weaknesses:[...freq].map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag,'zh-CN'))};
+  }
+  function applyReviews(data){
+    if(data.schemaVersion!==1 || !validReviews(data.records) || !data.summary || !Array.isArray(data.summary.weaknesses))throw new Error('复盘接口返回格式异常');
+    const metrics=['total','passed','failed','pending','decided','passRate'];
+    if(!metrics.every(k=>Number.isInteger(data.summary[k])&&data.summary[k]>=0)||data.summary.passRate>100||
+      data.summary.total!==data.records.length||!data.summary.weaknesses.every(w=>w&&typeof w.tag==='string'&&Number.isInteger(w.count)&&w.count>0))throw new Error('复盘统计格式异常');
+    reviews=data.records;reviewSummary=data.summary;
+    try{localStorage.setItem(REVIEW_CACHE,JSON.stringify(data));}catch(e){} // 缓存失败不影响已成功的服务端写入。
+    renderReviews();renderOverview();
+  }
+  async function reviewRequest(url,method='GET',body){
+    const response=await fetch(url,{method,headers:body?{'Content-Type':'application/json'}:{},
+      body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(10000),cache:'no-store'});
+    let data;try{data=await response.json();}catch(e){throw new Error('复盘接口返回格式异常');}
+    if(!response.ok)throw new Error(data.error||'复盘请求失败');return data;
+  }
+  function setReviewBusy(busy){
+    reviewBusy=busy;document.getElementById('rvSave').disabled=busy||!reviewReady;
+    document.querySelectorAll('#review .record-form input, #review .record-form textarea, #review .record-form select').forEach(el=>el.disabled=busy);
+    document.querySelectorAll('#rvList [data-del]').forEach(b=>b.disabled=busy||!reviewReady);
+    document.getElementById('reviewRetry').disabled=busy;
+  }
+  async function loadReviews(){
+    if(reviewBusy)return;
+    reviewReady=false;setReviewBusy(true);reviewStatus('正在载入面试复盘数据……');
+    try{
+      if(reviewApiMode){
+        let data=await reviewRequest('/api/reviews'),warning='';
+        try{
+          const old=localStorage.getItem('zm_reviews');
+          if(old && localStorage.getItem(REVIEW_MIGRATED)!=='done'){
+            const legacy=JSON.parse(old);if(!validReviews(legacy))throw new Error('旧浏览器复盘格式异常');
+            if(legacy.length)data=await reviewRequest('/api/reviews/import','POST',{records:legacy});
+            localStorage.setItem(REVIEW_MIGRATED,'done'); // 原始旧键保留；服务端也记录迁移批次，防止重复导入和删除后复活。
+          }
+        }catch(e){warning='；旧浏览器记录迁移未完成，原数据保留：'+e.message;}
+        reviewReady=true;applyReviews(data);reviewStatus('面试复盘已连接本地服务，首页与复盘使用同一份数据'+warning);
+      }else{
+        const items=JSON.parse(localStorage.getItem('zm_reviews')||'[]');if(!validReviews(items))throw new Error('本机复盘格式异常，原数据已保留');
+        reviewReady=true;applyReviews({schemaVersion:1,records:items,summary:localReviewSummary(items)});
+        reviewStatus('当前为文件预览，复盘仅保存在此浏览器；启动本地服务可使用复盘 API。');
+      }
+    }catch(e){
+      reviewReady=false;
+      try{const cached=JSON.parse(localStorage.getItem(REVIEW_CACHE)||'null');if(cached)applyReviews(cached);}catch(ignore){}
+      reviewStatus('复盘连接失败：'+e.message+'。'+(reviewSummary?'当前显示缓存，暂不可保存或删除。':'数据尚未载入，暂不可保存或删除。'),true);
+      rvMsg('复盘数据连接失败，请在首页重新连接。填写内容不会被清空。');
+    }finally{setReviewBusy(false);}
+  }
+  async function persistReviews(method,record){
+    if(reviewApiMode){
+      const url=method==='DELETE'?'/api/reviews/'+encodeURIComponent(record.id):'/api/reviews';
+      return reviewRequest(url,method,method==='POST'?record:undefined);
+    }
+    const next=method==='DELETE'?reviews.filter(r=>String(r.id)!==String(record.id)):[record,...reviews];
+    localStorage.setItem('zm_reviews',JSON.stringify(next));
+    return {schemaVersion:1,records:next,summary:localReviewSummary(next)};
+  }
+  async function deleteReview(id){
+    if(!reviewReady||reviewBusy)return;setReviewBusy(true);
+    try{applyReviews(await persistReviews('DELETE',{id}));rvMsg('已删除，首页统计已更新。');}
+    catch(e){rvMsg('删除失败：'+e.message+'，现有记录未移除。');}
+    finally{setReviewBusy(false);}
+  }
+  function renderOverview(){
+    if(!reviewSummary)return;
+    const s=reviewSummary;
+    document.getElementById('overviewTotal').textContent=s.total;
+    document.getElementById('overviewPassRate').textContent=s.passRate;
+    document.getElementById('overviewWeakCount').textContent=s.weaknesses.length;
+    const latest=reviews[0];
+    document.getElementById('overviewLatest').textContent=latest?`最近：${latest.company||'未填公司'}${latest.role?' · '+latest.role:''}`:'暂无面试记录，先记录一次真实面试。';
+    document.getElementById('overviewResults').textContent=`通过 ${s.passed} 次 · 未通过 ${s.failed} 次 · 待定 ${s.pending} 次；通过率不含待定。`;
+    document.getElementById('overviewWeakTop').textContent=s.weaknesses.length?'优先补强：'+s.weaknesses.slice(0,2).map(w=>w.tag).join('、'):'尚未标记薄弱点。';
+    const box=document.getElementById('overviewReviews');
+    box.innerHTML=reviews.length?reviews.slice(0,3).map(r=>`<div class="rec-entry"><b>${esc(r.company||'未填公司')}</b> · ${esc(r.role||'未填岗位')} · ${esc(r.stage)}<div>${esc(r.date)} · ${esc(r.result)}</div><button class="btn btn-ghost" data-open-review="${esc(r.id)}">查看这次复盘 →</button></div>`).join(''):'<p class="rv-empty">还没有面试复盘。录入后，这里会显示最近记录和真实统计。</p>';
+    box.querySelectorAll('[data-open-review]').forEach(b=>b.addEventListener('click',()=>{
+      go('review');document.querySelectorAll('#rvList [data-review-id]').forEach(row=>{
+        const selected=row.dataset.reviewId===b.dataset.openReview;row.style.outline=selected?'2px solid var(--seal)':'';
+        if(selected)setTimeout(()=>row.scrollIntoView({behavior:'smooth',block:'center'}),100);
+      });
+    }));
   }
 
   function renderRvTags(){
     const box = document.getElementById('rvTags'); if(!box) return;
     box.innerHTML = REVIEW_TAGS.map(t=>`<span class="chip ${rvTags.includes(t)?'on':''}" data-t="${t}">${t}</span>`).join('');
     box.querySelectorAll('[data-t]').forEach(c=>c.addEventListener('click',()=>{
+      if(reviewBusy)return;
       const t = c.dataset.t;
       rvTags = rvTags.includes(t) ? rvTags.filter(x=>x!==t) : rvTags.concat(t);
       renderRvTags();
@@ -1626,24 +1928,24 @@
     const list = document.getElementById('rvList'); if(!list) return;
     const cnt = document.getElementById('rvCount');
     if(cnt) cnt.textContent = reviews.length ? `（${reviews.length} 条）` : '';
+    if(!reviewSummary){list.innerHTML='<div class="rv-empty">复盘数据尚未载入，请稍候或到首页重新连接。</div>';renderInsight();return;}
     if(!reviews.length){
       list.innerHTML = '<div class="rv-empty">还没有记录。左边记一次面试，这里会累计你的复盘并自动汇总短板。</div>';
     } else {
       list.innerHTML = reviews.map(r=>`
-        <div class="rec-entry">
+        <div class="rec-entry" data-review-id="${esc(r.id)}">
           <div class="rec-entry-top">
             <span class="rec-co">${esc(r.company||'未填公司')}</span>
             <span class="rec-stage">${esc(r.stage)}${r.role?' · '+esc(r.role):''}</span>
-            <button class="rec-del" data-del="${r.id}">删除</button>
+            <button class="rec-del" data-del="${esc(r.id)}" ${!reviewReady||reviewBusy?'disabled':''}>删除</button>
             <span class="rec-date">${esc(r.date||'')}</span>
           </div>
-          ${(r.tags&&r.tags.length)?`<div class="tree-skills" style="margin:6px 0">${r.tags.map(t=>`<span>${t}</span>`).join('')}</div>`:''}
+          ${(r.tags&&r.tags.length)?`<div class="tree-skills" style="margin:6px 0">${r.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
           ${r.note?`<div class="rec-note">${esc(r.note)}</div>`:''}
           <div style="font-size:12px;color:var(--ink-faint);margin-top:6px">结果：${esc(r.result)}</div>
         </div>`).join('');
       list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
-        reviews = reviews.filter(x=>String(x.id)!==b.dataset.del);
-        saveReviews(); renderReviews();
+        deleteReview(b.dataset.del);
       }));
     }
     renderInsight();
@@ -1651,48 +1953,46 @@
 
   function renderInsight(){
     const box = document.getElementById('rvInsight'); if(!box) return;
-    const total = reviews.length;
-    const passed = reviews.filter(r=>r.result==='通过').length;
-    const failed = reviews.filter(r=>r.result==='未通过').length;
-    const rate = total ? Math.round(passed/total*100) : 0;
-    const freq = {};
-    reviews.forEach(r=>(r.tags||[]).forEach(t=>freq[t]=(freq[t]||0)+1));
-    const arr = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+    if(!reviewSummary){box.innerHTML='<p class="rv-empty">等待复盘数据载入。</p>';return;}
+    const {total,passed,failed,passRate:rate}=reviewSummary;
+    const arr=reviewSummary.weaknesses.map(w=>[w.tag,w.count]);
     const max = arr.length ? arr[0][1] : 1;
     let html = `<div class="rv-stats">
       <div class="rv-stat"><b>${total}</b><span>累计面试</span></div>
       <div class="rv-stat"><b>${passed}</b><span>通过</span></div>
       <div class="rv-stat"><b>${failed}</b><span>未通过</span></div>
-      <div class="rv-stat"><b>${rate}%</b><span>通过率</span></div>
+      <div class="rv-stat"><b>${rate}%</b><span>通过率（不含待定）</span></div>
     </div>`;
     if(!arr.length){
       html += '<p class="rv-empty">记录时勾选「薄弱点」，这里会自动汇总出你最该补强的项。</p>';
     } else {
       html += '<div class="insight-grid">' + arr.slice(0,6).map(([t,c])=>`
-        <div class="insight-item"><span class="il">${t}</span>
+        <div class="insight-item"><span class="il">${esc(t)}</span>
           <div class="insight-bar"><i style="width:${Math.round(c/max*100)}%;background:${c===max?'var(--seal)':'var(--teal)'}"></i></div>
           <b style="font-size:13px">${c}</b></div>`).join('') + '</div>';
       const top = arr.slice(0,2).map(x=>x[0]).join('、');
-      html += `<p style="font-size:13px;color:var(--ink-soft);margin-top:12px">👉 建议：优先补 <b style="color:var(--seal)">${top}</b>，出现频率最高。</p>`;
+      html += `<p style="font-size:13px;color:var(--ink-soft);margin-top:12px">👉 建议：优先补 <b style="color:var(--seal)">${esc(top)}</b>，出现频率最高。</p>`;
     }
     box.innerHTML = html;
   }
 
-  function saveReview(){
-    const company = document.getElementById('rvCompany').value.trim();
-    const role = document.getElementById('rvRole').value.trim();
-    const stage = document.getElementById('rvStage').value;
-    const result = document.getElementById('rvResult').value;
-    const rawDate = document.getElementById('rvDate').value;
-    const note = document.getElementById('rvNote').value.trim();
-    if(!company && !note){ rvMsg('请至少填写公司或复盘内容'); return; }
-    const date = rawDate ? rawDate.slice(5).replace('-','/') : new Date().toLocaleDateString('zh-CN').slice(5);
-    reviews.unshift({ id:Date.now(), company, role, stage, result, date, tags:rvTags.slice(), note });
-    saveReviews();
-    ['rvCompany','rvRole','rvNote'].forEach(id=>{ document.getElementById(id).value=''; });
-    rvTags = []; renderRvTags();
-    renderReviews();
-    rvMsg('已保存 ✓');
+  async function saveReview(){
+    if(!reviewReady||reviewBusy)return;
+    const company=document.getElementById('rvCompany').value.trim(),role=document.getElementById('rvRole').value.trim();
+    const stage=document.getElementById('rvStage').value,result=document.getElementById('rvResult').value;
+    const date=document.getElementById('rvDate').value,note=document.getElementById('rvNote').value.trim();
+    if(!company&&!note){rvMsg('请至少填写公司或复盘内容');return;}
+    if(!date){rvMsg('请选择面试日期');return;}
+    const fields={company,role,stage,result,date,tags:rvTags.slice(),note};
+    const fingerprint=JSON.stringify(fields);
+    if(!pendingReview||pendingReview.fingerprint!==fingerprint)pendingReview={fingerprint,record:{id:crypto.randomUUID(),...fields}};
+    setReviewBusy(true);
+    try{
+      applyReviews(await persistReviews('POST',pendingReview.record));pendingReview=null;
+      ['rvCompany','rvRole','rvNote'].forEach(id=>document.getElementById(id).value='');rvTags=[];renderRvTags();
+      rvMsg(reviewApiMode?'已保存到本地服务，首页统计已更新 ✓':'已保存到当前浏览器，首页统计已更新 ✓');
+    }catch(e){rvMsg('保存失败：'+e.message+'。填写内容已保留，可重试。');}
+    finally{setReviewBusy(false);}
   }
 
   document.getElementById('rvSave')?.addEventListener('click', saveReview);
@@ -1702,6 +2002,8 @@
   })();
   renderRvTags();
   renderReviews();
+  document.getElementById('reviewRetry').addEventListener('click',loadReviews);
+  loadReviews();
 
   /* ================= 招聘信息 · 岗位池 ================= */
   let jobs = [];
@@ -1792,6 +2094,148 @@
   document.getElementById('jpFilter')?.addEventListener('input', e=>{ jpFilter = e.target.value; renderJobs(); });
   renderJpKeywords();
   renderJobs();
+  /* ================= 共用 AI 连接 ================= */
+  async function requestAi(task,body){
+    if(!['http:','https:'].includes(location.protocol))throw new Error('请通过本地服务打开工作台后使用 AI。');
+    let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(50000)});}
+    catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
+    let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
+    if(!response.ok){if((data.error||'').includes('未配置'))document.getElementById('aiSettings').open=true;throw new Error(data.error||'AI 请求失败。');}
+    return data;
+  }
+  async function loadAiConfig(){
+    const label=document.getElementById('aiConfigState');
+    try{const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)throw new Error();const c=await r.json();document.getElementById('aiBaseUrl').value=c.baseUrl;document.getElementById('aiModel').value=c.model;label.textContent=c.hasKey?'已配置 · 可测试连接':'未配置 Key';}
+    catch(e){label.textContent='需启动本地服务';}
+  }
+  let configBusy=false;
+  async function configureAi(mode){
+    if(configBusy)return;configBusy=true;const msg=document.getElementById('aiConfigMsg');
+    document.querySelectorAll('#aiSettings button,#aiSettings input').forEach(b=>b.disabled=true);
+    msg.textContent=mode==='test'?'正在测试已保存的配置……':'正在保存……';
+    try{
+      if(mode==='test'){const result=await requestAi('test',{});msg.textContent='连接测试成功 · '+result.model;}
+      else{
+        const body=mode==='clear'?{clearKey:true}:{baseUrl:document.getElementById('aiBaseUrl').value.trim(),model:document.getElementById('aiModel').value.trim(),apiKey:document.getElementById('aiKey').value.trim()};
+        const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});const data=await r.json();if(!r.ok)throw new Error(data.error||'保存失败');
+        document.getElementById('aiKey').value='';await loadAiConfig();msg.textContent=mode==='clear'?'Key 已清除。':'配置已保存，可点击测试连接。';
+      }
+    }catch(e){msg.textContent=e.message||'操作失败，请检查本地服务。';}
+    finally{configBusy=false;document.querySelectorAll('#aiSettings button,#aiSettings input').forEach(b=>b.disabled=false);}
+  }
+  document.getElementById('aiConfigSave').addEventListener('click',()=>configureAi('save'));
+  document.getElementById('aiConfigTest').addEventListener('click',()=>configureAi('test'));
+  document.getElementById('aiConfigClear').addEventListener('click',()=>configureAi('clear'));
+  loadAiConfig();
+
+  /* ================= 简历助手：原文 → 补事实 → 候选 → 采用 ================= */
+  const RESUME_KEY='zm_resume_store_v1';
+  let resumeState={schemaVersion:1,text:'',jd:'',diagnosis:null,sections:[],versions:[]};
+  let resumeBusy=false,resumeBlocked=false;
+  function resumeMsg(t){document.getElementById('resumeMsg').textContent=t;}
+  function validResumeEnvelope(envelope,kind){
+    const str=(v,max=8000)=>typeof v==='string'&&v.length<=max;
+    const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>str(x,2000));
+    if(!envelope?.meta||!str(envelope.meta.model,200)||!str(envelope.meta.promptVersion,100)||!str(envelope.meta.createdAt,100)||!envelope.result)return false;
+    const r=envelope.result;
+    if(kind==='diagnosis')return str(r.overview,2000)&&strings(r.matched)&&strings(r.missing)&&Array.isArray(r.sections)&&r.sections.length>0&&r.sections.length<=6&&r.sections.every(s=>str(s.original,6000)&&str(s.issue,2000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=3&&strings(s.questions));
+    return str(r.rewritten)&&Array.isArray(r.evidence)&&r.evidence.length>0&&r.evidence.length<=12&&r.evidence.every(e=>str(e.claim,2000)&&str(e.source,6000));
+  }
+  function validResumeState(state){
+    const str=(v,max)=>typeof v==='string'&&v.length<=max;
+    const section=s=>!!s&&str(s.original,6000)&&str(s.issue,2000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=3&&s.questions.every(q=>str(q,2000))&&
+      Array.isArray(s.answers)&&s.answers.length===s.questions.length&&s.answers.every(a=>str(a,6000))&&typeof s.confirmedFacts==='boolean'&&
+      (s.candidate===null||validResumeEnvelope(s.candidate,'rewrite'))&&str(s.candidateText,8000)&&(s.adopted===null||str(s.adopted,8000));
+    const sections=v=>Array.isArray(v)&&v.length<=6&&v.every(section);
+    return !!(state?.schemaVersion===1&&str(state.text,30000)&&str(state.jd,10000)&&
+      (state.diagnosis===null||validResumeEnvelope(state.diagnosis,'diagnosis'))&&sections(state.sections)&&
+      Array.isArray(state.versions)&&state.versions.length<=1000&&state.versions.every(v=>!!v&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections)));
+  }
+  function saveResume(){
+    if(resumeBlocked){resumeMsg('简历存储异常，已停止覆盖原数据；请先导出备份检查。');return false;}
+    try{localStorage.setItem(RESUME_KEY,JSON.stringify(resumeState));resumeMsg('已保存到当前浏览器。');return true;}
+    catch(e){resumeMsg('保存失败：存储不可用或空间不足。请导出当前简历保留内容。');return false;}
+  }
+  function setResumeBusy(busy){
+    resumeBusy=busy;document.querySelectorAll('#resume input,#resume textarea,#resume button').forEach(el=>el.disabled=busy);
+  }
+  function composedResume(){let text=resumeState.text;resumeState.sections.filter(s=>s.adopted!==null).map(s=>({...s,start:resumeState.text.indexOf(s.original)})).sort((a,b)=>b.start-a.start).forEach(s=>{if(s.start>=0)text=text.slice(0,s.start)+s.adopted+text.slice(s.start+s.original.length);});return text;}
+  function renderCandidate(index){
+    const s=resumeState.sections[index],box=document.querySelector(`[data-candidate-panel="${index}"]`);if(!box)return;
+    box.innerHTML=s.candidate?`<h4>候选改写 · 请核对后采用</h4><div class="field"><label for="resumeCandidate${index}">可以直接修改这段文字</label><textarea id="resumeCandidate${index}" rows="6" maxlength="8000"></textarea></div><details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details><button class="btn btn-primary" data-adopt="${index}">确认采用这版</button>${s.adopted!==null?'<p class="mock-note">已采用，原文和此前版本仍保留。</p>':''}`:'';
+    if(s.candidate){const field=document.getElementById('resumeCandidate'+index);field.value=s.candidateText;field.addEventListener('input',()=>{s.candidateText=field.value;saveResume();});}
+    box.querySelector('[data-adopt]')?.addEventListener('click',()=>adoptResume(index));
+  }
+  function renderResume(){
+    const box=document.getElementById('resumeResults'),d=resumeState.diagnosis;
+    if(!d){box.innerHTML='<h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p>';}
+    else{
+      box.innerHTML=`<h3>02 · 诊断与事实补全</h3><p>${esc(d.result.overview)}</p><div><b>已有支撑</b><ul>${d.result.matched.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><b>待补充</b><ul>${d.result.missing.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div><p class="mock-note">${esc(d.meta.model)} · 标准 ${esc(d.meta.promptVersion)}</p>`+resumeState.sections.map((s,i)=>`<section class="resume-section"><h4>段落 ${i+1} · 先补事实</h4><details open><summary>保留的简历原文</summary><blockquote>${esc(s.original)}</blockquote></details><p>${esc(s.issue)}</p>${s.questions.map((q,j)=>`<div class="field"><label for="resumeFact${i}_${j}">${esc(q)}</label><textarea id="resumeFact${i}_${j}" rows="3" maxlength="6000" data-fact-i="${i}" data-fact-j="${j}" placeholder="只填写真实经历；没有数据也可以说明交付结果。"></textarea></div>`).join('')}<label class="ai-confirm"><input type="checkbox" data-confirm="${i}" ${s.confirmedFacts?'checked':''}/>我确认补充内容来自真实经历，不让 AI 补造事实。</label><button class="btn btn-ghost" data-rewrite="${i}">${s.candidate?'重新生成候选':'根据确认的事实生成改写'}</button><div data-candidate-panel="${i}"></div></section>`).join('');
+      box.querySelectorAll('[data-fact-i]').forEach(field=>{const i=Number(field.dataset.factI),j=Number(field.dataset.factJ),s=resumeState.sections[i];field.value=s.answers[j];field.addEventListener('input',()=>{s.answers[j]=field.value;s.confirmedFacts=false;s.candidate=null;s.candidateText='';s.adopted=null;box.querySelector(`[data-confirm="${i}"]`).checked=false;renderCandidate(i);saveResume();});});
+      box.querySelectorAll('[data-confirm]').forEach(field=>field.addEventListener('change',()=>{resumeState.sections[Number(field.dataset.confirm)].confirmedFacts=field.checked;saveResume();}));
+      box.querySelectorAll('[data-rewrite]').forEach(b=>b.addEventListener('click',()=>rewriteResume(Number(b.dataset.rewrite))));
+      resumeState.sections.forEach((s,i)=>renderCandidate(i));
+    }
+    const versions=document.getElementById('resumeVersions');
+    versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><pre>${esc(v.text)}</pre><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
+    versions.querySelectorAll('[data-copy-version]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(resumeState.versions[Number(b.dataset.copyVersion)].text);resumeMsg('已复制此版本。');}catch(e){resumeMsg('复制失败，请展开版本手动选择文字。');}}));
+  }
+  async function diagnoseResume(){
+    if(resumeBusy||resumeBlocked)return;
+    if(!resumeState.text.trim()){resumeMsg('请先粘贴简历正文。');return;}
+    setResumeBusy(true);resumeMsg('正在检查简历的匹配、个人贡献、证据和表达……');
+    try{
+      const data=await requestAi('resume-diagnose',{resume:resumeState.text,jd:resumeState.jd});
+      if(!validResumeEnvelope(data,'diagnosis')||!data.result.sections.every(s=>resumeState.text.includes(s.original)))throw new Error('诊断格式或原文引用异常，请重试。');
+      resumeState.diagnosis=data;resumeState.sections=data.result.sections.map(s=>({...s,answers:s.questions.map(()=>''),confirmedFacts:false,candidate:null,candidateText:'',adopted:null}));
+      saveResume();renderResume();
+    }catch(e){resumeMsg(e.message+' 原文和已有结果已保留。');}
+    finally{setResumeBusy(false);}
+  }
+  async function rewriteResume(index){
+    if(resumeBusy||resumeBlocked)return;const s=resumeState.sections[index];
+    if(!s.confirmedFacts){resumeMsg('请先勾选确认：补充内容来自真实经历。');return;}
+    setResumeBusy(true);resumeMsg('正在根据原文和确认的事实生成候选改写……');
+    try{
+      const data=await requestAi('resume-rewrite',{original:s.original,jd:resumeState.jd,confirmedFacts:true,facts:s.questions.map((q,j)=>({question:q,answer:s.answers[j]}))});
+      if(!validResumeEnvelope(data,'rewrite'))throw new Error('改写格式异常，请重试。');
+      s.candidate=data;s.candidateText=data.result.rewritten;saveResume();renderCandidate(index);
+    }catch(e){resumeMsg(e.message+' 原文、补充事实和已有版本已保留。');}
+    finally{setResumeBusy(false);}
+  }
+  function adoptResume(index){
+    if(resumeBusy||resumeBlocked)return;const s=resumeState.sections[index];
+    if(!s.confirmedFacts||!s.candidateText.trim()){resumeMsg('请确认事实并检查候选文字后再采用。');return;}
+    const previous=s.adopted;s.adopted=s.candidateText;
+    const version={id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))};
+    resumeState.versions.unshift(version);
+    if(!saveResume()){resumeState.versions.shift();s.adopted=previous;return;}
+    renderResume();resumeMsg('已采用并保存新版本，原文保留。可导出或带入模拟面试。');
+  }
+  function exportResume(){
+    let value=composedResume(),name='zhimian-resume.txt',type='text/plain;charset=utf-8';
+    if(resumeBlocked){try{value=localStorage.getItem(RESUME_KEY)||'';}catch(e){resumeMsg('无法读取原始存储。');return;}name='zhimian-resume-recovery.json';type='application/json';}
+    if(!value.trim()){resumeMsg('暂无简历内容可导出。');return;}
+    const url=URL.createObjectURL(new Blob([value],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function practiceResume(){
+    if(resumeBusy)return;const text=composedResume();if(!text.trim()){resumeMsg('请先填写简历。');return;}
+    if(text.length>30000){resumeMsg('简历超过 30000 字，请精简后带入模拟面试。');return;}
+    document.getElementById('mockProfile').value=text;document.getElementById('mockJd').value=resumeState.jd;document.getElementById('mockRole').value='auto';parseJd();go('mock');
+    storageMsg('简历与 JD 已带入下一场面试设置。点击开始面试即可使用；已有草稿不会被自动覆盖。');
+  }
+  try{const raw=localStorage.getItem(RESUME_KEY);if(raw){const data=JSON.parse(raw);if(!validResumeState(data))throw new Error();resumeState=data;}}
+  catch(e){resumeBlocked=true;resumeMsg('无法读取简历存储，原数据保留；可导出原始备份。');}
+  document.getElementById('resumeText').value=resumeState.text;document.getElementById('resumeJd').value=resumeState.jd;
+  ['resumeText','resumeJd'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{
+    if(resumeBlocked)return;resumeState[id==='resumeText'?'text':'jd']=e.target.value;resumeState.diagnosis=null;resumeState.sections=[];saveResume();renderResume();
+  }));
+  document.getElementById('resumeDiagnose').addEventListener('click',diagnoseResume);
+  document.getElementById('resumeExport').addEventListener('click',exportResume);
+  document.getElementById('resumePractice').addEventListener('click',practiceResume);
+  renderResume();
+  if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice'].forEach(id=>document.getElementById(id).disabled=true);
+
 </script>
 </body>
 </html>
