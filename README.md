@@ -4,6 +4,8 @@
 
 🔗 远程仓库：https://github.com/sunmillionai-2001/zhimian
 
+功能变更、缺陷修复与验证说明见 [更新日志](./CHANGELOG.md)。
+
 ---
 
 ## 快速开始
