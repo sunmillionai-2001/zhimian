@@ -1,0 +1,150 @@
+// 职面 ZhiMian · 本地服务（静态托管 + 大模型代理 + 本地数据存储）
+// 可移植：所有路径基于本文件所在目录，换设备/换目录都能跑。
+// 用法：node server.js   然后浏览器打开 http://127.0.0.1:8123/app.html
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = __dirname;                              // 本目录即站点根，含 app.html
+const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
+const DATA_DIR = path.join(ROOT, 'data');                    // 本地数据（已在 .gitignore）
+const PORT = Number(process.env.PORT || 8123);
+
+const DEFAULT_CONFIG = {
+  baseUrl: 'https://api.deepseek.com/v1',
+  model: 'deepseek-chat',
+  apiKey: ''
+};
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.md': 'text/plain; charset=utf-8'
+};
+
+function ensureDirs() {
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
+}
+function readConfig() {
+  try { return Object.assign({}, DEFAULT_CONFIG, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))); }
+  catch (e) { return Object.assign({}, DEFAULT_CONFIG); }
+}
+function writeConfig(cfg) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+}
+function readBody(req) {
+  return new Promise((resolve) => {
+    let raw = '';
+    req.on('data', c => { raw += c; if (raw.length > 5e6) req.destroy(); });
+    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch (e) { resolve({}); } });
+    req.on('error', () => resolve({}));
+  });
+}
+function sendJson(res, code, obj) {
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(obj));
+}
+function storeFileName(key) {
+  return 'store-' + String(key).replace(/[^a-zA-Z0-9_-]/g, '_') + '.json';
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = decodeURIComponent((req.url || '/').split('?')[0]);
+
+  // ---------- 大模型代理（浏览器直连大模型常被 CORS 拦，这里由服务端转发）----------
+  if (url === '/api/chat' && req.method === 'POST') {
+    const body = await readBody(req);
+    const cfg = readConfig();
+    if (!cfg.apiKey) return sendJson(res, 400, { error: '未配置 API Key，请在页面「设置」里填写，或编辑 server.config.json。' });
+    const payload = {
+      model: body.model || cfg.model,
+      messages: body.messages || [],
+      temperature: typeof body.temperature === 'number' ? body.temperature : 0.7,
+      stream: false
+    };
+    if (body.json) payload.response_format = { type: 'json_object' };
+    try {
+      const upstream = await fetch(cfg.baseUrl.replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+        body: JSON.stringify(payload)
+      });
+      const text = await upstream.text();
+      if (!upstream.ok) return sendJson(res, 502, { error: '上游返回 ' + upstream.status, detail: text.slice(0, 800) });
+      let data;
+      try { data = JSON.parse(text); } catch (e) { return sendJson(res, 502, { error: '上游返回非 JSON', detail: text.slice(0, 500) }); }
+      const content = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+      return sendJson(res, 200, { content, usage: data.usage || null });
+    } catch (e) {
+      return sendJson(res, 502, { error: '调用失败：' + e.message });
+    }
+  }
+
+  // ---------- 配置读写（不回传 apiKey 明文）----------
+  if (url === '/api/config' && req.method === 'GET') {
+    const cfg = readConfig();
+    return sendJson(res, 200, { hasKey: !!cfg.apiKey, baseUrl: cfg.baseUrl, model: cfg.model });
+  }
+  if (url === '/api/config' && req.method === 'POST') {
+    const body = await readBody(req);
+    const cfg = readConfig();
+    if (typeof body.baseUrl === 'string' && body.baseUrl.trim()) cfg.baseUrl = body.baseUrl.trim();
+    if (typeof body.model === 'string' && body.model.trim()) cfg.model = body.model.trim();
+    if (typeof body.apiKey === 'string' && body.apiKey.trim()) cfg.apiKey = body.apiKey.trim();
+    writeConfig(cfg);
+    return sendJson(res, 200, { ok: true, hasKey: !!cfg.apiKey, baseUrl: cfg.baseUrl, model: cfg.model });
+  }
+
+  // ---------- 本地数据持久化（让数据不只在浏览器 localStorage）----------
+  if (url === '/api/store' && req.method === 'GET') {
+    ensureDirs();
+    const out = {};
+    try {
+      fs.readdirSync(DATA_DIR).filter(f => f.startsWith('store-') && f.endsWith('.json')).forEach(f => {
+        try { out[f.slice(6, -5)] = JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch (e) {}
+      });
+    } catch (e) {}
+    return sendJson(res, 200, out);
+  }
+  if (url === '/api/store' && req.method === 'POST') {
+    ensureDirs();
+    const body = await readBody(req);
+    if (!body || typeof body.key !== 'string') return sendJson(res, 400, { error: 'missing key' });
+    try {
+      fs.writeFileSync(path.join(DATA_DIR, storeFileName(body.key)), JSON.stringify(body.value), 'utf8');
+      return sendJson(res, 200, { ok: true });
+    } catch (e) {
+      return sendJson(res, 500, { error: e.message });
+    }
+  }
+
+  // ---------- 静态文件 ----------
+  const rel = url === '/' ? '/app.html' : url;
+  const abs = path.join(ROOT, rel);
+  if (!abs.startsWith(ROOT)) { res.writeHead(403); return res.end('403'); }
+  fs.readFile(abs, (err, data) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('404 ' + rel);
+    }
+    res.writeHead(200, {
+      'Content-Type': TYPES[path.extname(abs).toLowerCase()] || 'application/octet-stream',
+      'Cache-Control': 'no-store'
+    });
+    res.end(data);
+  });
+});
+
+ensureDirs();
+if (!fs.existsSync(CONFIG_FILE)) writeConfig(DEFAULT_CONFIG);
+server.listen(PORT, '127.0.0.1', () => {
+  console.log('职面 ZhiMian 服务已启动: http://127.0.0.1:' + PORT + '/app.html');
+  console.log('配置文件: ' + CONFIG_FILE);
+  console.log('数据目录: ' + DATA_DIR);
+});
