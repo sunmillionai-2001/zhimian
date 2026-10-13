@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs"
+    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs"
   },
   "dependencies": {
     "mammoth": "1.13.0",

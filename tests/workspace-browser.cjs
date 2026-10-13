@@ -4,7 +4,7 @@ const {spawn}=require('node:child_process'),{pdf,docx}=require('./import-fixture
 (async()=>{
  const root=path.join(__dirname,'..'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-workspace-'));let app,browser;
  try{
-  for(const f of ['app.html','server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));fs.symlinkSync(path.join(root,'node_modules'),path.join(temp,'node_modules'),'dir');
+  for(const f of ['app.html','skill-learning.js','server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));fs.symlinkSync(path.join(root,'node_modules'),path.join(temp,'node_modules'),'dir');
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
   app=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']});await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('startup timeout')),5000);app.stdout.once('data',()=>{clearTimeout(t);resolve();});});
   const base=`http://127.0.0.1:${port}`;browser=await chromium.launch();const context=await browser.newContext({viewport:{width:1440,height:960},reducedMotion:'reduce'});await context.route('https://fonts.googleapis.com/**',r=>r.abort());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
