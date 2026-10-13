@@ -490,11 +490,13 @@
   @media(max-width:480px){.learning-module{padding:12px}.ability-row{grid-template-columns:1fr}.ability-evidence{grid-column:auto}#skill .role-input{flex-wrap:wrap}#skill .role-input input{width:100%}}
 
   /* 完成目标输入后，淡出准备区并展开学习区域 */
-  #skill .skill-map{grid-template-columns:minmax(0,.85fr) minmax(0,1.6fr);transition:grid-template-columns .44s cubic-bezier(.22,1,.36,1),gap .44s}
-  .skill-setup{min-width:0;overflow:hidden;max-height:var(--skill-setup-height,none);opacity:1;transition:opacity .2s ease,transform .3s ease,max-height .44s cubic-bezier(.22,1,.36,1),visibility 0s}
+  #skill .skill-map{grid-template-columns:minmax(0,.85fr) minmax(0,1.6fr);transition:grid-template-columns .85s cubic-bezier(.22,1,.36,1) .35s,gap .85s .35s}
+  .skill-setup{min-width:0;overflow:hidden;max-height:var(--skill-setup-height,none);opacity:1;transition:opacity .65s ease .2s,transform .85s ease .2s,max-height .85s cubic-bezier(.22,1,.36,1) .35s,visibility 0s}
   .skill-setup>.role-select{width:var(--skill-setup-width,auto);box-sizing:border-box}
   #skill .skill-map.is-focused{grid-template-columns:minmax(0,0fr) minmax(0,1fr);gap:0}
-  .skill-map.is-focused .skill-setup{max-height:0;opacity:0;transform:translateX(-10px);visibility:hidden;transition:opacity .2s ease,transform .3s ease,max-height .44s cubic-bezier(.22,1,.36,1),visibility 0s .2s;pointer-events:none}
+  .skill-map.is-focused .skill-setup{max-height:0;opacity:0;transform:translateX(-10px);visibility:hidden;transition:opacity .65s ease .2s,transform .85s ease .2s,max-height .85s cubic-bezier(.22,1,.36,1) .35s,visibility 0s .85s;pointer-events:none}
+  .skill-map.is-transitioning #skillTree{animation:skill-learning-reveal 1.6s ease both}
+  @keyframes skill-learning-reveal{0%,12%{opacity:1;transform:translateY(0)}30%,48%{opacity:.15;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
   .skill-result-toolbar{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;scroll-margin-top:90px}
   .skill-result-toolbar .eyebrow{font-size:11px;margin-bottom:5px}.skill-result-toolbar .paste-actions{margin:0}.skill-result-toolbar h3{overflow-wrap:anywhere}
   .skill-backup>summary,.skill-plan>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--ink-soft);font-size:13px}
@@ -1807,15 +1809,16 @@
   };
 
   const SKILL_ROLES=Object.keys(SKILLMAP),SKILL_KEY='zm_skill_learning_v1';
-  let skillStore=ZmSkill.empty(),skillBlocked=false,curRole='AGI 工程师',skillFocused=false;
+  let skillStore=ZmSkill.empty(),skillBlocked=false,curRole='AGI 工程师',skillFocused=false,skillFocusTimer=null;
   function skillMsg(t){document.getElementById('skillMsg').textContent=t;}
   function setSkillFocus(focused,{scroll=false,animate=true}={}){
     const workspace=document.getElementById('skillWorkspace'),setup=document.getElementById('skillSetup'),results=document.getElementById('skillResults');
+    clearTimeout(skillFocusTimer);const motion=animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches;workspace.classList.toggle('is-transitioning',focused&&motion&&scroll);
     skillFocused=focused;setup.inert=focused;setup.setAttribute('aria-hidden',String(focused));document.getElementById('skillEditTarget').hidden=!focused;document.getElementById('skillEditTarget').setAttribute('aria-expanded',String(!focused));
     if(focused){
       if(animate&&setup.getBoundingClientRect().width){setup.style.setProperty('--skill-setup-width',setup.getBoundingClientRect().width+'px');setup.style.setProperty('--skill-setup-height',setup.scrollHeight+'px');void setup.offsetHeight;}
       workspace.classList.add('is-focused');
-      if(scroll){document.getElementById('skillResultHeader').focus({preventScroll:true});results.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
+      if(scroll){document.getElementById('skillResultHeader').focus({preventScroll:true});skillFocusTimer=setTimeout(()=>{if(skillFocused&&document.getElementById('skill').classList.contains('active'))results.scrollIntoView({block:'start',behavior:motion?'smooth':'instant'});},motion?1250:0);}
     }else{
       workspace.classList.remove('is-focused');setup.style.removeProperty('--skill-setup-width');setup.style.removeProperty('--skill-setup-height');
       if(scroll){document.getElementById('roleInput').focus({preventScroll:true});setup.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
