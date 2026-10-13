@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { createReviewStore } = require('./review-store');
 const { runAi } = require('./ai-service');
+const { importDocument } = require('./document-import');
 
 const ROOT = __dirname;                              // 本目录即站点根，含 app.html
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
@@ -95,6 +96,8 @@ const server = http.createServer(async (req, res) => {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return sendJson(res, 400, { error: '复盘 ID 格式错误' });
     return sendJson(res, 200, reviewStore.remove(id));
   }
+
+  if (url === '/api/resume/import' && req.method === 'POST') return sendJson(res, 200, await importDocument(await readBody(req)));
 
   if (url.startsWith('/api/ai/') && req.method === 'POST') {
     return sendJson(res, 200, await runAi(url.slice('/api/ai/'.length), await readBody(req), readConfig()));

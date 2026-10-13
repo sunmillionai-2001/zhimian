@@ -16,7 +16,10 @@ function normalizeReview(record, legacy=false) {
   if(!iso&&!(legacy&&/^\d{1,2}\/\d{1,2}$/.test(date)))throw error('日期需为有效的 YYYY-MM-DD');
   if(!stages.includes(record.stage)||!results.includes(record.result))throw error('面试轮次或结果错误');
   if(!Array.isArray(record.tags)||record.tags.length>30||!record.tags.every(t=>typeof t==='string'&&t.length>0&&t.length<=100))throw error('薄弱点格式错误');
-  return {id,company,role,stage:record.stage,result:record.result,date,tags:[...new Set(record.tags)],note};
+  const association={};
+  if(record.jobId!=null){if(typeof record.jobId!=='string'||! /^[a-zA-Z0-9_-]{1,100}$/.test(record.jobId))throw error('关联岗位 ID 格式错误');association.jobId=record.jobId;
+    const snap=record.jobSnapshot;if(!snap||!['company','role','jd'].every(k=>typeof snap[k]==='string'&&snap[k].length<=(k==='jd'?30000:200)))throw error('岗位快照格式错误');association.jobSnapshot={company:snap.company,role:snap.role,jd:snap.jd};}
+  return {id,company,role,...association,stage:record.stage,result:record.result,date,tags:[...new Set(record.tags)],note};
 }
 function summary(records) {
   const total=records.length,passed=records.filter(r=>r.result==='通过').length,failed=records.filter(r=>r.result==='未通过').length;

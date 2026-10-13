@@ -1,0 +1,22 @@
+{
+  "name": "zhimian-workbench",
+  "version": "0.3.0",
+  "private": true,
+  "description": "职面求职工作台",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs"
+  },
+  "dependencies": {
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.4.299"
+  },
+  "overrides": {
+    "mammoth": {
+      "argparse": "3.0.2"
+    }
+  }
+}

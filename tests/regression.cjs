@@ -81,7 +81,7 @@ function request(url, method='GET', body, headers={}) {
 }
 before(async()=>{
   temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-test-'));
-  for(const f of ['server.js','review-store.js','ai-service.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
+  for(const f of ['server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
   for(const f of ['app.html','index.html','index-sidebar.html'])fs.writeFileSync(path.join(temp,f),'test page');
   fs.writeFileSync(path.join(temp,'server.config.json'),JSON.stringify({apiKey:'fake-regression-secret'}));
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));port=reserve.address().port;await new Promise(r=>reserve.close(r));

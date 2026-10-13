@@ -22,7 +22,7 @@ const {spawn}=require('node:child_process');
     });});
     await new Promise(r=>upstream.listen(0,'127.0.0.1',r));const modelUrl=`http://127.0.0.1:${upstream.address().port}/v1`;
     const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
-    for(const f of ['app.html','server.js','review-store.js','ai-service.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
+    for(const f of ['app.html','server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
     app=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']});
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('startup timeout')),5000);app.stdout.once('data',()=>{clearTimeout(timer);resolve();});});
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.route('**/fonts.googleapis.com/**',r=>r.abort());
@@ -37,13 +37,14 @@ const {spawn}=require('node:child_process');
     await page.locator('#resumeDiagnose').click();await page.locator('#resumeFact0_0').waitFor();await page.locator('#resumeFact0_0').fill('每周核对口径');await page.locator('#resumeFact0_1').fill('完成交付验证');
     const countBefore=calls.length;await page.locator('[data-rewrite="0"]').click();assert.equal(calls.length,countBefore);assert.match(await page.locator('#resumeMsg').innerText(),/勾选确认/);
     await page.locator('[data-confirm="0"]').check();await page.locator('[data-rewrite="0"]').click();await page.locator('#resumeCandidate0').waitFor();
+    assert.match(await page.locator('#resumeResults .comparison').innerText(),/改写前/);assert.match(await page.locator('#resumeResults .comparison').innerText(),/改写后/);
     assert.equal(await page.locator('#resumeCandidate0').inputValue(),'维护运营报表，每周核对口径，并完成交付验证。');
     await page.locator('[data-adopt="0"]').click();assert.equal(await page.locator('.resume-version').count(),1);
     await page.reload();assert.ok(await page.locator('#resume').evaluate(el=>el.classList.contains('active')));assert.equal(await page.locator('#resumeFact0_0').inputValue(),'每周核对口径');
     await page.locator('#resumeCandidate0').fill('维护运营报表，每周核对口径，完成交付验证。');await page.locator('[data-adopt="0"]').click();assert.equal(await page.locator('.resume-version').count(),2);
     const downloadPromise=page.waitForEvent('download');await page.locator('#resumeExport').click();const download=await downloadPromise;
     const exported=fs.readFileSync(await download.path(),'utf8');assert.ok(exported.includes('教育经历：统计学。'));assert.ok(exported.includes('每周核对口径'));
-    if(process.env.RESUME_SCREENSHOT){await page.evaluate(()=>{document.querySelectorAll('*').forEach(el=>el.style.animation='none');window.scrollTo(0,0);});await page.screenshot({path:process.env.RESUME_SCREENSHOT,fullPage:true});}
+    if(process.env.RESUME_SCREENSHOT){await page.evaluate(()=>{document.querySelectorAll('*').forEach(el=>el.style.animation='none');window.scrollTo({top:0,behavior:'instant'});});await page.screenshot({path:process.env.RESUME_SCREENSHOT,fullPage:true});}
     await page.locator('#resumePractice').click();assert.ok((await page.locator('#mockProfile').inputValue()).includes('每周核对口径'));assert.equal(await page.locator('#mockJd').inputValue(),'数据运营：报表维护、交付验证');
     await page.locator('#mockCount [data-n="5"]').click();await page.locator('#mockStart').click();await page.locator('#mockA').fill('我负责优化缓存，用压测验证响应时间。');
     mode='failure';await page.locator('#mockAiEvaluate').click();await page.waitForFunction(()=>document.getElementById('mockAiMsg').textContent.includes('HTTP 503'));assert.equal(await page.locator('#mockA').inputValue(),'我负责优化缓存，用压测验证响应时间。');
@@ -52,7 +53,7 @@ const {spawn}=require('node:child_process');
     assert.ok(calls.some(c=>c.messages[1].content.includes('每周核对口径')));
     await page.locator('#mockFollowUpAnswer').fill('我通过压测比较了优化前后的响应时间。');await page.locator('#mockAiFollowUp').click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).draft.ai[0].final!==null);
     assert.equal(await page.locator('#mockAiFollowUp').count(),0);await page.reload();assert.equal(await page.locator('#mockFollowUpAnswer').inputValue(),'我通过压测比较了优化前后的响应时间。');
-    if(process.env.INTERVIEW_SCREENSHOT){await page.evaluate(()=>{document.querySelectorAll('*').forEach(el=>el.style.animation='none');window.scrollTo(0,0);});await page.screenshot({path:process.env.INTERVIEW_SCREENSHOT,fullPage:true});}
+    if(process.env.INTERVIEW_SCREENSHOT){await page.evaluate(()=>{document.querySelectorAll('*').forEach(el=>el.style.animation='none');window.scrollTo({top:0,behavior:'instant'});});await page.screenshot({path:process.env.INTERVIEW_SCREENSHOT,fullPage:true});}
     await page.locator('#mockNext').click();for(let i=0;i<4;i++)await page.locator('#mockSkip').click();assert.match(await page.locator('#mockStage').innerText(),/追问后的点评/);await page.locator('#mockSave').click();
     await page.reload();await page.locator('#mockHistory [data-history="0"]').click();assert.match(await page.locator('#mockStage').innerText(),/我通过压测比较/);
     // Resume failures preserve old diagnosis and adopted versions.

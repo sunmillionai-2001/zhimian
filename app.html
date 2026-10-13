@@ -452,6 +452,18 @@
   #resume .btn,#aiSettings .btn,#mockAiBox .btn{min-height:44px}
   @media(max-width:820px){.resume-layout,.ai-config-grid{grid-template-columns:1fr}.resume-work{min-width:0}.ai-settings{padding:14px}.resume-layout .record-form{padding:18px}}
   @media(max-width:480px){.main{padding-left:16px;padding-right:16px}.topbar .search{display:none}.topbar{flex-wrap:wrap}.stage-bar{flex-wrap:wrap}.stage-actions{flex-wrap:wrap}.resume-section{padding:14px}}
+  .comparison{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .comparison>div{min-width:0;padding:14px;background:var(--paper-2);border-radius:12px;border:1px solid var(--line)}
+  .comparison h4,.answer-card h4{font-family:var(--serif);font-size:17px;font-weight:900;margin-bottom:8px}
+  .comparison pre,.answer-card pre,#jobDetail pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+  .answer-card{padding:16px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+  .answer-card .paste-actions{margin-top:12px}
+  #jobDetail{margin-top:18px;overflow-wrap:anywhere}
+  #jobDetail a{color:var(--seal-deep);text-underline-offset:3px}
+  #answers .btn,#jobs .btn,#jobDetail .btn{min-height:44px}
+  #jobs .rec-del{min-width:44px;min-height:44px}
+  .job-status{display:inline-block;padding:4px 10px;border-radius:8px;background:var(--paper-2);font-size:12px}
+  @media(max-width:820px){.comparison{grid-template-columns:1fr}}
   @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -476,6 +488,7 @@
     <div class="nav-item" data-view="skill">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg><span>岗位 → 技能地图</span>
     </div>
+    <button class="nav-item nav-button" data-view="answers" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg><span>个人答案库</span></button>
     <button class="nav-item nav-button" data-view="resume" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6zM9 10h6M9 14h6M9 18h4"/></svg><span>简历助手</span></button>
     <div class="nav-item" data-view="mock">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg><span>模拟面试</span>
@@ -544,7 +557,7 @@
         <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">按岗位练习，AI 点评回答并针对细节追问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
         <div class="mod" data-goto="review"><span class="mod-num">04</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span><div><div class="mod-title">面试复盘</div><div class="mod-desc">记录每次面试，增强补弱</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">记录</span><span class="tag">分析</span></div></div></div>
       </section>
-      <section class="module-grid" style="margin-top:16px"><button class="mod nav-button" data-goto="resume" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">简历助手</div><div class="mod-desc">诊断 → 补事实 → 改写 → 用于模拟面试</div></div></div></button></section>
+      <section class="module-grid" style="margin-top:16px"><button class="mod nav-button" data-goto="resume" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">简历助手</div><div class="mod-desc">诊断 → 补事实 → 改写 → 用于模拟面试</div></div></div></button><button class="mod nav-button" data-goto="answers" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">个人答案库</div><div class="mod-desc">保存项目故事与回答，保留版本，复用于目标岗位</div></div></div></button></section>
       <div class="section-head"><h2><span class="num">05</span> 招聘信息</h2></div>
       <section class="module-grid">
         <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息 · 岗位池</div><div class="mod-desc">把想投的岗位攒成池，一键去模拟面试</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">岗位池</span><span class="tag">联动</span></div></div></div>
@@ -610,7 +623,7 @@
           <label>生成结果（可一键复制）</label>
           <textarea id="starResult" placeholder="点击「生成答案」后，这里会出现一段完整可用的回答……"></textarea>
           <div class="star-actions">
-            <button class="btn btn-ghost" id="starCopy">复制</button>
+            <button class="btn btn-ghost" id="starCopy">复制</button><button class="btn btn-ghost" id="starToLibrary">存入个人答案库</button>
             <button class="btn btn-ghost" id="starClear">清空</button>
           </div>
         </div>
@@ -639,12 +652,33 @@
       </section>
     </section>
 
+    <section class="view" id="answers">
+      <div class="hero"><span class="eyebrow">Answer Library</span><h1>把你的经历，<br/>整理成<em>个人答案</em>。</h1><p>保存项目故事、STAR 练习与面试回答。按岗位和问题整理，修改时保留旧版。</p></div>
+      <div class="resume-layout">
+        <section class="record-form">
+          <h3 id="answerEditorTitle">新建个人答案</h3>
+          <div class="field"><label for="answerTitle">标题</label><input id="answerTitle" maxlength="200" placeholder="如：一次跨团队推进的项目"/></div>
+          <div class="field"><label for="answerQuestion">适用问题</label><textarea id="answerQuestion" rows="2" maxlength="5000" placeholder="如：讲一次你解决复杂问题的经历"></textarea></div>
+          <div class="field"><label for="answerJob">关联岗位（可选）</label><select id="answerJob"><option value="">不关联岗位</option></select></div>
+          <div class="field"><label for="answerTags">标签（逗号分隔）</label><input id="answerTags" maxlength="300" placeholder="项目推进、沟通、技术取舍"/></div>
+          <div class="field"><label for="answerText">完整答案 / 项目故事</label><textarea id="answerText" rows="10" maxlength="30000"></textarea></div>
+          <details><summary>按 STAR 四部分整理（可选）</summary><div class="field"><label for="answerS">S · 背景</label><textarea id="answerS" maxlength="6000"></textarea></div><div class="field"><label for="answerT">T · 任务</label><textarea id="answerT" maxlength="6000"></textarea></div><div class="field"><label for="answerA">A · 行动</label><textarea id="answerA" maxlength="6000"></textarea></div><div class="field"><label for="answerR">R · 结果</label><textarea id="answerR" maxlength="6000"></textarea></div><button class="btn btn-ghost" id="answerCompose">用 STAR 更新完整答案</button></details>
+          <div class="paste-actions"><button class="btn btn-primary" id="answerSave">保存答案</button><button class="btn btn-ghost" id="answerNew">新建 / 清空编辑</button></div>
+          <p class="mock-note" id="answerMsg" role="status" aria-live="polite">答案与版本保存在当前浏览器，换设备前请导出备份。</p>
+          <div class="paste-actions"><button class="btn btn-ghost" id="answerExport">导出答案备份</button><button class="btn btn-ghost" id="answerImport">导入答案备份</button><input type="file" id="answerImportFile" accept=".json" hidden/></div>
+        </section>
+        <section class="record-form"><h3>我的答案与版本</h3><div class="field"><label for="answerFilter">搜索标题、标签、问题或正文</label><input id="answerFilter" placeholder="搜一段经历……"/></div><div id="answerList"></div></section>
+      </div>
+    </section>
     <!-- ===== 简历助手 ===== -->
     <section class="view" id="resume">
       <div class="hero"><span class="eyebrow">Resume Studio</span><h1>从事实开始，<br/>写好你的<em>简历</em>。</h1><p>先看岗位匹配和表达缺口，再补充真实经历，逐段改写。每次采用都保留原文与版本。</p></div>
       <div class="resume-layout">
         <section class="record-form">
           <h3>01 · 简历与目标岗位</h3>
+          <button class="btn btn-ghost" id="resumeFileChoose">导入 PDF / Word .docx</button><input id="resumeFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden/>
+          <p class="mock-note">最多 3 MB；PDF 最多 30 页。先预览文字，再确认替换正文；原有版本保留。</p>
+          <div id="resumeImportPreview" hidden><h4>导入预览 · 请核对文字顺序</h4><div class="field"><label for="resumeImportText">提取的文字（可修改）</label><textarea id="resumeImportText" rows="8" maxlength="30000"></textarea></div><p id="resumeImportWarning" class="mock-note"></p><div class="paste-actions"><button class="btn btn-primary" id="resumeImportApply">确认使用这份正文</button><button class="btn btn-ghost" id="resumeImportCancel">取消导入</button></div></div>
           <div class="field"><label for="resumeText">粘贴简历正文</label><textarea id="resumeText" rows="12" maxlength="30000" placeholder="粘贴工作经历、项目经历、教育和技能……"></textarea></div>
           <div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
           <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
@@ -688,6 +722,7 @@
             </select>
             <div class="role-preset" id="mockCount"></div>
           </div>
+          <div class="field"><label for="mockJob">关联岗位（可选）</label><select id="mockJob"><option value="">不关联岗位</option></select></div>
           <div class="field"><label for="mockProfile">个人简历 / 经历（可选）</label><textarea id="mockProfile" rows="4" maxlength="30000" placeholder="可从简历助手带入，用于个性化点评与追问。"></textarea></div>
           <button class="btn btn-primary" id="mockStart">开始面试 →</button>
           <p class="mock-note">内置题库可离线练习；作答后可点击 AI 点评，每题最多一次追问。先在「AI 设置」配置模型。</p>
@@ -718,7 +753,7 @@
       </div>
       <section class="review-grid">
         <div class="record-form">
-          <h3>记录一次面试</h3>
+          <h3>记录一次面试</h3><div class="field"><label for="rvJob">关联岗位（可选）</label><select id="rvJob"><option value="">不关联岗位</option></select></div>
           <div class="form-row">
             <div class="field"><label>公司</label><input type="text" id="rvCompany" placeholder="如：字节跳动" /></div>
             <div class="field"><label>岗位</label><input type="text" id="rvRole" placeholder="如：后端开发" /></div>
@@ -749,11 +784,11 @@
       <div class="hero">
         <span class="eyebrow">Job Pool</span>
         <h1>你的<em>岗位池</em>。<br/>把想投的岗位攒起来。</h1>
-        <p>把看到的岗位 JD 贴进来，存成岗位卡片；之后一键拿去模拟面试，或查看它需要的技能地图。</p>
+        <p>保存岗位与投递进度，在岗位详情里准备答案、开始训练，并查看每次真实面试复盘。</p>
       </div>
       <section class="job-pool">
         <div class="job-add">
-          <h3>添加岗位</h3>
+          <h3 id="jobEditorTitle">添加岗位</h3>
           <div class="form-row">
             <div class="field"><label>公司</label><input type="text" id="jpCompany" placeholder="如：字节跳动" /></div>
             <div class="field"><label>岗位</label><input type="text" id="jpRole" placeholder="如：后端开发" /></div>
@@ -763,8 +798,10 @@
             <div class="field"><label>薪资</label><input type="text" id="jpSalary" placeholder="如：20-40K" /></div>
           </div>
           <div class="field"><label>岗位 JD / 要求（粘贴）</label><textarea id="jpJd" placeholder="把 BOSS直聘 / 官网的岗位描述粘贴到这里……"></textarea></div>
+          <div class="field"><label for="jpSource">岗位来源链接（可选）</label><input id="jpSource" type="url" maxlength="2000" placeholder="https://…"/></div>
+          <div class="form-row"><div class="field"><label for="jpStatus">投递状态</label><select id="jpStatus"><option>待投递</option><option>已投递</option><option>面试中</option><option>已获 Offer</option><option>已结束</option></select></div><div class="field"><label for="jpNext">下次面试时间（可选）</label><input id="jpNext" type="datetime-local"/></div></div>
           <div class="field"><label>识别到的技能关键词</label><div class="mock-keywords" id="jpKeywords"><span class="kw-none">粘贴 JD 后自动识别</span></div></div>
-          <button class="btn btn-primary" id="jpSave">保存到岗位池</button>
+          <div class="paste-actions"><button class="btn btn-primary" id="jpSave">保存到岗位池</button><button class="btn btn-ghost" id="jpCancel" hidden>取消编辑</button></div><div class="paste-actions"><button class="btn btn-ghost" id="jobExport">导出岗位备份</button><button class="btn btn-ghost" id="jobImport">导入岗位备份</button><input id="jobImportFile" type="file" accept=".json" hidden/></div>
           <p class="mock-note" id="jpMsg"></p>
           <p class="mock-note">说明：本模块不抓取任何平台数据。岗位由你自行粘贴保存，规避爬虫的合规与稳定性风险；想接真实数据源时再单独评估。</p>
         </div>
@@ -776,7 +813,7 @@
               <input type="text" id="jpFilter" placeholder="筛选：公司 / 岗位 / 城市" />
             </label>
           </div>
-          <div id="jpList"></div>
+          <div class="field"><label for="jpStatusFilter">按状态筛选</label><select id="jpStatusFilter"><option value="">全部状态</option><option>待投递</option><option>已投递</option><option>面试中</option><option>已获 Offer</option><option>已结束</option></select></div><p id="jobSummary" class="mock-note"></p><div id="jpList"></div><section id="jobDetail" class="record-form" hidden></section>
         </div>
       </section>
     </section>
@@ -785,9 +822,10 @@
 </div>
 
 <script>
-  const views = ['overview','method','skill','resume','mock','review','jobs'];
+  const views = ['overview','method','skill','resume','answers','mock','review','jobs'];
+  let assetsInitialized=false;
   const initialViewHash=location.hash;
-  const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','resume':'简历助手','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
+  const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','resume':'简历助手','answers':'个人答案库','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
 
   function go(view){
     views.forEach(v=>{
@@ -889,6 +927,7 @@
     if(r.roleSelection!==undefined && !['auto','通用',...ROLE_RULES.map(x=>x[0])].includes(r.roleSelection))return false;
     if(r.schemaVersion!==2 || !str(r.id,100) || !str(r.jd) || !str(r.role,100) || !['active','report','saved'].includes(r.status)) return false;
     if(!Array.isArray(r.questions) || r.questions.length!==r.count || !r.questions.every(q=>q && str(q.topic,200) && str(q.q,5000) && Array.isArray(q.points) && q.points.length<=20 && q.points.every(p=>str(p,5000)))) return false;
+    if(r.jobId!==undefined&&(!str(r.jobId,100)||! /^[a-zA-Z0-9_-]{1,100}$/.test(r.jobId)||!r.jobSnapshot||!['company','role','jd'].every(k=>str(r.jobSnapshot[k],k==='jd'?30000:200))))return false;
     if(r.resume!==undefined&&!str(r.resume,30000))return false;
     if(r.ai!==undefined&&(!Array.isArray(r.ai)||r.ai.length!==r.count||!r.ai.every((e,i)=>validAiEntry(e,r.answers?.[i]||''))))return false;
     return Array.isArray(r.answers) && r.answers.length===r.count && r.answers.every(a=>str(a)) &&
@@ -968,14 +1007,14 @@
     if(mockStorageBlocked){storageMsg('原数据异常，请先导出备份检查。');return;}
     if(mockStore.draft && !confirm('开始新面试会替换当前草稿。建议先导出备份。继续吗？'))return;
     stopTimer();parseJd();mockQuestions=buildQuestions();mockAnswers=new Array(mockQuestions.length).fill('');mockIdx=0;mockSec=0;mockSelfRate='';
-    mockSession={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:document.getElementById('mockJd').value.trim(),role:mockRole,roleSelection:document.getElementById('mockRole').value,resume:document.getElementById('mockProfile').value.trim(),ai:Array(mockQuestions.length).fill(null),count:mockQuestions.length,keywords:mockFound.slice(),durations:new Array(mockQuestions.length).fill(0),status:'active'};
+    mockSession={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:document.getElementById('mockJd').value.trim(),role:mockRole,roleSelection:document.getElementById('mockRole').value,resume:document.getElementById('mockProfile').value.trim(),...selectedJobAssociation('mockJob'),ai:Array(mockQuestions.length).fill(null),count:mockQuestions.length,keywords:mockFound.slice(),durations:new Array(mockQuestions.length).fill(0),status:'active'};
     persistDraft();renderQuestion();renderMockHistory();
   }
   function renderQuestion(){
     const stage=document.getElementById('mockStage');if(!stage)return;
     stage.innerHTML=`<div class="stage-bar"><div class="who">面</div><div><div class="who-name">面试官 · 业务负责人</div><div class="who-sub">${esc(mockSession.role)} · 内置题库</div></div><div class="stage-timer"><span class="step">第 ${mockIdx+1}/${mockQuestions.length} 题</span><span class="t" id="mockClock"></span></div></div>
       <div class="stage-body" id="mockBody">${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`<div class="q-card"><div class="q-topic">${esc(q.topic)}</div><div class="q-text">${esc(q.q)}</div></div>${mockAnswers[i]?`<div class="a-card">${esc(mockAnswers[i])}</div>`:''}`).join('')}</div>
-      <div class="stage-foot"><textarea id="mockA" aria-label="本题回答" placeholder="写下你的回答要点……"></textarea><div class="stage-actions"><button class="btn btn-primary" id="mockNext">${mockIdx===mockQuestions.length-1?'结束并生成报告':'下一题 →'}</button><button class="btn btn-ghost" id="mockSkip">跳过</button><span class="hint">回答自动保存，可刷新后恢复</span></div><div id="mockAiBox"></div></div>`;
+      <div class="stage-foot"><textarea id="mockA" aria-label="本题回答" placeholder="写下你的回答要点……"></textarea><div class="stage-actions"><button class="btn btn-primary" id="mockNext">${mockIdx===mockQuestions.length-1?'结束并生成报告':'下一题 →'}</button><button class="btn btn-ghost" id="mockSkip">跳过</button><span class="hint">回答自动保存，可刷新后恢复</span></div><div id="mockStoryPicker"></div><div id="mockAiBox"></div></div>`;
     const a=document.getElementById('mockA');a.value=mockAnswers[mockIdx]||'';a.focus();
     a.addEventListener('input',()=>{mockAnswers[mockIdx]=a.value;if(mockSession.ai)mockSession.ai[mockIdx]=null;persistDraft();renderMockAi();});
     const next=()=>{if(mockAiBusy)return;mockAnswers[mockIdx]=a.value;stopTimer();mockSession.durations[mockIdx]=mockSec;
@@ -983,11 +1022,11 @@
       else{mockIdx++;mockSec=mockSession.durations[mockIdx];persistDraft();renderQuestion();}};
     document.getElementById('mockNext').addEventListener('click',next);
     document.getElementById('mockSkip').addEventListener('click',()=>{a.value='';next();});
-    renderMockAi();const body=document.getElementById('mockBody');if(body)body.scrollTop=body.scrollHeight;startTimer();
+    renderMockAi();if(typeof renderMockAnswerPicker==='function'&&typeof assetsInitialized!=='undefined'&&assetsInitialized)renderMockAnswerPicker();const body=document.getElementById('mockBody');if(body)body.scrollTop=body.scrollHeight;startTimer();
   }
   function reportHtml(r){
-    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div><details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
-      r.questions.map((q,i)=>`<div class="report-item"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div><div class="ri-a ${r.answers[i]?'':'empty'}" style="white-space:pre-wrap">${esc(r.answers[i]||'（未作答）')}</div><div class="sub">本题 ${r.durations[i]} 秒</div><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${esc(p)}</div>`).join('')}</div>${reportAiHtml(r.ai?.[i])}</div>`).join('');
+    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div>${r.jobSnapshot?`<p>关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（训练时快照）</p>`:''}<details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
+      r.questions.map((q,i)=>`<div class="report-item"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div><div class="ri-a ${r.answers[i]?'':'empty'}" style="white-space:pre-wrap">${esc(r.answers[i]||'（未作答）')}</div><div class="sub">本题 ${r.durations[i]} 秒</div><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${esc(p)}</div>`).join('')}</div>${reportAiHtml(r.ai?.[i])}${r.answers[i]?`<button class="btn btn-ghost" data-answer-record="${esc(r.id)}" data-answer-index="${i}">存入个人答案库</button>`:''}</div>`).join('');
   }
   function renderReport(){
     const r=snapshot(),saved=mockSession.status==='saved',stage=document.getElementById('mockStage');if(!stage)return;
@@ -998,13 +1037,13 @@
   function saveMock(){
     const rec={...snapshot(),status:'saved'};
     const records=[rec,...mockStore.records.filter(r=>r.id!==rec.id)];
-    if(writeMockStore({...mockStore,records,draft:null})){mockSession.status='saved';renderMockHistory();renderReport();}
+    if(writeMockStore({...mockStore,records,draft:null})){mockSession.status='saved';renderMockHistory();renderReport();if(typeof renderJobDetail==='function')renderJobDetail();}
   }
   function resumeDraft(){
     if(mockAiBusy)return;
     if(mockSession && mockSession.status!=='saved' && !persistDraft())return;
     const r=mockStore.draft;if(!r)return;stopTimer();mockSession=JSON.parse(JSON.stringify(r));mockQuestions=mockSession.questions;mockAnswers=mockSession.answers;mockIdx=r.index;mockSec=r.durations[mockIdx];mockSelfRate=r.rate==='未评'?'':r.rate;mockFound=r.keywords.slice();mockRole=r.role;mockCount=r.count;
-    document.getElementById('mockJd').value=r.jd;document.getElementById('mockProfile').value=r.resume||'';document.getElementById('mockRole').value=r.roleSelection||'auto';renderKeywords();renderMockCount();
+    document.getElementById('mockJd').value=r.jd;document.getElementById('mockProfile').value=r.resume||'';if(document.getElementById('mockJob'))document.getElementById('mockJob').value=r.jobId||'';document.getElementById('mockRole').value=r.roleSelection||'auto';renderKeywords();renderMockCount();
     if(r.status==='report')renderReport();else renderQuestion();
   }
   function viewHistory(i){
@@ -1062,7 +1101,7 @@
   }
   function setMockAiBusy(busy){
     mockAiBusy=busy;
-    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockStart','mockResume'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
+    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockStart','mockResume','mockStory','mockUseStory'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
   }
   async function evaluateMock(followUp){
     if(mockAiBusy||!mockSession)return;
@@ -1821,6 +1860,7 @@
     return Array.isArray(items) && items.every(r=>r && /^[a-zA-Z0-9_-]{1,100}$/.test(String(r.id)) &&
       ['company','role','date','note'].every(k=>typeof r[k]==='string') &&
       ['初面','二面','三面','HR面'].includes(r.stage) && ['待定','通过','未通过'].includes(r.result) &&
+      (r.jobId===undefined||typeof r.jobId==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(r.jobId)&&r.jobSnapshot&&['company','role','jd'].every(k=>typeof r.jobSnapshot[k]==='string'&&r.jobSnapshot[k].length<=(k==='jd'?30000:200)))&&
       Array.isArray(r.tags) && r.tags.every(t=>typeof t==='string'&&t.length<=100));
   }
   function localReviewSummary(items){
@@ -1837,7 +1877,7 @@
       data.summary.total!==data.records.length||!data.summary.weaknesses.every(w=>w&&typeof w.tag==='string'&&Number.isInteger(w.count)&&w.count>0))throw new Error('复盘统计格式异常');
     reviews=data.records;reviewSummary=data.summary;
     try{localStorage.setItem(REVIEW_CACHE,JSON.stringify(data));}catch(e){} // 缓存失败不影响已成功的服务端写入。
-    renderReviews();renderOverview();
+    renderReviews();renderOverview();if(typeof renderJobDetail==='function')renderJobDetail();
   }
   async function reviewRequest(url,method='GET',body){
     const response=await fetch(url,{method,headers:body?{'Content-Type':'application/json'}:{},
@@ -1933,7 +1973,7 @@
       list.innerHTML = '<div class="rv-empty">还没有记录。左边记一次面试，这里会累计你的复盘并自动汇总短板。</div>';
     } else {
       list.innerHTML = reviews.map(r=>`
-        <div class="rec-entry" data-review-id="${esc(r.id)}">
+        <div class="rec-entry" data-review-id="${esc(r.id)}">${r.jobSnapshot?`<p class="mock-note">关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（记录时快照）</p>`:''}
           <div class="rec-entry-top">
             <span class="rec-co">${esc(r.company||'未填公司')}</span>
             <span class="rec-stage">${esc(r.stage)}${r.role?' · '+esc(r.role):''}</span>
@@ -1983,13 +2023,13 @@
     const date=document.getElementById('rvDate').value,note=document.getElementById('rvNote').value.trim();
     if(!company&&!note){rvMsg('请至少填写公司或复盘内容');return;}
     if(!date){rvMsg('请选择面试日期');return;}
-    const fields={company,role,stage,result,date,tags:rvTags.slice(),note};
+    const fields={company,role,stage,result,date,tags:rvTags.slice(),note,...selectedJobAssociation('rvJob')};
     const fingerprint=JSON.stringify(fields);
     if(!pendingReview||pendingReview.fingerprint!==fingerprint)pendingReview={fingerprint,record:{id:crypto.randomUUID(),...fields}};
     setReviewBusy(true);
     try{
       applyReviews(await persistReviews('POST',pendingReview.record));pendingReview=null;
-      ['rvCompany','rvRole','rvNote'].forEach(id=>document.getElementById(id).value='');rvTags=[];renderRvTags();
+      ['rvCompany','rvRole','rvNote'].forEach(id=>document.getElementById(id).value='');document.getElementById('rvJob').value='';rvTags=[];renderRvTags();
       rvMsg(reviewApiMode?'已保存到本地服务，首页统计已更新 ✓':'已保存到当前浏览器，首页统计已更新 ✓');
     }catch(e){rvMsg('保存失败：'+e.message+'。填写内容已保留，可重试。');}
     finally{setReviewBusy(false);}
@@ -2005,95 +2045,110 @@
   document.getElementById('reviewRetry').addEventListener('click',loadReviews);
   loadReviews();
 
-  /* ================= 招聘信息 · 岗位池 ================= */
-  let jobs = [];
-  try{ jobs = JSON.parse(localStorage.getItem('zm_jobs')||'[]'); }catch(e){ jobs = []; }
-  function saveJobs(){ try{ localStorage.setItem('zm_jobs', JSON.stringify(jobs)); }catch(e){} }
-  let jpFilter = '';
-
-  function jpKeywords(jd){
-    const t = (jd||'').toLowerCase(); const found = [];
-    QUIZ_BANK.forEach(i=>{ if(i.keys && i.keys.some(k=>t.includes(k.toLowerCase()))) found.push(i.topic); });
-    return found;
-  }
-  function renderJpKeywords(){
-    const box = document.getElementById('jpKeywords'); if(!box) return;
-    const kws = jpKeywords(document.getElementById('jpJd')?.value || '');
-    box.innerHTML = kws.length ? kws.map(k=>`<span class="kw hit">${k}</span>`).join('') : '<span class="kw-none">粘贴 JD 后自动识别</span>';
-  }
-  function jpMsg(t){
-    const el = document.getElementById('jpMsg'); if(!el) return;
-    el.textContent = t; setTimeout(()=>{ el.textContent=''; }, 2200);
-  }
-  function matchRole(text){
-    const raw = text || '';
-    const t = raw.toLowerCase();
-    const hit = SKILL_ROLES.find(r=> t.includes(r) || (raw && r.includes(raw)));
-    if(hit) return hit;
-    const kw = {'前端':'前端开发','后端':'后端开发','产品':'产品经理','数据':'数据分析','算法':'算法工程师','ai':'AGI 工程师','agi':'AGI 工程师','大模型':'AGI 工程师','人工智能':'AGI 工程师'};
-    const k = Object.keys(kw).find(k=>t.includes(k));
-    return k ? kw[k] : SKILL_ROLES[0];
-  }
-  function renderJobs(){
-    const list = document.getElementById('jpList'); if(!list) return;
-    const cnt = document.getElementById('jpCount');
-    const q = jpFilter.trim().toLowerCase();
-    const arr = jobs.filter(j=>!q || ((j.company||'')+(j.role||'')+(j.city||'')).toLowerCase().includes(q));
-    if(cnt) cnt.textContent = jobs.length ? `（${jobs.length} 个${q?`，筛出 ${arr.length}`:''}）` : '';
-    if(!arr.length){
-      list.innerHTML = `<div class="jp-empty">${jobs.length ? '没有匹配的岗位。' : '岗位池还是空的。左边粘贴一个岗位 JD，存进来吧。'}</div>`;
-      return;
+  /* ================= 岗位进度与关联 ================= */
+  const JOB_KEY='zm_jobs_store_v2',JOB_STATUSES=['待投递','已投递','面试中','已获 Offer','已结束'];
+  let jobs=[],jobsBlocked=false,editingJobId=null,selectedJobId=null,jpFilter='';
+  function assetId(v){return typeof v==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(v);}
+  function safeUrl(value){if(!value)return '';try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
+  function validJob(j){return !!j&&assetId(j.id)&&['company','role','city','salary'].every(k=>typeof j[k]==='string'&&j[k].length<=200)&&typeof j.jd==='string'&&j.jd.length<=30000&&typeof j.sourceUrl==='string'&&j.sourceUrl.length<=2000&&(!j.sourceUrl||safeUrl(j.sourceUrl))&&JOB_STATUSES.includes(j.status)&&typeof j.createdAt==='string'&&!Number.isNaN(Date.parse(j.createdAt))&&typeof j.nextInterview==='string'&&(!j.nextInterview||/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(j.nextInterview)&&validLocalDateTime(j.nextInterview));}
+  function validLocalDateTime(t){const d=new Date(t);return !Number.isNaN(d.getTime())&&d.getFullYear()===Number(t.slice(0,4))&&d.getMonth()+1===Number(t.slice(5,7))&&d.getDate()===Number(t.slice(8,10))&&d.getHours()===Number(t.slice(11,13))&&d.getMinutes()===Number(t.slice(14,16));}
+  function validJobsStore(v){return v?.schemaVersion===2&&Array.isArray(v.records)&&v.records.length<=10000&&v.records.every(validJob)&&new Set(v.records.map(j=>j.id)).size===v.records.length;}
+  function jpKeywords(jd){return QUIZ_BANK.filter(i=>i.keys?.some(k=>(jd||'').toLowerCase().includes(k.toLowerCase()))).map(i=>i.topic);}
+  function jpMsg(t){document.getElementById('jpMsg').textContent=t;}
+  function saveJobs(next){if(jobsBlocked){jpMsg('岗位存储异常，已停止覆盖；可导出原始备份。');return false;}try{localStorage.setItem(JOB_KEY,JSON.stringify({schemaVersion:2,records:next}));jobs=next;return true;}catch(e){jpMsg('保存失败：浏览器存储不可用或空间不足；填写内容保留。');return false;}}
+  try{
+    const raw=localStorage.getItem(JOB_KEY);
+    if(raw){const data=JSON.parse(raw);if(!validJobsStore(data))throw Error();jobs=data.records;}
+    else{const old=JSON.parse(localStorage.getItem('zm_jobs')||'[]');if(!Array.isArray(old))throw Error();
+      const migrated=old.map(j=>{if(!j||!['company','role','city','salary','jd'].every(k=>j[k]===undefined||typeof j[k]==='string'))throw Error();return {id:String(j.id),company:j.company||'',role:j.role||'',city:j.city||'',salary:j.salary||'',jd:j.jd||'',sourceUrl:'',status:'待投递',createdAt:new Date(Number(j.id)||Date.now()).toISOString(),nextInterview:''};});
+      if(!validJobsStore({schemaVersion:2,records:migrated}))throw Error();jobs=migrated;if(old.length)saveJobs(migrated);
     }
-    list.innerHTML = arr.map(j=>`
-      <div class="jp-card">
-        <div class="jp-top">
-          <span class="jp-logo" style="background:${j.color||'#2f5d5d'}">${esc((j.company||j.role||'岗').slice(0,1))}</span>
-          <div class="jp-main">
-            <div class="jp-title">${esc(j.role||'未填岗位')}</div>
-            <div class="jp-meta">${[j.company,j.city,j.salary].filter(Boolean).map(esc).join(' · ')||'—'}</div>
-          </div>
-          <button class="rec-del" data-jpdel="${j.id}">删除</button>
-        </div>
-        ${(j.kws&&j.kws.length)?`<div class="tree-skills" style="margin:9px 0 0">${j.kws.slice(0,8).map(k=>`<span>${k}</span>`).join('')}</div>`:''}
-        <div class="jp-actions">
-          <button class="btn btn-seal" data-jpmock="${j.id}">▶ 用这个岗位模拟面试</button>
-          <button class="btn btn-ghost" data-jpskill="${j.id}">看技能地图 →</button>
-        </div>
-      </div>`).join('');
-    list.querySelectorAll('[data-jpdel]').forEach(b=>b.addEventListener('click',()=>{
-      jobs = jobs.filter(x=>String(x.id)!==b.dataset.jpdel); saveJobs(); renderJobs();
-    }));
-    list.querySelectorAll('[data-jpmock]').forEach(b=>b.addEventListener('click',()=>{
-      const j = jobs.find(x=>String(x.id)===b.dataset.jpmock); if(!j) return;
-      const jdEl = document.getElementById('mockJd');
-      if(jdEl) jdEl.value = j.jd || ((j.role||'') + ' ' + (j.company||''));
-      go('mock'); parseJd(); startMock();
-    }));
-    list.querySelectorAll('[data-jpskill]').forEach(b=>b.addEventListener('click',()=>{
-      const j = jobs.find(x=>String(x.id)===b.dataset.jpskill); if(!j) return;
-      curRole = matchRole(j.role || '');
-      go('skill'); renderPresets(); renderSkillTree();
-    }));
+  }catch(e){jobsBlocked=true;jpMsg('无法读取岗位存储，原数据保留；请导出原始备份检查。');}
+  function renderJpKeywords(){const kws=jpKeywords(document.getElementById('jpJd').value);document.getElementById('jpKeywords').innerHTML=kws.length?kws.map(k=>`<span class="kw hit">${esc(k)}</span>`).join(''):'<span class="kw-none">粘贴 JD 后自动识别</span>';}
+  function selectedJobAssociation(selectId){const j=jobs.find(j=>j.id===document.getElementById(selectId)?.value);return j?{jobId:j.id,jobSnapshot:{company:j.company,role:j.role,jd:j.jd}}:{};}
+  function refreshJobSelectors(){for(const id of ['mockJob','rvJob','answerJob']){const select=document.getElementById(id);if(!select)continue;const value=select.value||(id==='mockJob'?mockSession?.jobId||'':'');select.innerHTML='<option value="">不关联岗位</option>'+jobs.map(j=>`<option value="${esc(j.id)}">${esc(j.company||'未填公司')} · ${esc(j.role||'未填岗位')}</option>`).join('');if(value&&!jobs.some(j=>j.id===value))select.add(new Option('原关联岗位（已删除）',value));select.value=value;}}
+  function matchRole(text){const raw=text||'',t=raw.toLowerCase();const hit=SKILL_ROLES.find(r=>t.includes(r)||(raw&&r.includes(raw)));if(hit)return hit;const kw={'前端':'前端开发','后端':'后端开发','产品':'产品经理','数据':'数据分析','算法':'算法工程师','ai':'AGI 工程师','agi':'AGI 工程师','大模型':'AGI 工程师','人工智能':'AGI 工程师'};const k=Object.keys(kw).find(k=>t.includes(k));return k?kw[k]:SKILL_ROLES[0];}
+  function prepareJobMock(id){const j=jobs.find(j=>j.id===id);if(!j)return;document.getElementById('mockJob').value=j.id;document.getElementById('mockJd').value=j.jd||j.role;document.getElementById('mockRole').value='auto';parseJd();go('mock');storageMsg('岗位已带入下一场面试设置。点击开始面试；当前草稿保留。');}
+  function prepareJobReview(id){const j=jobs.find(j=>j.id===id);if(!j)return;const formHasText=['rvCompany','rvRole','rvNote'].some(k=>document.getElementById(k).value.trim());if(formHasText&&!confirm('使用此岗位会替换复盘表单的公司和岗位，保留复盘正文。继续吗？'))return;document.getElementById('rvJob').value=j.id;document.getElementById('rvCompany').value=j.company;document.getElementById('rvRole').value=j.role;go('review');}
+  function editJob(id){const j=jobs.find(j=>j.id===id);if(!j||jobsBlocked)return;editingJobId=id;for(const [field,key]of Object.entries({jpCompany:'company',jpRole:'role',jpCity:'city',jpSalary:'salary',jpJd:'jd',jpSource:'sourceUrl',jpStatus:'status',jpNext:'nextInterview'}))document.getElementById(field).value=j[key];document.getElementById('jobEditorTitle').textContent='编辑岗位';document.getElementById('jpSave').textContent='保存修改';document.getElementById('jpCancel').hidden=false;renderJpKeywords();go('jobs');}
+  function resetJobEditor(){editingJobId=null;['jpCompany','jpRole','jpCity','jpSalary','jpJd','jpSource','jpNext'].forEach(id=>document.getElementById(id).value='');document.getElementById('jpStatus').value='待投递';document.getElementById('jobEditorTitle').textContent='添加岗位';document.getElementById('jpSave').textContent='保存到岗位池';document.getElementById('jpCancel').hidden=true;renderJpKeywords();}
+  function renderJobs(){
+    const q=jpFilter.trim().toLowerCase(),status=document.getElementById('jpStatusFilter').value,arr=jobs.filter(j=>(!q||[j.company,j.role,j.city].join(' ').toLowerCase().includes(q))&&(!status||j.status===status));
+    document.getElementById('jpCount').textContent=`（${jobs.length} 个，显示 ${arr.length} 个）`;
+    document.getElementById('jobSummary').textContent=JOB_STATUSES.map(s=>`${s} ${jobs.filter(j=>j.status===s).length}`).join(' · ');
+    const list=document.getElementById('jpList');list.innerHTML=arr.length?arr.map(j=>`<div class="jp-card"><div class="jp-top"><span class="jp-logo" style="background:var(--teal)">${esc((j.company||j.role||'岗').slice(0,1))}</span><div class="jp-main"><div class="jp-title">${esc(j.role||'未填岗位')}</div><div class="jp-meta">${[j.company,j.city,j.salary].filter(Boolean).map(esc).join(' · ')}</div></div><button class="rec-del" data-jpdel="${esc(j.id)}">删除</button></div><p><span class="job-status">${esc(j.status)}</span>${j.nextInterview?` · 下次面试 ${esc(j.nextInterview.replace('T',' '))}`:''}</p><div class="jp-actions"><button class="btn btn-ghost" data-jobdetail="${esc(j.id)}">岗位详情与关联</button><button class="btn btn-seal" data-jpmock="${esc(j.id)}">准备模拟面试</button><button class="btn btn-ghost" data-jobedit="${esc(j.id)}">编辑</button></div></div>`).join(''):'<p class="jp-empty">还没有匹配岗位，可在左侧添加。</p>';
+    list.querySelectorAll('[data-jobdetail]').forEach(b=>b.onclick=()=>{selectedJobId=b.dataset.jobdetail;renderJobDetail();document.getElementById('jobDetail').scrollIntoView({block:'start'});});
+    list.querySelectorAll('[data-jobedit]').forEach(b=>b.onclick=()=>editJob(b.dataset.jobedit));list.querySelectorAll('[data-jpmock]').forEach(b=>b.onclick=()=>prepareJobMock(b.dataset.jpmock));
+    list.querySelectorAll('[data-jpdel]').forEach(b=>b.onclick=()=>{if(jobsBlocked||!confirm('删除此岗位？已保存的训练、复盘和答案仍保留岗位快照。'))return;if(saveJobs(jobs.filter(j=>j.id!==b.dataset.jpdel))){if(editingJobId===b.dataset.jpdel)resetJobEditor();refreshJobSelectors();renderJobs();renderJobDetail();jpMsg('已删除岗位，历史记录保留。');}});
+    if(jobsBlocked)list.querySelectorAll('button').forEach(b=>b.disabled=true);
+  }
+  function renderJobDetail(){
+    const box=document.getElementById('jobDetail');if(!box||!assetsInitialized)return;const j=jobs.find(j=>j.id===selectedJobId);box.hidden=!j;if(!j)return;
+    const training=mockStore.records.filter(r=>r.jobId===j.id),draft=mockStore.draft?.jobId===j.id?mockStore.draft:null,rv=reviews.filter(r=>r.jobId===j.id),stories=typeof answersReady==='boolean'&&answersReady?answerStore.records.filter(a=>a.jobId===j.id):[];
+    box.innerHTML=`<h3>${esc(j.company)} · ${esc(j.role)}</h3><p>${esc(j.status)} · 收录 ${esc(displayMockDate(j.createdAt))}${j.nextInterview?` · 下次面试 ${esc(j.nextInterview.replace('T',' '))}`:''}</p>${j.sourceUrl?`<a href="${esc(safeUrl(j.sourceUrl))}" target="_blank" rel="noopener noreferrer">查看岗位来源</a>`:''}<details><summary>岗位 JD</summary><pre>${esc(j.jd)}</pre></details><div class="paste-actions"><button class="btn btn-ghost" id="detailMock">准备模拟面试</button><button class="btn btn-ghost" id="detailReview">记录真实面试</button><button class="btn btn-ghost" id="detailStory">准备个人答案</button><button class="btn btn-ghost" id="detailSkill">查看技能地图</button></div><h4>模拟训练 ${training.length} 次${draft?' · 有草稿':''}</h4>${draft?'<button class="btn btn-ghost" id="detailDraft">恢复此岗位训练草稿</button>':''}${training.map(r=>`<button class="btn btn-ghost" data-training="${esc(r.id)}">${esc(displayMockDate(r.date))} · ${r.count} 题 · ${esc(r.rate)}</button>`).join('')||'<p class="mock-note">还没有保存的训练。</p>'}<h4>真实面试 ${rv.length} 次</h4>${!reviewReady?'<p class="mock-note">复盘连接尚未就绪，以下可能是缓存记录。</p>':''}${rv.map(r=>`<button class="btn btn-ghost" data-job-review="${esc(r.id)}">${esc(r.date)} · ${esc(r.stage)} · ${esc(r.result)}</button>`).join('')||'<p class="mock-note">暂无关联复盘。</p>'}<h4>个人答案 ${stories.length} 个</h4>${stories.map(a=>`<button class="btn btn-ghost" data-job-answer="${esc(a.id)}">${esc(a.title)}</button>`).join('')||'<p class="mock-note">暂无关联答案。</p>'}`;
+    document.getElementById('detailMock').onclick=()=>prepareJobMock(j.id);document.getElementById('detailReview').onclick=()=>prepareJobReview(j.id);document.getElementById('detailStory').onclick=()=>openAnswerEditor(null,{jobId:j.id,jobSnapshot:{company:j.company,role:j.role,jd:j.jd}});document.getElementById('detailSkill').onclick=()=>{curRole=matchRole(j.role);go('skill');renderPresets();renderSkillTree();};
+    document.getElementById('detailDraft')?.addEventListener('click',()=>{go('mock');resumeDraft();});
+    box.querySelectorAll('[data-training]').forEach(b=>b.onclick=()=>{go('mock');viewHistory(mockStore.records.findIndex(r=>r.id===b.dataset.training));});
+    box.querySelectorAll('[data-job-review]').forEach(b=>b.onclick=()=>{go('review');const row=Array.from(document.querySelectorAll('[data-review-id]')).find(r=>r.dataset.reviewId===b.dataset.jobReview);if(row){row.style.outline='2px solid var(--seal)';row.scrollIntoView({block:'center'});}});
+    box.querySelectorAll('[data-job-answer]').forEach(b=>b.onclick=()=>openAnswerEditor(b.dataset.jobAnswer));
   }
   function saveJob(){
-    const company = document.getElementById('jpCompany').value.trim();
-    const role = document.getElementById('jpRole').value.trim();
-    const city = document.getElementById('jpCity').value.trim();
-    const salary = document.getElementById('jpSalary').value.trim();
-    const jd = document.getElementById('jpJd').value.trim();
-    if(!company && !role && !jd){ jpMsg('请至少填写公司 / 岗位，或粘贴 JD'); return; }
-    const colors = ['#2f5d5d','#c13a1e','#b88a2e','#5a4f40','#3f5a7a'];
-    jobs.unshift({ id:Date.now(), company, role, city, salary, jd, kws:jpKeywords(jd), color:colors[jobs.length % colors.length] });
-    saveJobs();
-    ['jpCompany','jpRole','jpCity','jpSalary','jpJd'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    renderJpKeywords(); renderJobs(); jpMsg('已加入岗位池 ✓');
+    if(jobsBlocked)return;const j={id:editingJobId||crypto.randomUUID(),createdAt:jobs.find(j=>j.id===editingJobId)?.createdAt||new Date().toISOString()};
+    for(const [field,key]of Object.entries({jpCompany:'company',jpRole:'role',jpCity:'city',jpSalary:'salary',jpJd:'jd',jpSource:'sourceUrl',jpStatus:'status',jpNext:'nextInterview'}))j[key]=document.getElementById(field).value.trim();
+    if(!j.company&&!j.role&&!j.jd){jpMsg('请至少填写公司、岗位或 JD');return;}if(!validJob(j)){jpMsg('请检查字段长度、来源 HTTP(S) 链接及面试时间。');return;}
+    const next=editingJobId?jobs.map(old=>old.id===editingJobId?j:old):[j,...jobs];if(next.length>10000){jpMsg('岗位数量已达上限，请先导出备份并整理。');return;}
+    if(saveJobs(next)){selectedJobId=j.id;resetJobEditor();refreshJobSelectors();renderJobs();renderJobDetail();jpMsg('已保存岗位；历史记录的岗位快照不变。');}
   }
-
-  document.getElementById('jpSave')?.addEventListener('click', saveJob);
-  document.getElementById('jpJd')?.addEventListener('input', renderJpKeywords);
-  document.getElementById('jpFilter')?.addEventListener('input', e=>{ jpFilter = e.target.value; renderJobs(); });
-  renderJpKeywords();
-  renderJobs();
+  function downloadAsset(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  document.getElementById('jpSave').onclick=saveJob;document.getElementById('jpCancel').onclick=resetJobEditor;document.getElementById('jpJd').oninput=renderJpKeywords;document.getElementById('jpFilter').oninput=e=>{jpFilter=e.target.value;renderJobs();};document.getElementById('jpStatusFilter').onchange=renderJobs;
+  document.getElementById('mockJob').onchange=e=>{const j=jobs.find(j=>j.id===e.target.value);if(j){document.getElementById('mockJd').value=j.jd;document.getElementById('mockRole').value='auto';parseJd();storageMsg('岗位用于下一场面试，当前草稿不变。');}};
+  document.getElementById('rvJob').onchange=e=>{const j=jobs.find(j=>j.id===e.target.value);if(j){document.getElementById('rvCompany').value=j.company;document.getElementById('rvRole').value=j.role;}};
+  document.getElementById('jobExport').onclick=()=>{let value={schemaVersion:2,records:jobs};if(jobsBlocked){try{value={recovery:true,current:localStorage.getItem(JOB_KEY),legacy:localStorage.getItem('zm_jobs')};}catch(e){jpMsg('无法读取原始备份。');return;}}downloadAsset(value,'zhimian-jobs.json');};
+  document.getElementById('jobImport').onclick=()=>document.getElementById('jobImportFile').click();document.getElementById('jobImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(jobsBlocked)throw Error('原存储异常，请先导出检查');if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!validJobsStore(data))throw Error('岗位备份格式错误');const added=data.records.filter(j=>!jobs.some(old=>old.id===j.id)),next=[...added,...jobs];if(next.length>10000)throw Error('岗位数量超过上限');if(saveJobs(next)){refreshJobSelectors();renderJobs();renderJobDetail();jpMsg(`已导入 ${added.length} 个岗位，同 ID 保留现有版本。`);}}catch(err){jpMsg('导入失败：'+err.message+'。原数据保留。');}finally{e.target.value='';}};
+  refreshJobSelectors();renderJpKeywords();renderJobs();if(jobsBlocked)['jpSave','jobImport'].forEach(id=>document.getElementById(id).disabled=true);
+  /* ================= 可复用的个人答案与版本 ================= */
+  const ANSWER_KEY='zm_answers_store_v1';
+  let answerStore={schemaVersion:1,records:[]},answersReady=false,answersBlocked=false,editingAnswerId=null,answerSeed={};
+  function answerMsg(t){document.getElementById('answerMsg').textContent=t;}
+  function validAnswerSnapshot(v){const str=(s,max)=>typeof s==='string'&&s.length<=max;return !!v&&str(v.title,200)&&!!v.title.trim()&&str(v.question,5000)&&str(v.text,30000)&&!!v.text.trim()&&Array.isArray(v.tags)&&v.tags.length<=20&&v.tags.every(t=>str(t,100))&&v.star&&['s','t','a','r'].every(k=>str(v.star[k],6000))&&str(v.date,100)&&!Number.isNaN(Date.parse(v.date))&&(v.jobId===undefined||assetId(v.jobId)&&v.jobSnapshot&&['company','role','jd'].every(k=>str(v.jobSnapshot[k],k==='jd'?30000:200)));}
+  function validAnswerStore(v){return v?.schemaVersion===1&&Array.isArray(v.records)&&v.records.length<=1000&&v.records.every(a=>assetId(a.id)&&validAnswerSnapshot(a)&&Array.isArray(a.versions)&&a.versions.length>0&&a.versions.length<=100&&a.versions.every(validAnswerSnapshot))&&new Set(v.records.map(a=>a.id)).size===v.records.length;}
+  function writeAnswers(next){if(answersBlocked){answerMsg('答案存储异常，已停止覆盖；可导出原始备份。');return false;}try{localStorage.setItem(ANSWER_KEY,JSON.stringify(next));answerStore=next;return true;}catch(e){answerMsg('保存失败：浏览器存储不可用或空间不足；编辑内容保留。');return false;}}
+  try{const raw=localStorage.getItem(ANSWER_KEY);if(raw){const v=JSON.parse(raw);if(!validAnswerStore(v))throw Error();answerStore=v;}answersReady=true;}catch(e){answersBlocked=true;answerMsg('无法读取答案存储，原数据保留；可导出原始备份检查。');}
+  function openAnswerEditor(id=null,seed={}){
+    if(editingAnswerId||document.getElementById('answerText').value.trim())if(!confirm('切换答案编辑会替换尚未保存的表单内容。继续吗？'))return;
+    const a=id?answerStore.records.find(a=>a.id===id):seed;if(!a)return;editingAnswerId=id;answerSeed=JSON.parse(JSON.stringify(a));
+    for(const [field,key]of Object.entries({answerTitle:'title',answerQuestion:'question',answerText:'text'}))document.getElementById(field).value=a[key]||'';
+    document.getElementById('answerTags').value=(a.tags||[]).join('，');refreshJobSelectors();const select=document.getElementById('answerJob');if(a.jobId&&!jobs.some(j=>j.id===a.jobId)&&!Array.from(select.options).some(o=>o.value===a.jobId))select.add(new Option('原关联岗位（已删除）',a.jobId));select.value=a.jobId||'';
+    for(const k of ['s','t','a','r'])document.getElementById('answer'+k.toUpperCase()).value=a.star?.[k]||'';
+    document.getElementById('answerEditorTitle').textContent=id?'编辑答案 · 保存为新版本':'新建个人答案';go('answers');return true;
+  }
+  function saveAnswer(){
+    if(answersBlocked)return;const old=answerStore.records.find(a=>a.id===editingAnswerId),jobId=document.getElementById('answerJob').value;
+    let association=selectedJobAssociation('answerJob');if(jobId&&!association.jobId){if(answerSeed.jobId===jobId&&answerSeed.jobSnapshot)association={jobId,jobSnapshot:answerSeed.jobSnapshot};else{answerMsg('关联岗位已删除，请取消关联后保存。');return;}}
+    const snapshot={title:document.getElementById('answerTitle').value.trim(),question:document.getElementById('answerQuestion').value.trim(),text:document.getElementById('answerText').value.trim(),tags:[...new Set(document.getElementById('answerTags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean))],star:Object.fromEntries(['s','t','a','r'].map(k=>[k,document.getElementById('answer'+k.toUpperCase()).value.trim()])),date:new Date().toISOString(),...association};
+    if(!validAnswerSnapshot(snapshot)){answerMsg('请填写标题和答案，检查字段长度与标签（最多 20 个）。');return;}
+    if(old?.versions.length>=100){answerMsg('此答案已达 100 个版本，请先导出备份，并另存为新的答案。');return;}
+    const a={id:old?.id||crypto.randomUUID(),...snapshot,versions:[snapshot,...(old?.versions||[])]},records=old?answerStore.records.map(x=>x.id===old.id?a:x):[a,...answerStore.records];
+    if(records.length>1000){answerMsg('答案已达 1000 个，请导出备份并整理。');return;}
+    if(writeAnswers({schemaVersion:1,records})){editingAnswerId=a.id;answerSeed=JSON.parse(JSON.stringify(a));document.getElementById('answerEditorTitle').textContent='编辑答案 · 保存为新版本';renderAnswers();renderJobDetail();renderMockAnswerPicker();answerMsg('已保存新版本，之前的版本保留。');}
+  }
+  function useAnswerContext(id){const a=answerStore.records.find(a=>a.id===id);if(!a)return;const field=document.getElementById('mockProfile'),addition=`【个人故事：${a.title}】\n${a.text}`,text=[field.value.trim(),addition].filter(Boolean).join('\n\n');if(text.length>30000){answerMsg('带入后超过 30000 字，请精简面试背景。');return;}field.value=text;if(a.jobId&&jobs.some(j=>j.id===a.jobId)){prepareJobMock(a.jobId);}else go('mock');storageMsg('个人故事已带入下一场面试背景；当前回答和草稿不变。');}
+  function renderAnswers(){
+    const q=document.getElementById('answerFilter').value.trim().toLowerCase(),arr=answerStore.records.filter(a=>[a.title,a.question,a.text,...a.tags].join(' ').toLowerCase().includes(q));
+    const box=document.getElementById('answerList');box.innerHTML=arr.length?arr.map(a=>`<article class="answer-card"><h4>${esc(a.title)}</h4><p class="mock-note">${esc(a.tags.join(' · '))} · ${a.versions.length} 个版本${a.jobSnapshot?` · ${esc(a.jobSnapshot.company)} / ${esc(a.jobSnapshot.role)}`:''}</p><p>${esc(a.question||'通用故事')}</p><details><summary>查看当前答案</summary><pre>${esc(a.text)}</pre></details><div class="paste-actions"><button class="btn btn-ghost" data-answer-edit="${esc(a.id)}">编辑</button><button class="btn btn-ghost" data-answer-use="${esc(a.id)}">用于模拟面试</button><button class="btn btn-ghost" data-answer-delete="${esc(a.id)}">删除</button></div><details><summary>版本记录与对比</summary>${a.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${a.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><div class="comparison"><div><h4>前一版</h4><pre>${esc(a.versions[i+1]?.text||'这是首个版本')}</pre></div><div><h4>这一版</h4><pre>${esc(v.text)}</pre></div></div><p class="mock-note">${esc(v.title)} · ${esc(v.question)}</p>${v.jobSnapshot?`<p>${esc(v.jobSnapshot.company)} · ${esc(v.jobSnapshot.role)}（当时关联）</p>`:''}<button class="btn btn-ghost" data-answer-restore="${esc(a.id)}" data-version="${i}">载入此版编辑</button></details>`).join('')}</details></article>`).join(''):'<p class="rv-empty">暂无匹配答案。可新建，或从 STAR 练习和面试报告存入。</p>';
+    box.querySelectorAll('[data-answer-edit]').forEach(b=>b.onclick=()=>openAnswerEditor(b.dataset.answerEdit));box.querySelectorAll('[data-answer-use]').forEach(b=>b.onclick=()=>useAnswerContext(b.dataset.answerUse));
+    box.querySelectorAll('[data-answer-delete]').forEach(b=>b.onclick=()=>{if(answersBlocked||!confirm('删除此答案及其版本？已有面试报告里的回答不变。'))return;if(writeAnswers({...answerStore,records:answerStore.records.filter(a=>a.id!==b.dataset.answerDelete)})){if(editingAnswerId===b.dataset.answerDelete){editingAnswerId=null;answerSeed={};['answerTitle','answerQuestion','answerText','answerTags','answerS','answerT','answerA','answerR'].forEach(id=>document.getElementById(id).value='');document.getElementById('answerJob').value='';document.getElementById('answerEditorTitle').textContent='新建个人答案';}renderAnswers();renderJobDetail();renderMockAnswerPicker();answerMsg('已删除，面试历史回答保留。');}});
+    box.querySelectorAll('[data-answer-restore]').forEach(b=>b.onclick=()=>{const a=answerStore.records.find(a=>a.id===b.dataset.answerRestore),v=a?.versions[Number(b.dataset.version)];if(v&&openAnswerEditor(null,v)){editingAnswerId=a.id;document.getElementById('answerEditorTitle').textContent='旧版已载入 · 保存为新版本';answerMsg('已载入旧版，保存后新增版本，不覆盖历史。');}});
+    if(answersBlocked)box.querySelectorAll('button').forEach(b=>b.disabled=true);
+  }
+  function renderMockAnswerPicker(){const box=document.getElementById('mockStoryPicker');if(!box)return;box.innerHTML='<div class="field"><label for="mockStory">从个人答案库选择（可选）</label><select id="mockStory"><option value="">选择适用的答案</option>'+answerStore.records.map(a=>`<option value="${esc(a.id)}">${esc(a.title)} · ${esc(a.question||'通用故事')}</option>`).join('')+'</select></div><button class="btn btn-ghost" id="mockUseStory">用这段故事作为本题回答</button>';document.getElementById('mockUseStory').onclick=()=>{const a=answerStore.records.find(a=>a.id===document.getElementById('mockStory').value),input=document.getElementById('mockA');if(!a||!input||mockAiBusy)return;if(input.value.trim()&&!confirm('用此故事替换当前题目尚未提交的回答？'))return;input.value=a.text;input.dispatchEvent(new Event('input',{bubbles:true}));};}
+  document.getElementById('answerSave').onclick=saveAnswer;document.getElementById('answerNew').onclick=()=>openAnswerEditor();document.getElementById('answerFilter').oninput=renderAnswers;
+  document.getElementById('answerCompose').onclick=()=>{const value=['s','t','a','r'].map((k,i)=>{const t=document.getElementById('answer'+k.toUpperCase()).value.trim();return t?`【${['情境','任务','行动','结果'][i]}】${t}`:'';}).filter(Boolean).join('\n');if(!value){answerMsg('请至少填写一项 STAR。');return;}const field=document.getElementById('answerText');if(field.value.trim()&&!confirm('用 STAR 四部分替换完整答案编辑内容？'))return;field.value=value;};
+  document.getElementById('starToLibrary').onclick=()=>{const star=Object.fromEntries(['s','t','a','r'].map(k=>[k,document.getElementById('star'+k.toUpperCase()).value.trim()]));if(!Object.values(star).some(Boolean)){document.getElementById('starResult').value='请先填写至少一部分 STAR 内容。';return;}buildStar();closeAllModals();openAnswerEditor(null,{title:'我的 STAR 项目故事',text:document.getElementById('starResult').value,star});};
+  document.getElementById('mockStage').addEventListener('click',e=>{const b=e.target.closest('[data-answer-record]');if(!b)return;const r=mockStore.records.find(r=>r.id===b.dataset.answerRecord)||snapshot(),i=Number(b.dataset.answerIndex);if(r?.id===b.dataset.answerRecord&&r.answers[i])openAnswerEditor(null,{title:r.questions[i].topic,question:r.questions[i].q,text:r.answers[i],...(r.jobId?{jobId:r.jobId,jobSnapshot:r.jobSnapshot}:{})});});
+  document.getElementById('answerExport').onclick=()=>{let value=answerStore;if(answersBlocked){try{value={recovery:true,raw:localStorage.getItem(ANSWER_KEY)};}catch(e){answerMsg('无法读取原始备份。');return;}}downloadAsset(value,'zhimian-answers.json');};
+  document.getElementById('answerImport').onclick=()=>document.getElementById('answerImportFile').click();document.getElementById('answerImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(answersBlocked)throw Error('原存储异常，请先导出检查');if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!validAnswerStore(data))throw Error('答案备份格式错误');const added=data.records.filter(a=>!answerStore.records.some(old=>old.id===a.id)),next={schemaVersion:1,records:[...added,...answerStore.records]};if(!validAnswerStore(next))throw Error('答案数量超过上限');if(writeAnswers(next)){renderAnswers();renderJobDetail();renderMockAnswerPicker();answerMsg(`已导入 ${added.length} 个答案，同 ID 保留现有版本。`);}}catch(err){answerMsg('导入失败：'+err.message+'。原数据保留。');}finally{e.target.value='';}};
+  assetsInitialized=true;renderAnswers();renderMockAnswerPicker();if(answersBlocked)['answerSave','answerImport','answerCompose'].forEach(id=>document.getElementById(id).disabled=true);
   /* ================= 共用 AI 连接 ================= */
   async function requestAi(task,body){
     if(!['http:','https:'].includes(location.protocol))throw new Error('请通过本地服务打开工作台后使用 AI。');
@@ -2162,7 +2217,7 @@
   function composedResume(){let text=resumeState.text;resumeState.sections.filter(s=>s.adopted!==null).map(s=>({...s,start:resumeState.text.indexOf(s.original)})).sort((a,b)=>b.start-a.start).forEach(s=>{if(s.start>=0)text=text.slice(0,s.start)+s.adopted+text.slice(s.start+s.original.length);});return text;}
   function renderCandidate(index){
     const s=resumeState.sections[index],box=document.querySelector(`[data-candidate-panel="${index}"]`);if(!box)return;
-    box.innerHTML=s.candidate?`<h4>候选改写 · 请核对后采用</h4><div class="field"><label for="resumeCandidate${index}">可以直接修改这段文字</label><textarea id="resumeCandidate${index}" rows="6" maxlength="8000"></textarea></div><details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details><button class="btn btn-primary" data-adopt="${index}">确认采用这版</button>${s.adopted!==null?'<p class="mock-note">已采用，原文和此前版本仍保留。</p>':''}`:'';
+    box.innerHTML=s.candidate?`<h4>候选改写 · 请核对后采用</h4><div class="comparison"><div><h4>改写前 · 原文</h4><pre>${esc(s.original)}</pre></div><div><h4>改写后 · 候选</h4><div class="field"><label for="resumeCandidate${index}">可以直接修改这段文字</label><textarea id="resumeCandidate${index}" rows="6" maxlength="8000"></textarea></div></div></div>${s.adopted!==null?`<details><summary>当前已采用的文字</summary><pre style="white-space:pre-wrap">${esc(s.adopted)}</pre></details>`:''}<details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details><button class="btn btn-primary" data-adopt="${index}">确认采用这版</button>${s.adopted!==null?'<p class="mock-note">已采用，原文和此前版本仍保留。</p>':''}`:'';
     if(s.candidate){const field=document.getElementById('resumeCandidate'+index);field.value=s.candidateText;field.addEventListener('input',()=>{s.candidateText=field.value;saveResume();});}
     box.querySelector('[data-adopt]')?.addEventListener('click',()=>adoptResume(index));
   }
@@ -2177,7 +2232,7 @@
       resumeState.sections.forEach((s,i)=>renderCandidate(i));
     }
     const versions=document.getElementById('resumeVersions');
-    versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><pre>${esc(v.text)}</pre><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
+    versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><div class="comparison"><div><h4>采用前 · 原始简历</h4><pre>${esc(v.sourceText)}</pre></div><div><h4>采用后 · 此版简历</h4><pre>${esc(v.text)}</pre></div></div><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
     versions.querySelectorAll('[data-copy-version]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(resumeState.versions[Number(b.dataset.copyVersion)].text);resumeMsg('已复制此版本。');}catch(e){resumeMsg('复制失败，请展开版本手动选择文字。');}}));
   }
   async function diagnoseResume(){
@@ -2206,6 +2261,7 @@
   function adoptResume(index){
     if(resumeBusy||resumeBlocked)return;const s=resumeState.sections[index];
     if(!s.confirmedFacts||!s.candidateText.trim()){resumeMsg('请确认事实并检查候选文字后再采用。');return;}
+    if(resumeState.versions.length>=1000){resumeMsg('版本已达上限，请导出保留内容后整理。');return;}
     const previous=s.adopted;s.adopted=s.candidateText;
     const version={id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))};
     resumeState.versions.unshift(version);
@@ -2234,7 +2290,37 @@
   document.getElementById('resumeExport').addEventListener('click',exportResume);
   document.getElementById('resumePractice').addEventListener('click',practiceResume);
   renderResume();
-  if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice'].forEach(id=>document.getElementById(id).disabled=true);
+  let resumeImported=null;
+  document.getElementById('resumeFileChoose').onclick=()=>document.getElementById('resumeFile').click();
+  document.getElementById('resumeFile').onchange=async e=>{
+    const file=e.target.files[0];if(!file||resumeBusy||resumeBlocked)return;
+    if(!['http:','https:'].includes(location.protocol)){resumeMsg('文件导入需要启动本地服务。');e.target.value='';return;}
+    resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;document.getElementById('resumeImportText').value='';
+    setResumeBusy(true);resumeMsg('正在提取文件文字，最多等待 25 秒……');
+    try{
+      if(file.size>3*1024*1024)throw Error('文件超过 3 MB，请精简文件');
+      if(!/\.(pdf|docx)$/i.test(file.name))throw Error('仅支持 PDF / Word .docx；旧 .doc 请先转换');
+      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('无法读取文件'));reader.readAsDataURL(file);});
+      const response=await fetch('/api/resume/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,base64}),signal:AbortSignal.timeout(25000)});
+      const data=await response.json();if(!response.ok)throw Error(data.error||'文件解析失败');
+      if(typeof data.text!=='string'||!data.text.trim()||data.text.length>30000||!Array.isArray(data.warnings)||!data.warnings.every(w=>typeof w==='string'))throw Error('解析结果异常');
+      resumeImported=data;document.getElementById('resumeImportText').value=data.text;document.getElementById('resumeImportWarning').textContent=file.name+' · '+data.warnings.join(' ');document.getElementById('resumeImportPreview').hidden=false;resumeMsg('文字已提取，请检查预览后确认使用；原正文尚未替换。');
+    }catch(err){resumeMsg((err.name==='TimeoutError'?'文件解析等待超时，请重试。':err.message)+' 原文和已有版本保留。');}
+    finally{e.target.value='';setResumeBusy(false);}
+  };
+  document.getElementById('resumeImportCancel').onclick=()=>{resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;document.getElementById('resumeImportText').value='';resumeMsg('已取消导入，原文不变。');};
+  document.getElementById('resumeImportApply').onclick=()=>{
+    if(resumeBusy||resumeBlocked||!resumeImported)return;const text=document.getElementById('resumeImportText').value.trim();
+    if(!text||text.length>30000){resumeMsg('请检查预览文字，最多 30000 字。');return;}
+    if(resumeState.text===text){document.getElementById('resumeImportCancel').click();resumeMsg('导入文字与现有正文相同。');return;}
+    if(resumeState.versions.length>=1000){resumeMsg('版本已达上限，请先导出。');return;}
+    const previous=JSON.parse(JSON.stringify(resumeState));
+    if(resumeState.text.trim())resumeState.versions.unshift({id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))});
+    resumeState.text=text;resumeState.diagnosis=null;resumeState.sections=[];
+    if(!saveResume()){resumeState=previous;return;}
+    document.getElementById('resumeText').value=text;resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;renderResume();resumeMsg('已使用导入正文；原有内容已保留为版本，可重新诊断。');
+  };
+  if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply'].forEach(id=>document.getElementById(id).disabled=true);
 
 </script>
 </body>
