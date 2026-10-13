@@ -2201,7 +2201,7 @@
   document.getElementById('aiConfigSave').addEventListener('click',()=>configureAi('save'));
   document.getElementById('aiConfigTest').addEventListener('click',()=>configureAi('test'));
   document.getElementById('aiConfigClear').addEventListener('click',()=>configureAi('clear'));
-  loadAiConfig();
+  if(!window.ZM_ACCOUNT||window.ZM_ACCOUNT.role==='admin')loadAiConfig();
 
   /* ================= 简历助手：原文 → 补事实 → 候选 → 采用 ================= */
   const RESUME_KEY='zm_resume_store_v1';

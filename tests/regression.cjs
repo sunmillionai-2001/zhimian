@@ -81,11 +81,11 @@ function request(url, method='GET', body, headers={}) {
 }
 before(async()=>{
   temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-test-'));
-  for(const f of ['skill-learning.js','server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
+  for(const f of ['skill-learning.js','server.js','auth-store.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
   for(const f of ['app.html','index.html','index-sidebar.html'])fs.writeFileSync(path.join(temp,f),'test page');
   fs.writeFileSync(path.join(temp,'server.config.json'),JSON.stringify({apiKey:'fake-regression-secret'}));
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));port=reserve.address().port;await new Promise(r=>reserve.close(r));
-  child=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']});
+  child=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('server startup timeout')),5000);child.stdout.once('data',()=>{clearTimeout(timer);resolve();});child.once('error',reject);});
 });
 after(()=>{child?.kill();if(temp)fs.rmSync(temp,{recursive:true,force:true});});

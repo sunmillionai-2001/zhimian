@@ -10,9 +10,9 @@ const { spawn } = require('node:child_process');
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-browser-'));
   let server,browser;
   try {
-    for(const f of ['app.html','skill-learning.js','server.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
+    for(const f of ['app.html','skill-learning.js','server.js','auth-store.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
     const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
-    server=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']});
+    server=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('startup timeout')),5000);server.stdout.once('data',()=>{clearTimeout(timer);resolve();});});
     browser=await chromium.launch({headless:true});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});

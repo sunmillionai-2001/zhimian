@@ -7,12 +7,21 @@ const path = require('path');
 const { createReviewStore } = require('./review-store');
 const { runAi } = require('./ai-service');
 const { importDocument } = require('./document-import');
+const { createAuthStore } = require('./auth-store');
 
 const ROOT = __dirname;                              // 本目录即站点根，含 app.html
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
 const DATA_DIR = path.join(ROOT, 'data');                    // 本地数据（已在 .gitignore）
 const PORT = Number(process.env.PORT || 8123);
-const reviewStore = createReviewStore(DATA_DIR);
+const localMode=process.env.ZM_LOCAL_MODE==='1';
+const authStore=localMode?null:createAuthStore(DATA_DIR);
+const localReviews=createReviewStore(DATA_DIR);
+const publicOrigin=process.env.PUBLIC_ORIGIN||'http://127.0.0.1:'+PORT;
+const cookieSecure=new URL(publicOrigin).protocol==='https:';
+const failures=new Map();
+function throttle(req){const key=req.socket.remoteAddress,now=Date.now();for(const [k,v] of failures)if(v.until<now)failures.delete(k);const entry=failures.get(key)||{count:0,until:now+600000};if(++entry.count>30||failures.size>10000)throw Object.assign(new Error('尝试过于频繁，请稍后重试'),{status:429});failures.set(key,entry);}
+function tokenOf(req){return /(?:^|;\s*)zm_session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie||'')?.[1];}
+function sessionCookie(res,token){res.setHeader('Set-Cookie','zm_session='+token+'; HttpOnly; SameSite=Strict; Path=/; Max-Age='+(token?604800:0)+(cookieSecure?'; Secure':''));}
 
 const DEFAULT_CONFIG = {
   baseUrl: 'https://api.deepseek.com/v1',
@@ -78,10 +87,34 @@ const server = http.createServer(async (req, res) => {
   if (url.includes('\\') || url.includes('\0') || url.split('/').some(p => p === '.' || p === '..')) {
     return sendJson(res, 403, { error: '禁止访问该路径' });
   }
-  if (['POST','DELETE'].includes(req.method) && req.headers.origin && req.headers.origin !== 'http://' + req.headers.host) {
+  if (['POST','DELETE'].includes(req.method) && req.headers.origin && req.headers.origin !== publicOrigin) {
     return sendJson(res, 403, { error: '只允许同源请求' });
   }
 
+  if(['POST','DELETE'].includes(req.method)&&req.headers['sec-fetch-site']==='cross-site')return sendJson(res,403,{error:'只允许同源请求'});
+  const account=authStore?.authenticate(tokenOf(req));
+  if(url==='/api/auth/me'&&req.method==='GET')return sendJson(res,200,{enabled:!localMode,user:account||null});
+  if(!localMode&&['/api/auth/register','/api/auth/login'].includes(url)&&req.method==='POST'){
+    throttle(req);const body=await readBody(req);const result=await authStore[url.endsWith('register')?'register':'login'](body.username,body.password);sessionCookie(res,result.token);return sendJson(res,200,{user:result.user});
+  }
+  if(!localMode&&url==='/api/auth/logout'&&req.method==='POST'){authStore.logout(tokenOf(req));sessionCookie(res,'');return sendJson(res,200,{ok:true});}
+  if(!localMode&&url==='/api/auth/redeem'&&req.method==='POST'){if(!account)return sendJson(res,401,{error:'请先登录'});throttle(req);const body=await readBody(req);return sendJson(res,200,{user:authStore.redeem(account.id,body.code)});}
+  if(!localMode&&url.startsWith('/api/admin/')){
+    if(!account)return sendJson(res,401,{error:'请先登录'});if(account.role!=='admin')return sendJson(res,403,{error:'需要管理员权限'});
+    if(url==='/api/admin/codes'&&req.method==='GET')return sendJson(res,200,{codes:authStore.codes()});
+    if(url==='/api/admin/codes'&&req.method==='POST')return sendJson(res,200,{codes:authStore.issue(await readBody(req),account.id)});
+    if(url.startsWith('/api/admin/codes/')&&req.method==='DELETE'){authStore.revoke(url.slice('/api/admin/codes/'.length),account.id);return sendJson(res,200,{ok:true});}
+    return sendJson(res,404,{error:'接口不存在'});
+  }
+  if(!localMode&&url.startsWith('/api/')){
+    if(req.headers['x-zm-account']&&req.headers['x-zm-account']!==account?.id)return sendJson(res,409,{error:'账号已变化，请重新打开工作台',code:'ACCOUNT_CHANGED'});
+    if(!account)return sendJson(res,401,{error:'请先登录'});
+    if(url==='/api/config'||url==='/api/chat'||url==='/api/ai/test'){if(account.role!=='admin')return sendJson(res,403,{error:'需要管理员权限'});}
+    else if(!account.active)return sendJson(res,403,{error:'请兑换工作台使用权限，或续期后继续'});
+  }
+  const userDirectory=localMode?DATA_DIR:path.join(DATA_DIR,'users',account?.id||'none');
+  const reviewStore=localMode?localReviews:createReviewStore(userDirectory);
+  if(!localMode&&['/','/app.html','/index.html','/index-sidebar.html'].includes(url)&&!account?.active){res.writeHead(302,{Location:'/account.html','Cache-Control':'no-store'});return res.end();}
   // ---------- 面试复盘：记录与首页统计使用同一份服务端数据 ----------
   if (url === '/api/reviews' && req.method === 'GET') return sendJson(res, 200, reviewStore.list());
   if (url === '/api/reviews' && req.method === 'POST') {
@@ -100,7 +133,9 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/resume/import' && req.method === 'POST') return sendJson(res, 200, await importDocument(await readBody(req)));
 
   if (url.startsWith('/api/ai/') && req.method === 'POST') {
-    return sendJson(res, 200, await runAi(url.slice('/api/ai/'.length), await readBody(req), readConfig()));
+    const cfg=readConfig();
+    if(account?.role==='user'&&!cfg.apiKey)return sendJson(res,400,{error:'AI 服务暂未配置，请联系工作台管理员。'});
+    return sendJson(res, 200, await runAi(url.slice('/api/ai/'.length), await readBody(req), cfg));
   }
 
   // ---------- 大模型代理（浏览器直连大模型常被 CORS 拦，这里由服务端转发）----------
@@ -165,8 +200,9 @@ const server = http.createServer(async (req, res) => {
     ensureDirs();
     const out = {};
     try {
-      fs.readdirSync(DATA_DIR).filter(f => f.startsWith('store-') && f.endsWith('.json')).forEach(f => {
-        try { out[f.slice(6, -5)] = JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch (e) {}
+      fs.mkdirSync(userDirectory,{recursive:true});
+      fs.readdirSync(userDirectory).filter(f => f.startsWith('store-') && f.endsWith('.json')).forEach(f => {
+        try { out[f.slice(6, -5)] = JSON.parse(fs.readFileSync(path.join(userDirectory, f), 'utf8')); } catch (e) {}
       });
     } catch (e) {}
     return sendJson(res, 200, out);
@@ -174,9 +210,10 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/store' && req.method === 'POST') {
     ensureDirs();
     const body = await readBody(req);
-    if (!body || typeof body.key !== 'string') return sendJson(res, 400, { error: 'missing key' });
+    if (!body || typeof body.key !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(body.key)) return sendJson(res, 400, { error: 'missing key' });
     try {
-      fs.writeFileSync(path.join(DATA_DIR, storeFileName(body.key)), JSON.stringify(body.value), 'utf8');
+      fs.mkdirSync(userDirectory,{recursive:true});
+      fs.writeFileSync(path.join(userDirectory, storeFileName(body.key)), JSON.stringify(body.value), 'utf8');
       return sendJson(res, 200, { ok: true });
     } catch (e) {
       return sendJson(res, 500, { error: e.message });
@@ -186,13 +223,14 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;
   try { real = fs.realpathSync(abs); } catch (e) { return sendJson(res, 404, { error: '页面不存在' }); }
   if (real !== path.join(fs.realpathSync(ROOT), rel)) return sendJson(res, 403, { error: '禁止访问该路径' });
-  const data = await fs.promises.readFile(real);
+  let data = await fs.promises.readFile(real);
+  if(rel==='/app.html'&&!localMode)data=Buffer.from(data.toString().replace('</head>','<script>window.ZM_ACCOUNT='+JSON.stringify(account).replace(/</g,'\\u003c')+';</script><script src="/account-session.js"></script></head>'));
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(real)] || 'application/octet-stream',
     'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
   res.end(req.method === 'HEAD' ? undefined : data);
@@ -203,7 +241,9 @@ const server = http.createServer(async (req, res) => {
 
 ensureDirs();
 if (!fs.existsSync(CONFIG_FILE)) writeConfig(DEFAULT_CONFIG);
-server.listen(PORT, '127.0.0.1', () => {
+if(process.env.HOST&&process.env.HOST!=='127.0.0.1'&&!process.env.PUBLIC_ORIGIN)throw Error('非 loopback 监听必须设置 PUBLIC_ORIGIN');
+if(localMode&&process.env.HOST&&process.env.HOST!=='127.0.0.1')throw Error('本地兼容模式只能监听 loopback');
+server.listen(PORT, process.env.HOST||'127.0.0.1', () => {
   console.log('职面 ZhiMian 服务已启动: http://127.0.0.1:' + PORT + '/app.html');
   console.log('配置文件: ' + CONFIG_FILE);
   console.log('数据目录: ' + DATA_DIR);
