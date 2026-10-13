@@ -488,7 +488,6 @@
     <div class="nav-item" data-view="skill">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M5 12h14M5 17h14"/></svg><span>岗位 → 技能地图</span>
     </div>
-    <button class="nav-item nav-button" data-view="answers" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg><span>个人答案库</span></button>
     <button class="nav-item nav-button" data-view="resume" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6zM9 10h6M9 14h6M9 18h4"/></svg><span>简历助手</span></button>
     <div class="nav-item" data-view="mock">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg><span>模拟面试</span>
@@ -499,6 +498,8 @@
     <div class="nav-item" data-view="jobs">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>招聘信息</span>
     </div>
+    <div class="sb-section">补充功能</div>
+    <button class="nav-item nav-button" data-view="answers" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg><span>个人答案库</span></button>
     <div class="sb-foot">
       <div class="sb-user"><div class="avatar">Z</div><div><div class="sb-user-name">求职者</div><div class="sb-user-sub">冲刺 · 秋招</div></div></div>
       <div class="sb-copyright">职面 ZhiMian · © 2025</div>
@@ -557,11 +558,13 @@
         <div class="mod" data-goto="mock"><span class="mod-num">03</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M21 12h-3M12 22v-3M3 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span><div><div class="mod-title">模拟面试</div><div class="mod-desc">按岗位练习，AI 点评回答并针对细节追问</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">AI</span><span class="tag">练习</span></div></div></div>
         <div class="mod" data-goto="review"><span class="mod-num">04</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3 3l7 7"/><path d="M21 21v-5h-5"/><path d="M21 21l-7-7"/><path d="M3 3v18M21 3H3"/></svg></span><div><div class="mod-title">面试复盘</div><div class="mod-desc">记录每次面试，增强补弱</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">记录</span><span class="tag">分析</span></div></div></div>
       </section>
-      <section class="module-grid" style="margin-top:16px"><button class="mod nav-button" data-goto="resume" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">简历助手</div><div class="mod-desc">诊断 → 补事实 → 改写 → 用于模拟面试</div></div></div></button><button class="mod nav-button" data-goto="answers" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">个人答案库</div><div class="mod-desc">保存项目故事与回答，保留版本，复用于目标岗位</div></div></div></button></section>
+      <section class="module-grid" style="margin-top:16px"><button class="mod nav-button" data-goto="resume" type="button"><span class="mod-num">NEW</span><div class="mod-head"><div><div class="mod-title">简历助手</div><div class="mod-desc">诊断 → 补事实 → 改写 → 用于模拟面试</div></div></div></button></section>
       <div class="section-head"><h2><span class="num">05</span> 招聘信息</h2></div>
       <section class="module-grid">
         <div class="mod" data-goto="jobs"><span class="mod-num">05</span><div class="mod-head"><span class="mod-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><div><div class="mod-title">招聘信息 · 岗位池</div><div class="mod-desc">把想投的岗位攒成池，一键去模拟面试</div></div></div><div class="mod-foot"><div class="mod-tags"><span class="tag">岗位池</span><span class="tag">联动</span></div></div></div>
       </section>
+      <div class="section-head"><h2>补充功能</h2></div>
+      <button class="btn btn-ghost" data-goto="answers" type="button">个人答案库 →</button>
       <footer class="footer"><div class="brand-mini"><span class="seal-s">职</span>职面 ZhiMian · 你的求职工作台</div><div>© 2025 ZhiMian · 求职 · 面试 · 复盘</div></footer>
     </section>
 
@@ -822,7 +825,7 @@
 </div>
 
 <script>
-  const views = ['overview','method','skill','resume','answers','mock','review','jobs'];
+  const views = ['overview','method','skill','resume','mock','review','jobs','answers'];
   let assetsInitialized=false;
   const initialViewHash=location.hash;
   const titles = {'overview':'工作台总览','method':'面试方法论','skill':'岗位 → 技能地图','resume':'简历助手','answers':'个人答案库','mock':'模拟面试','review':'面试复盘','jobs':'招聘信息'};
