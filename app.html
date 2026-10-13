@@ -489,6 +489,21 @@
   @media(max-width:1000px){#skill .skill-map{grid-template-columns:1fr}.ability-row{grid-template-columns:1fr minmax(125px,150px)}}
   @media(max-width:480px){.learning-module{padding:12px}.ability-row{grid-template-columns:1fr}.ability-evidence{grid-column:auto}#skill .role-input{flex-wrap:wrap}#skill .role-input input{width:100%}}
 
+  /* 完成目标输入后，淡出准备区并展开学习区域 */
+  #skill .skill-map{grid-template-columns:minmax(0,.85fr) minmax(0,1.6fr);transition:grid-template-columns .44s cubic-bezier(.22,1,.36,1),gap .44s}
+  .skill-setup{min-width:0;overflow:hidden;max-height:var(--skill-setup-height,none);opacity:1;transition:opacity .2s ease,transform .3s ease,max-height .44s cubic-bezier(.22,1,.36,1),visibility 0s}
+  .skill-setup>.role-select{width:var(--skill-setup-width,auto);box-sizing:border-box}
+  #skill .skill-map.is-focused{grid-template-columns:minmax(0,0fr) minmax(0,1fr);gap:0}
+  .skill-map.is-focused .skill-setup{max-height:0;opacity:0;transform:translateX(-10px);visibility:hidden;transition:opacity .2s ease,transform .3s ease,max-height .44s cubic-bezier(.22,1,.36,1),visibility 0s .2s;pointer-events:none}
+  .skill-result-toolbar{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;scroll-margin-top:90px}
+  .skill-result-toolbar .eyebrow{font-size:11px;margin-bottom:5px}.skill-result-toolbar .paste-actions{margin:0}.skill-result-toolbar h3{overflow-wrap:anywhere}
+  .skill-backup>summary,.skill-plan>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--ink-soft);font-size:13px}
+  .skill-backup{position:relative}.skill-backup>.paste-actions{position:absolute;right:0;top:100%;z-index:3;min-width:180px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-soft)}
+  .skill-plan{border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:16px}.skill-plan>summary::before{content:'＋';margin-right:8px;color:var(--seal)}.skill-plan[open]>summary::before{content:'−'}
+  #skillEditTarget[hidden],#skillPlanDetails[hidden]{display:none}
+  .skill-results{scroll-margin-top:90px}.skill-map.is-focused .ability-list{grid-template-columns:repeat(2,minmax(0,1fr))}.skill-map.is-focused .learning-resources{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  @media(max-width:1000px){#skill .skill-map,#skill .skill-map.is-focused{grid-template-columns:minmax(0,1fr)}.skill-map.is-focused .skill-setup{transform:translateY(-8px)}.skill-map.is-focused .ability-list{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -664,8 +679,8 @@
         <h1>从目标岗位，<br/>走到<em>能力达标</em>。</h1>
         <p>从目标 JD 找到准备重点，把能力拆成模块：<b>沿路径学习、跳转资料、完成练习</b>，再用实践产出确认掌握程度。</p>
       </div>
-      <section class="skill-map">
-        <div class="role-select">
+      <section class="skill-map" id="skillWorkspace">
+        <div class="skill-setup" id="skillSetup"><div class="role-select">
           <h3>目标岗位与准备范围</h3><div class="field"><label for="skillJob">从岗位池选择</label><select id="skillJob"><option value="">手动粘贴 JD / 通用学习</option></select></div><label for="roleInput">岗位方向（可手动选择相近图谱）</label>
           <div class="role-input">
             <input type="text" id="roleInput" placeholder="如：AGI 工程师 / 前端 / 产品经理" />
@@ -675,13 +690,18 @@
           <div class="role-hint" id="roleHint"></div>
           <div class="field"><label for="skillJd">目标岗位 JD</label><textarea id="skillJd" rows="6" maxlength="30000" placeholder="粘贴任职要求；分析结果可手动修正……"></textarea></div>
           <button class="btn btn-primary" id="skillAnalyze" type="button">生成 / 更新补强清单</button>
+        </div></div>
+        <div class="skill-tree skill-results" id="skillResults">
+          <div class="skill-result-toolbar" id="skillResultHeader" tabindex="-1">
+            <div><span class="eyebrow">Learning Workspace</span><h3 id="skillTargetLabel">能力学习工作区</h3></div>
+            <div class="paste-actions"><button class="btn btn-ghost" id="skillEditTarget" type="button" aria-controls="skillSetup" aria-expanded="true">调整目标岗位</button><details class="skill-backup"><summary>备份</summary>          <div class="paste-actions"><button class="btn btn-ghost" id="skillExport" type="button">导出技能备份</button><button class="btn btn-ghost" id="skillImport" type="button">导入技能备份</button><input id="skillImportFile" type="file" accept="application/json,.json" hidden /></div></details></div>
+          </div>
           <p class="mock-note" id="skillMsg" role="status" aria-live="polite"></p>
-          <div id="skillGap"></div>
+          <details class="skill-plan" id="skillPlanDetails"><summary id="skillPlanSummary">岗位要求与补强清单</summary><div id="skillGap"></div>
           <details class="skill-manual"><summary>补充或修正岗位要求</summary><div class="field"><label for="skillRequirement">关联已有能力（可选）</label><select id="skillRequirement"></select></div><div class="field"><label for="skillCustomName">自定义能力</label><input id="skillCustomName" maxlength="100" placeholder="如：行业知识；暂无路径的能力可先记录" /></div><div class="field"><label for="skillRequirementKind">要求类型</label><select id="skillRequirementKind"><option value="required">必需</option><option value="bonus">加分</option></select></div><div class="field"><label for="skillRequirementQuote">对应 JD 原文</label><textarea id="skillRequirementQuote" maxlength="3000" rows="3"></textarea></div><button class="btn btn-ghost" id="skillAddRequirement" type="button">保存要求</button></details>
-          <div class="paste-actions"><button class="btn btn-ghost" id="skillExport" type="button">导出技能备份</button><button class="btn btn-ghost" id="skillImport" type="button">导入技能备份</button><input id="skillImportFile" type="file" accept="application/json,.json" hidden /></div>
-          <p class="mock-note">能力与练习在点击保存后留在本机浏览器；换设备可导出备份。外部学习资源在新窗口打开。</p>
+          </details>
+          <div id="skillTree"></div>
         </div>
-        <div class="skill-tree" id="skillTree"></div>
       </section>
     </section>
 
@@ -1787,13 +1807,28 @@
   };
 
   const SKILL_ROLES=Object.keys(SKILLMAP),SKILL_KEY='zm_skill_learning_v1';
-  let skillStore=ZmSkill.empty(),skillBlocked=false,curRole='AGI 工程师';
+  let skillStore=ZmSkill.empty(),skillBlocked=false,curRole='AGI 工程师',skillFocused=false;
   function skillMsg(t){document.getElementById('skillMsg').textContent=t;}
+  function setSkillFocus(focused,{scroll=false,animate=true}={}){
+    const workspace=document.getElementById('skillWorkspace'),setup=document.getElementById('skillSetup'),results=document.getElementById('skillResults');
+    skillFocused=focused;setup.inert=focused;setup.setAttribute('aria-hidden',String(focused));document.getElementById('skillEditTarget').hidden=!focused;document.getElementById('skillEditTarget').setAttribute('aria-expanded',String(!focused));
+    if(focused){
+      if(animate&&setup.getBoundingClientRect().width){setup.style.setProperty('--skill-setup-width',setup.getBoundingClientRect().width+'px');setup.style.setProperty('--skill-setup-height',setup.scrollHeight+'px');void setup.offsetHeight;}
+      workspace.classList.add('is-focused');
+      if(scroll){document.getElementById('skillResultHeader').focus({preventScroll:true});results.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
+    }else{
+      workspace.classList.remove('is-focused');setup.style.removeProperty('--skill-setup-width');setup.style.removeProperty('--skill-setup-height');
+      if(scroll){document.getElementById('roleInput').focus({preventScroll:true});setup.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
+    }
+  }
+  function updateSkillTarget(){const p=skillStore.plan;document.getElementById('skillTargetLabel').textContent=p?(p.jobLabel||p.role):'能力学习工作区';document.getElementById('skillPlanDetails').hidden=!p;document.getElementById('skillPlanSummary').textContent=p?`岗位要求与补强清单 · ${p.requirements.length} 项`:'岗位要求与补强清单';}
+  document.getElementById('skillEditTarget').onclick=()=>setSkillFocus(false,{scroll:true});
+
   function writeSkill(next){if(skillBlocked){skillMsg('技能存储异常，已停止覆盖；请先导出原始备份。');return false;}if(!ZmSkill.validate(next)){skillMsg('内容超出限制或格式异常，未保存。');return false;}try{localStorage.setItem(SKILL_KEY,JSON.stringify(next));skillStore=next;return true;}catch(e){skillMsg('保存失败：浏览器存储不可用或空间不足；填写内容保留。');return false;}}
   try{const raw=localStorage.getItem(SKILL_KEY);if(raw){const v=JSON.parse(raw);if(!ZmSkill.validate(v))throw Error();skillStore=v;}else{const old=localStorage.getItem('zm_skill_progress');if(old){const migrated=ZmSkill.migrate(SKILLMAP,JSON.parse(old));skillStore=migrated;if(!writeSkill(migrated))skillMsg('旧进度已读取，迁移尚未写入；原键保留，可先导出备份。');}}if(skillStore.plan)curRole=skillStore.plan.role;}catch(e){skillBlocked=true;skillMsg('无法读取技能进度，原数据保留；可导出原始备份检查。');}
   function renderPresets(){const box=document.getElementById('rolePreset');box.innerHTML=SKILL_ROLES.map(r=>`<button type="button" class="chip ${r===curRole?'active':''}" data-role="${esc(r)}">${esc(r)}</button>`).join('');box.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{curRole=b.dataset.role;document.getElementById('roleInput').value=curRole;renderPresets();renderSkillTree();renderSkillRequirements();});}
   function renderSkillRequirements(){const select=document.getElementById('skillRequirement'),abilities=[...new Map(ZmSkill.modules(SKILLMAP,curRole).flatMap(m=>m.abilities).map(a=>[a.id,a])).values()];select.innerHTML='<option value="">填写自定义能力</option>'+abilities.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');}
-  function renderSkillGap(){const box=document.getElementById('skillGap'),p=skillStore.plan;if(!p){box.innerHTML='<p class="mock-note">先选择岗位或粘贴 JD，生成有原文依据的补强清单。没有 JD 时可直接浏览模块学习。</p>';return;}const gaps=ZmSkill.gaps(p,skillStore),all=ZmSkill.modules(SKILLMAP,p.role);
+  function renderSkillGap(){updateSkillTarget();const box=document.getElementById('skillGap'),p=skillStore.plan;if(!p){box.innerHTML='<p class="mock-note">先选择岗位或粘贴 JD，生成有原文依据的补强清单。没有 JD 时可直接浏览模块学习。</p>';return;}const gaps=ZmSkill.gaps(p,skillStore),all=ZmSkill.modules(SKILLMAP,p.role);
     box.innerHTML=`<h3>目标岗位 · 补强清单</h3><p class="mock-note">${esc(p.jobLabel||p.role)} · ${gaps.length} 项要求 · ${gaps.filter(r=>r.level<3).length} 项待评估 / 巩固</p><p class="mock-note">先评估必需项，再补实践不足；加分项随后。能力为你的自评，练习自检不会自动提升等级。</p>${gaps.map(r=>{const module=all.find(m=>m.abilities.some(a=>a.id===r.id));return `<details class="skill-gap-item"><summary><span class="tag">${r.kind==='required'?'必需':'加分'}${r.manual?' · 手动':''}</span> ${esc(r.name)} <span class="skill-state">${['未评估','待学习','学习中','能独立实践'][r.level]}</span></summary><blockquote>${esc(r.quote||'手动补充，未提供 JD 原文')}</blockquote><p class="mock-note">${r.evidence?esc(r.evidence):'暂无实践依据，建议补充一个可验证的项目或练习产出。'}</p>${module?`<button class="btn btn-ghost" data-skill-open="${module.id}" type="button">去学习与练习 →</button>`:`<p class="mock-note">该能力暂未收录学习模块，请选择相近图谱或关联到已有能力。</p><label>能力自评<select data-custom-level="${esc(r.id)}">${[0,1,2,3].map(n=>`<option value="${n}" ${r.level===n?'selected':''}>${['未评估','待学习','学习中','能独立实践'][n]}</option>`).join('')}</select></label><label>项目依据<textarea data-custom-evidence="${esc(r.id)}" maxlength="3000">${esc(r.evidence)}</textarea></label><button class="btn btn-ghost" data-custom-save="${esc(r.id)}" type="button">保存自评</button>`}<button class="btn btn-ghost" data-requirement-toggle="${esc(r.id)}" type="button">改为${r.kind==='required'?'加分':'必需'}</button><button class="btn btn-ghost" data-requirement-remove="${esc(r.id)}" type="button">移除要求</button></details>`;}).join('')||'<p class="mock-note">未识别到内置能力关键词。请核对 JD，手动补充要求或选择相近岗位。</p>'}<details><summary>查看分析时的 JD</summary><pre>${esc(p.jd)}</pre></details>`;
     box.querySelectorAll('[data-skill-open]').forEach(b=>b.onclick=()=>{curRole=p.role;document.getElementById('roleInput').value=curRole;renderPresets();renderSkillTree();renderSkillRequirements();const d=document.getElementById(b.dataset.skillOpen);if(d){d.open=true;d.scrollIntoView({block:'start'});d.querySelector('summary').focus();}});
     box.querySelectorAll('[data-requirement-toggle]').forEach(b=>b.onclick=()=>{const next=structuredClone(skillStore);const r=next.plan.requirements.find(r=>r.id===b.dataset.requirementToggle);r.kind=r.kind==='required'?'bonus':'required';if(writeSkill(next)){renderSkillGap();renderSkillTree();skillMsg('已调整要求优先级。');}});
@@ -1813,16 +1848,16 @@
   }
   function skillSearch(){const q=document.getElementById('roleInput').value.trim();if(!q)return;curRole=ZmSkill.resolveRole(q)||q;renderPresets();renderSkillTree();renderSkillRequirements();}
   function refreshSkillJobs(){const select=document.getElementById('skillJob'),value=select.value||skillStore.plan?.jobId||'';select.innerHTML='<option value="">手动粘贴 JD / 通用学习</option>'+jobs.map(j=>`<option value="${esc(j.id)}">${esc(j.company||'未填公司')} · ${esc(j.role)}</option>`).join('');if(value&&!jobs.some(j=>j.id===value))select.add(new Option('原岗位已删除 · 保留分析时的 JD',value));select.value=value;}
-  function fillSkillJob(id){const j=jobs.find(j=>j.id===id);if(!j)return;document.getElementById('skillJob').value=id;document.getElementById('skillJd').value=j.jd;document.getElementById('roleInput').value=j.role;curRole=ZmSkill.resolveRole(j.role)||j.role;renderPresets();renderSkillTree();renderSkillRequirements();skillMsg('岗位已带入。点击生成补强清单确认；原有学习进度保留。');}
+  function fillSkillJob(id){const j=jobs.find(j=>j.id===id);if(!j)return;setSkillFocus(false);document.getElementById('skillJob').value=id;document.getElementById('skillJd').value=j.jd;document.getElementById('roleInput').value=j.role;curRole=ZmSkill.resolveRole(j.role)||j.role;renderPresets();renderSkillTree();renderSkillRequirements();skillMsg('岗位已带入。点击生成补强清单确认；原有学习进度保留。');}
   function prepareJobSkill(id){fillSkillJob(id);go('skill');}
   document.getElementById('roleGo').onclick=skillSearch;document.getElementById('roleInput').onkeydown=e=>{if(e.key==='Enter')skillSearch();};
   document.getElementById('skillJob').onchange=e=>{if(e.target.value)fillSkillJob(e.target.value);};
-  document.getElementById('skillAnalyze').onclick=()=>{const jd=document.getElementById('skillJd').value.trim();if(!jd){skillMsg('请先粘贴目标岗位 JD。通用模块无需生成清单即可学习。');return;}const result=ZmSkill.analyze(SKILLMAP,curRole,jd),job=jobs.find(j=>j.id===document.getElementById('skillJob').value),next=structuredClone(skillStore);if(next.plan?.requirements.some(r=>r.manual)&&!confirm('重新分析会替换当前要求清单（包括手动补充项）；能力和练习记录保留。继续吗？'))return;next.plan={role:curRole,jobId:job?.id||'',jobLabel:job?[job.company,job.role].filter(Boolean).join(' · '):curRole,jd,requirements:result.requirements};if(writeSkill(next)){renderSkillGap();renderSkillTree();skillMsg(`已保存 ${result.requirements.length} 项要求。基于关键词匹配，请核对必需 / 加分与原文；未识别内容可手动补充。`);}};
+  document.getElementById('skillAnalyze').onclick=()=>{const jd=document.getElementById('skillJd').value.trim();if(!jd){skillMsg('请先粘贴目标岗位 JD。通用模块无需生成清单即可学习。');return;}const result=ZmSkill.analyze(SKILLMAP,curRole,jd),job=jobs.find(j=>j.id===document.getElementById('skillJob').value),next=structuredClone(skillStore);if(next.plan?.requirements.some(r=>r.manual)&&!confirm('重新分析会替换当前要求清单（包括手动补充项）；能力和练习记录保留。继续吗？'))return;next.plan={role:curRole,jobId:job?.id||'',jobLabel:job?[job.company,job.role].filter(Boolean).join(' · '):curRole,jd,requirements:result.requirements};if(writeSkill(next)){renderSkillGap();renderSkillTree();skillMsg(`已保存 ${result.requirements.length} 项要求。基于关键词匹配，请核对必需 / 加分与原文；未识别内容可手动补充。`);document.getElementById('skillPlanDetails').open=false;setSkillFocus(Object.hasOwn(SKILLMAP,curRole),{scroll:true});}};
   document.getElementById('skillAddRequirement').onclick=()=>{if(!skillStore.plan){skillMsg('请先保存 JD 并生成清单。');return;}if(skillStore.plan.role!==curRole){skillMsg('当前图谱与已保存清单不同，请先重新分析当前目标。');return;}const select=document.getElementById('skillRequirement'),name=select.value?select.selectedOptions[0].textContent:document.getElementById('skillCustomName').value.trim();if(!name){skillMsg('请选择能力或填写自定义能力名称。');return;}const id=select.value||'custom:'+name.toLowerCase(),next=structuredClone(skillStore),r={id,name,kind:document.getElementById('skillRequirementKind').value,quote:document.getElementById('skillRequirementQuote').value.trim(),manual:true};const index=next.plan.requirements.findIndex(a=>a.id===id);if(index<0)next.plan.requirements.push(r);else next.plan.requirements[index]=r;if(writeSkill(next)){renderSkillGap();renderSkillTree();skillMsg('已补充 / 更新要求，原有能力自评保留。');}};
   document.getElementById('skillExport').onclick=()=>{let value=skillStore;if(skillBlocked){try{value={recovery:true,raw:localStorage.getItem(SKILL_KEY),legacy:localStorage.getItem('zm_skill_progress')};}catch(e){skillMsg('原始备份读取失败。');return;}}downloadAsset(value,'zhimian-skills.json');};
-  document.getElementById('skillImport').onclick=()=>document.getElementById('skillImportFile').click();document.getElementById('skillImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>3e6)throw Error('备份超过 3 MB');const next=JSON.parse(await file.text());if(!ZmSkill.validate(next))throw Error('备份格式错误');if(!confirm('导入将替换技能计划、自评与练习记录。建议先导出当前备份。继续吗？'))return;if(writeSkill(next)){restoreSkillForm();renderPresets();renderSkillTree();renderSkillRequirements();renderSkillGap();refreshSkillJobs();skillMsg('技能备份已导入。');}}catch(err){skillMsg('导入失败：'+err.message+'；原数据保留。');}finally{e.target.value='';}};
+  document.getElementById('skillImport').onclick=()=>document.getElementById('skillImportFile').click();document.getElementById('skillImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>3e6)throw Error('备份超过 3 MB');const next=JSON.parse(await file.text());if(!ZmSkill.validate(next))throw Error('备份格式错误');if(!confirm('导入将替换技能计划、自评与练习记录。建议先导出当前备份。继续吗？'))return;if(writeSkill(next)){restoreSkillForm();renderPresets();renderSkillTree();renderSkillRequirements();renderSkillGap();refreshSkillJobs();setSkillFocus(!!skillStore.plan&&Object.hasOwn(SKILLMAP,curRole),{scroll:true});skillMsg('技能备份已导入。');}}catch(err){skillMsg('导入失败：'+err.message+'；原数据保留。');}finally{e.target.value='';}};
   function restoreSkillForm(){const p=skillStore.plan;curRole=p?.role||'AGI 工程师';document.getElementById('roleInput').value=curRole;document.getElementById('skillJd').value=p?.jd||'';document.getElementById('skillJob').value=p?.jobId||'';}
-  restoreSkillForm();renderPresets();renderSkillTree();renderSkillRequirements();renderSkillGap();if(skillBlocked)['skillAnalyze','skillAddRequirement','skillImport'].forEach(id=>document.getElementById(id).disabled=true);
+  restoreSkillForm();renderPresets();renderSkillTree();renderSkillRequirements();renderSkillGap();setSkillFocus(!!skillStore.plan&&!skillBlocked&&Object.hasOwn(SKILLMAP,curRole),{animate:false});if(skillBlocked)['skillAnalyze','skillAddRequirement','skillImport'].forEach(id=>document.getElementById(id).disabled=true);
 
   /* ================= 面试复盘 · 完整功能 ================= */
   const REVIEW_TAGS = ['算法手写','系统设计','项目表达','基础知识','沟通表达','心态紧张','简历问题','时间不够'];
