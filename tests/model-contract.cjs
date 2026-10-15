@@ -29,6 +29,16 @@ test('personal failures never send material to builtins; deleting selected profi
  const calls=[],s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c)=>{calls.push(c.name);throw Object.assign(Error('private upstream unavailable'),{status:502});}});
  s.store.save(BUILTIN,profile('builtin'));const p=s.store.save('alice',profile('personal'));s.store.select('alice',p.id);await assert.rejects(s.execute('alice','interview',body),/unavailable/);assert.deepEqual(calls,['personal']);assert.equal(s.list('bob').selectedId,null);assert.equal(s.list('bob').profiles.length,0);assert.equal(JSON.stringify(s.list('bob')).includes('private-test-key'),false);s.store.remove('alice',p.id);assert.equal(s.store.selected('alice'),null);return s;
 }));
+test('users can pin an enabled builtin without credentials, preserve account isolation and return to auto on deletion',sandbox(async dir=>{
+ const calls=[],s=createModelService(dir,{}, {transport:async c=>{calls.push(c.name);if(c.name==='down')throw Object.assign(Error('upstream failure'),{status:502});return result();}});
+ const first=s.store.save(BUILTIN,{...profile('down'),priority:0}),second=s.store.save(BUILTIN,{...profile('chosen'),priority:1}),privateProfile=s.store.save('alice',profile('private'));
+ s.store.select('bob',second.id);s.store.select('alice',second.id);assert.equal(s.list('bob').selectedId,second.id);assert.deepEqual(s.list('bob').profiles,[]);assert.equal(JSON.stringify(s.list('bob')).includes('private-test-key'),false);
+ const out=await s.execute('bob','interview',body);assert.equal(out.meta.source,'builtin');assert.equal(out.meta.connectionName,'chosen');assert.equal(out.meta.fallback,false);assert.deepEqual(calls,['chosen']);
+ assert.throws(()=>s.store.connection('bob',second.id),/不存在/);assert.throws(()=>s.store.select('bob',privateProfile.id),/启用/);
+ s.store.select('bob',first.id);await assert.rejects(s.execute('bob','interview',body),/upstream failure/);assert.deepEqual(calls,['chosen','down']);
+ s.store.save(BUILTIN,{enabled:false},second.id);await assert.rejects(s.execute('alice','interview',body),/内置模型已停用/);assert.throws(()=>s.store.select('bob',second.id),/启用/);assert.equal(calls.length,2);
+ s.store.save(BUILTIN,{enabled:true},second.id);s.store.select('bob',second.id);s.store.remove(BUILTIN,second.id);assert.equal(s.store.selected('alice'),null);assert.equal(s.store.selected('bob'),null);return s;
+}));
 test('connection test requires actual JSON support and records success without activating a disabled profile',sandbox(async dir=>{
  const s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c,p)=>{assert.equal(p.response_format.type,'json_object');assert.equal(p.max_tokens,64);return result(c.name==='good'?{ok:true}:{ok:false});}});
  const p=s.store.save('alice',{...profile('good'),enabled:false});await s.verify('alice',p.id);assert.ok(s.list('alice').profiles[0].testedAt);assert.equal(s.list('alice').profiles[0].enabled,false);const testedAt=s.list('alice').profiles[0].testedAt;s.store.save('alice',{enabled:true,priority:1},p.id);assert.equal(s.list('alice').profiles[0].testedAt,testedAt);const bad=s.store.save('alice',profile('bad'));await assert.rejects(s.verify('alice',bad.id),/JSON/);assert.equal(s.list('alice').profiles.find(p=>p.id===bad.id).testedAt,null);return s;

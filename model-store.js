@@ -47,9 +47,9 @@ function createModelStore(directory,legacy={}){
  }
  return {
   list:owner=>rows(owner).map(publicRow),save,
-  remove(owner,id){if(!find(owner,id))throw fail('模型连接不存在',404);db.exec('BEGIN IMMEDIATE');try{db.prepare('DELETE FROM profiles WHERE owner=? AND id=?').run(owner,id);db.prepare('UPDATE selections SET profile_id=NULL WHERE owner=? AND profile_id=?').run(owner,id);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}},
+  remove(owner,id){if(!find(owner,id))throw fail('模型连接不存在',404);db.exec('BEGIN IMMEDIATE');try{db.prepare('DELETE FROM profiles WHERE owner=? AND id=?').run(owner,id);if(owner===BUILTIN)db.prepare('UPDATE selections SET profile_id=NULL WHERE profile_id=?').run(id);else db.prepare('UPDATE selections SET profile_id=NULL WHERE owner=? AND profile_id=?').run(owner,id);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}},
   selected:owner=>db.prepare('SELECT profile_id FROM selections WHERE owner=?').get(owner)?.profile_id||null,
-  select(owner,id){if(id!==null){const p=find(owner,id);if(!p||!p.enabled||!p.secret)throw fail('请先保存并启用个人模型');}db.prepare('INSERT INTO selections VALUES(?,?) ON CONFLICT(owner) DO UPDATE SET profile_id=excluded.profile_id').run(owner,id);},
+  select(owner,id){if(id!==null){if(typeof id!=='string')throw fail('模型选择格式错误');const p=find(owner,id)||find(BUILTIN,id);if(!p||!p.enabled||!p.secret)throw fail('请先保存并启用个人模型，或选择可用内置模型');}db.prepare('INSERT INTO selections VALUES(?,?) ON CONFLICT(owner) DO UPDATE SET profile_id=excluded.profile_id').run(owner,id);},
   connection(owner,id){const p=find(owner,id);if(!p)throw fail('模型连接不存在',404);return {...publicRow(p),apiKey:unseal(p.secret,owner,p.id)};},
   markChecked(owner,id){db.prepare('UPDATE profiles SET checked_at=? WHERE owner=? AND id=?').run(Date.now(),owner,id);},
   markTested(owner,id){db.prepare('UPDATE profiles SET tested_at=? WHERE owner=? AND id=?').run(Date.now(),owner,id);},

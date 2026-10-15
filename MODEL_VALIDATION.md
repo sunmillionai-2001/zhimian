@@ -55,3 +55,5 @@
 ## 普通用户共享内置路由（2026-10-15）
 
 按用户要求将管理员现有 DeepSeek 配置为共享内置连接，模型列表检查及真实 JSON 输出验证通过后启用，保留原个人连接。随后从 Chrome 当前普通账号 `aaaaaa` 提交明确标为虚构的需求清单与研发验收回答；点评接口返回 HTTP 200、`source=builtin`、`connectionName=DeepSeek Flash`、`model=deepseek-flash` 及评价结果。普通用户无需配置个人 Key；本轮未提交真实简历。
+
+同日补充：普通用户下拉框现可直接选择具体内置模型。在 Chrome 的 `aaaaaa` 页面选中「DeepSeek Flash · deepseek-flash（内置）」并保存，数据库确认该账号选择指向共享连接；另一次虚构回答请求返回 HTTP 200、`source=builtin`、`model=deepseek-flash`、`fallback=false`，刷新后仍保留该选择。
