@@ -111,8 +111,8 @@ const server = http.createServer(async (req, res) => {
     if(url.startsWith('/api/admin/codes/')&&req.method==='DELETE'){authStore.revoke(url.slice('/api/admin/codes/'.length),account.id);return sendJson(res,200,{ok:true});}
     if(url==='/api/admin/models'&&req.method==='GET')return sendJson(res,200,{profiles:modelService.store.list(BUILTIN)});
     if(url==='/api/admin/models'&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(BUILTIN,await readBody(req))});
-    const modelMatch=/^\/api\/admin\/models\/([a-zA-Z0-9-]+)(\/test)?$/.exec(url);
-    if(modelMatch){const id=modelMatch[1];if(modelMatch[2]&&req.method==='POST')return sendJson(res,200,await modelService.test(BUILTIN,id,account.id));if(!modelMatch[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(BUILTIN,await readBody(req),id)});if(!modelMatch[2]&&req.method==='DELETE'){modelService.store.remove(BUILTIN,id);return sendJson(res,200,{ok:true});}}
+    const modelMatch=/^\/api\/admin\/models\/([a-zA-Z0-9-]+)(\/test|\/verify)?$/.exec(url);
+    if(modelMatch){const id=modelMatch[1];if(modelMatch[2]&&req.method==='POST')return sendJson(res,200,await modelService[modelMatch[2]==='/verify'?'verify':'test'](BUILTIN,id,account.id));if(!modelMatch[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(BUILTIN,await readBody(req),id)});if(!modelMatch[2]&&req.method==='DELETE'){modelService.store.remove(BUILTIN,id);return sendJson(res,200,{ok:true});}}
     return sendJson(res,404,{error:'接口不存在'});
   }
   if(!localMode&&url.startsWith('/api/')){
@@ -124,8 +124,8 @@ const server = http.createServer(async (req, res) => {
     if(url==='/api/models'&&req.method==='GET')return sendJson(res,200,modelService.list(account.id));
     if(url==='/api/models'&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(account.id,await readBody(req))});
     if(url==='/api/models/selection'&&req.method==='POST'){const b=await readBody(req);modelService.store.select(account.id,b.profileId??null);return sendJson(res,200,modelService.list(account.id));}
-    const m=/^\/api\/models\/([a-zA-Z0-9-]+)(\/test)?$/.exec(url);
-    if(m){if(m[2]&&req.method==='POST')return sendJson(res,200,await modelService.test(account.id,m[1]));if(!m[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(account.id,await readBody(req),m[1])});if(!m[2]&&req.method==='DELETE'){modelService.store.remove(account.id,m[1]);return sendJson(res,200,{ok:true});}}
+    const m=/^\/api\/models\/([a-zA-Z0-9-]+)(\/test|\/verify)?$/.exec(url);
+    if(m){if(m[2]&&req.method==='POST')return sendJson(res,200,await modelService[m[2]==='/verify'?'verify':'test'](account.id,m[1]));if(!m[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(account.id,await readBody(req),m[1])});if(!m[2]&&req.method==='DELETE'){modelService.store.remove(account.id,m[1]);return sendJson(res,200,{ok:true});}}
   }
   const userDirectory=localMode?DATA_DIR:path.join(DATA_DIR,'users',account?.id||'none');
   const reviewStore=localMode?localReviews:createReviewStore(userDirectory);

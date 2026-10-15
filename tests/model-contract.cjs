@@ -31,7 +31,7 @@ test('personal failures never send material to builtins; deleting selected profi
 }));
 test('connection test requires actual JSON support and records success without activating a disabled profile',sandbox(async dir=>{
  const s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c,p)=>{assert.equal(p.response_format.type,'json_object');assert.equal(p.max_tokens,64);return result(c.name==='good'?{ok:true}:{ok:false});}});
- const p=s.store.save('alice',{...profile('good'),enabled:false});await s.test('alice',p.id);assert.ok(s.list('alice').profiles[0].testedAt);assert.equal(s.list('alice').profiles[0].enabled,false);const testedAt=s.list('alice').profiles[0].testedAt;s.store.save('alice',{enabled:true,priority:1},p.id);assert.equal(s.list('alice').profiles[0].testedAt,testedAt);const bad=s.store.save('alice',profile('bad'));await assert.rejects(s.test('alice',bad.id),/JSON/);assert.equal(s.list('alice').profiles.find(p=>p.id===bad.id).testedAt,null);return s;
+ const p=s.store.save('alice',{...profile('good'),enabled:false});await s.verify('alice',p.id);assert.ok(s.list('alice').profiles[0].testedAt);assert.equal(s.list('alice').profiles[0].enabled,false);const testedAt=s.list('alice').profiles[0].testedAt;s.store.save('alice',{enabled:true,priority:1},p.id);assert.equal(s.list('alice').profiles[0].testedAt,testedAt);const bad=s.store.save('alice',profile('bad'));await assert.rejects(s.verify('alice',bad.id),/JSON/);assert.equal(s.list('alice').profiles.find(p=>p.id===bad.id).testedAt,null);return s;
 }));
 test('per-account and global concurrency are bounded and released on failure; no balance or recharge required',sandbox(async dir=>{
  let release;const wait=new Promise(r=>release=r),s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async()=>{await wait;return result();}});s.store.save(BUILTIN,profile());const a=s.execute('alice','interview',body),b=s.execute('alice','interview',body);await assert.rejects(s.execute('alice','interview',body),e=>e.status===429);release();await Promise.all([a,b]);assert.equal((await s.execute('alice','interview',body)).result.followUp,'如何验证？');const pending=Array.from({length:12},(_,i)=>s.execute('parallel-'+i,'interview',body));await assert.rejects(s.execute('overflow','interview',body),e=>e.status===429);await Promise.all(pending);for(let i=0;i<20;i++)await s.execute('rate','interview',body);await assert.rejects(s.execute('rate','interview',body),e=>e.status===429);return s;
@@ -44,8 +44,8 @@ test('SSRF protection rejects loopback, private, link-local, mapped IPv6 and mix
 });
 test('HTTPS transport pins the validated DNS address, never follows redirects, and bounds payload size',async t=>{
  const dns=require('node:dns').promises,https=require('node:https'),{EventEmitter}=require('node:events');let mode='redirect',calls=0;
- t.mock.method(dns,'lookup',async()=>[{address:'8.8.8.8',family:4}]);t.mock.method(https,'request',(url,options,cb)=>{calls++;assert.equal(url.hostname,'example.com');options.lookup('example.com',{},(error,ip)=>assert.equal(ip,'8.8.8.8'));const req=new EventEmitter();req.destroy=()=>{};req.end=()=>queueMicrotask(()=>{const response=new EventEmitter();response.resume=()=>{};response.destroy=()=>{};response.statusCode=mode==='redirect'?302:200;cb(response);if(mode==='large')response.emit('data',Buffer.alloc(1024*1024+1));});return req;});
- await assert.rejects(secureModelRequest(profile(),{}),/HTTP 302/);assert.equal(calls,1);mode='large';await assert.rejects(secureModelRequest(profile(),{}),/过大/);
+ t.mock.method(dns,'lookup',async()=>[{address:'8.8.8.8',family:4}]);t.mock.method(https,'request',(url,options,cb)=>{calls++;assert.equal(url.hostname,'example.com');assert.equal(options.method,mode==='models'?'GET':'POST');assert.equal(url.pathname,mode==='models'?'/v1/models':'/v1/chat/completions');options.lookup('example.com',{},(error,ip)=>assert.equal(ip,'8.8.8.8'));const req=new EventEmitter();req.destroy=()=>{};req.end=body=>queueMicrotask(()=>{if(mode==='models')assert.equal(body,undefined);const response=new EventEmitter();response.resume=()=>{};response.destroy=()=>{};response.statusCode=mode==='redirect'?302:200;cb(response);if(mode==='large')response.emit('data',Buffer.alloc(1024*1024+1));if(mode==='models'){response.emit('data',Buffer.from('{"data":[]}'));response.emit('end');}});return req;});
+ await assert.rejects(secureModelRequest(profile(),{}),/HTTP 302/);assert.equal(calls,1);mode='large';await assert.rejects(secureModelRequest(profile(),{}),/过大/);mode='models';assert.deepEqual(await secureModelRequest(profile(),undefined,'models'),{data:[]});
 });
 
 test('transport waits for complete JSON after keep-alives and distinguishes waiting, network, and interrupted responses',async t=>{
@@ -70,3 +70,14 @@ test('transport waits for complete JSON after keep-alives and distinguishes wait
  mode='aborted';await assert.rejects(secureModelRequest(cfg,{}),/中断/);
  mode='auth';await assert.rejects(secureModelRequest(cfg,{}),/401.*鉴权失败/);
 });
+
+test('quick connection check only lists models, never generates, and persists separate status',sandbox(async dir=>{
+ let response={data:[{id:'test-model'}]},calls=0;
+ const s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c,p,operation)=>{calls++;assert.equal(operation,'models');assert.equal(p,undefined);assert.equal(c.timeoutMs,8000);return response;}});
+ const p=s.store.save('alice',profile());const out=await s.test('alice',p.id);
+ assert.equal(out.kind,'connection');assert.ok(s.list('alice').profiles[0].checkedAt);assert.equal(s.list('alice').profiles[0].testedAt,null);
+ await assert.rejects(s.test('bob',p.id),/不存在/);assert.equal(calls,1);
+ s.store.save('alice',{model:'missing'},p.id);assert.equal(s.list('alice').profiles[0].checkedAt,null);
+ await assert.rejects(s.test('alice',p.id),/没有当前模型/);response={};await assert.rejects(s.test('alice',p.id),/列表格式异常/);
+ assert.equal(s.list('alice').profiles[0].checkedAt,null);return s;
+}));

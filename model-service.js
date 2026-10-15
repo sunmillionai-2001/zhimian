@@ -22,7 +22,8 @@ function createModelService(directory,legacy={},options={}){
  }
  return {store,list,execute,
   async save(owner,input,id){const end=start(owner);try{if(!input||typeof input!=='object')throw fail('模型配置格式错误');const old=id?store.connection(owner,id):null;await check(input.baseUrl||old?.baseUrl);return store.save(owner,input,id);}finally{end();}},
-  async test(owner,id,actor){const end=start(actor||owner);try{const cfg=store.connection(owner,id);if(!cfg.apiKey)throw fail('请先保存 API Key');const result=await runAi('test',{}, {...cfg,transport,maxTokens:64,connectionJson:true,timeoutMs:90000});store.markTested(owner,id);return result;}finally{end();}},
+  async test(owner,id,actor){const end=start(actor||owner);try{const cfg=store.connection(owner,id);if(!cfg.apiKey)throw fail('请先保存 API Key');const begun=Date.now(),raw=await transport({...cfg,timeoutMs:8000},undefined,'models');if(!Array.isArray(raw?.data)||raw.data.some(p=>typeof p?.id!=='string'))throw fail('模型列表格式异常，连接检查未通过',502);if(!raw.data.some(p=>p.id===cfg.model))throw fail('接口与 Key 已连通，但服务商模型列表中没有当前模型，请检查模型名称',502);store.markChecked(owner,id);return {ok:true,kind:'connection',model:cfg.model,elapsedMs:Date.now()-begun,message:'连接测试通过：接口与 Key 可用，模型在列表中；AI 输出尚需单独验证。'};}finally{end();}},
+  async verify(owner,id,actor){const end=start(actor||owner);try{const cfg=store.connection(owner,id);if(!cfg.apiKey)throw fail('请先保存 API Key');const result=await runAi('test',{}, {...cfg,transport,maxTokens:64,connectionJson:true,timeoutMs:15000});store.markTested(owner,id);return result;}finally{end();}},
   close(){store.close();}
  };
 }

@@ -42,7 +42,7 @@ test('model HTTP APIs enforce owner/admin boundaries, never return Keys and reje
  const p={name:'个人 <img onerror=alert(1)>',model:'test',baseUrl:'https://8.8.8.8/v1',apiKey:'my-personal-secret',enabled:true,preset:'custom',owner:bob.data.user.id};
  const saved=await request('/api/models','POST',p,alice.cookie);assert.equal(saved.status,200);const id=saved.data.profile.id;assert.ok(!saved.text.includes('my-personal-secret'));
  const a=await request('/api/models','GET',null,alice.cookie),b=await request('/api/models','GET',null,bob.cookie);assert.equal(a.data.profiles.length,1);assert.equal(b.data.profiles.length,0);assert.ok(!a.text.includes('my-personal-secret'));
- assert.equal((await request('/api/models/'+id,'DELETE',{},bob.cookie)).status,404);assert.equal((await request('/api/models/'+id+'/test','POST',{},bob.cookie)).status,404);assert.equal((await request('/api/models/selection','POST',{profileId:id},bob.cookie)).status,400);
+ assert.equal((await request('/api/models/'+id,'DELETE',{},bob.cookie)).status,404);assert.equal((await request('/api/models/'+id+'/test','POST',{},bob.cookie)).status,404);assert.equal((await request('/api/models/'+id+'/verify','POST',{},bob.cookie)).status,404);assert.equal((await request('/api/models/selection','POST',{profileId:id},bob.cookie)).status,400);
  assert.equal((await request('/api/models','POST',{...p,baseUrl:'https://169.254.169.254'},alice.cookie)).status,400);
  await request('/api/models/selection','POST',{profileId:id},alice.cookie);assert.equal((await request('/api/models','GET',null,alice.cookie)).data.selectedId,id);
  await request('/api/models/'+id,'DELETE',{},alice.cookie);assert.equal((await request('/api/models','GET',null,alice.cookie)).data.selectedId,null);
