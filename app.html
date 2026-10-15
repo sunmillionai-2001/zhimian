@@ -2172,7 +2172,7 @@
   /* ================= 共用 AI 连接 ================= */
   async function requestAi(task,body){
     if(!['http:','https:'].includes(location.protocol))throw new Error('请通过本地服务打开工作台后使用 AI。');
-    let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(50000)});}
+    let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(105000)});}
     catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
     let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
     if(!response.ok){if((data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings)settings.open=true;}throw new Error(data.error||'AI 请求失败。');}

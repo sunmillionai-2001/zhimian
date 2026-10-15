@@ -47,3 +47,26 @@ test('HTTPS transport pins the validated DNS address, never follows redirects, a
  t.mock.method(dns,'lookup',async()=>[{address:'8.8.8.8',family:4}]);t.mock.method(https,'request',(url,options,cb)=>{calls++;assert.equal(url.hostname,'example.com');options.lookup('example.com',{},(error,ip)=>assert.equal(ip,'8.8.8.8'));const req=new EventEmitter();req.destroy=()=>{};req.end=()=>queueMicrotask(()=>{const response=new EventEmitter();response.resume=()=>{};response.destroy=()=>{};response.statusCode=mode==='redirect'?302:200;cb(response);if(mode==='large')response.emit('data',Buffer.alloc(1024*1024+1));});return req;});
  await assert.rejects(secureModelRequest(profile(),{}),/HTTP 302/);assert.equal(calls,1);mode='large';await assert.rejects(secureModelRequest(profile(),{}),/过大/);
 });
+
+test('transport waits for complete JSON after keep-alives and distinguishes waiting, network, and interrupted responses',async t=>{
+ const dns=require('node:dns').promises,https=require('node:https'),{EventEmitter}=require('node:events');let mode='delayed';
+ t.mock.method(dns,'lookup',async()=>[{address:'8.8.8.8',family:4}]);
+ t.mock.method(https,'request',(url,options,cb)=>{
+  const req=new EventEmitter();let pending;
+  req.destroy=()=>clearTimeout(pending);
+  req.end=()=>queueMicrotask(()=>{
+   if(mode==='network')return;
+   const res=new EventEmitter();res.statusCode=mode==='auth'?401:200;res.resume=()=>{};res.destroy=()=>{};cb(res);
+   if(mode==='auth')return;
+   res.emit('data',Buffer.from('\n '));
+   if(mode==='aborted'){res.emit('aborted');return;}
+   if(mode==='delayed')pending=setTimeout(()=>{res.emit('data',Buffer.from('{"choices":[]}'));res.emit('end');},30);
+  });return req;
+ });
+ const cfg={...profile(),timeoutMs:100};
+ assert.deepEqual(await secureModelRequest(cfg,{}),{choices:[]});
+ mode='waiting';await assert.rejects(secureModelRequest(cfg,{}),/已连接.*排队/);
+ mode='network';await assert.rejects(secureModelRequest(cfg,{}),/连接模型服务超时/);
+ mode='aborted';await assert.rejects(secureModelRequest(cfg,{}),/中断/);
+ mode='auth';await assert.rejects(secureModelRequest(cfg,{}),/401.*鉴权失败/);
+});

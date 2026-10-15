@@ -11,10 +11,10 @@ function createModelService(directory,legacy={},options={}){
   const end=start(owner);try{
    const selected=store.selected(owner),candidates=selected?[store.connection(owner,selected)]:store.list(BUILTIN).filter(p=>p.enabled&&p.hasKey).slice(0,3).map(p=>store.connection(BUILTIN,p.id));
    if(!candidates.length)throw fail('内置 AI 暂未配置，可联系管理员，或在「模型设置」添加个人模型',503);
-   const deadline=Date.now()+42000;let last;
+   const deadline=Date.now()+96000;let last;
    for(let i=0;i<candidates.length;i++){
     const c=candidates[i];if(!c.enabled||!c.apiKey)throw fail('个人模型已停用，请选择内置 AI 或其他个人模型');
-    try{const result=await runAi(task,body,{...c,transport,timeoutMs:Math.min(12000,Math.max(100,deadline-Date.now()-2000)),maxTokens:task==='resume-diagnose'?8192:4096,connectionJson:true});return {...result,meta:{...result.meta,model:result.meta?.model||c.model,requestedModel:c.model,connectionName:c.name,source:selected?'personal':'builtin',fallback:i>0,attempts:i+1}};}
+    try{const result=await runAi(task,body,{...c,transport,timeoutMs:Math.min(selected?90000:30000,Math.max(100,deadline-Date.now()-2000)),maxTokens:task==='resume-diagnose'?8192:4096,connectionJson:true});return {...result,meta:{...result.meta,model:result.meta?.model||c.model,requestedModel:c.model,connectionName:c.name,source:selected?'personal':'builtin',fallback:i>0,attempts:i+1}};}
     catch(e){last=e;if(e.status!==502||selected||Date.now()>=deadline)throw e;}
    }
    throw fail('内置 AI 暂时不可用，请稍后重试；填写内容已保留',last?.status||503);
@@ -22,7 +22,7 @@ function createModelService(directory,legacy={},options={}){
  }
  return {store,list,execute,
   async save(owner,input,id){const end=start(owner);try{if(!input||typeof input!=='object')throw fail('模型配置格式错误');const old=id?store.connection(owner,id):null;await check(input.baseUrl||old?.baseUrl);return store.save(owner,input,id);}finally{end();}},
-  async test(owner,id,actor){const end=start(actor||owner);try{const cfg=store.connection(owner,id);if(!cfg.apiKey)throw fail('请先保存 API Key');const result=await runAi('test',{}, {...cfg,transport,maxTokens:64,connectionJson:true,timeoutMs:12000});store.markTested(owner,id);return result;}finally{end();}},
+  async test(owner,id,actor){const end=start(actor||owner);try{const cfg=store.connection(owner,id);if(!cfg.apiKey)throw fail('请先保存 API Key');const result=await runAi('test',{}, {...cfg,transport,maxTokens:64,connectionJson:true,timeoutMs:90000});store.markTested(owner,id);return result;}finally{end();}},
   close(){store.close();}
  };
 }
