@@ -28,3 +28,9 @@ test('formal state validates follow-up provenance, limits, phases and malformed 
  const saved=record();saved.status='saved';assert.equal(validFormal(saved,()=>true),false);saved.formal.phase='report';assert.ok(validFormal(saved,()=>true));saved.formal.evaluations[1]={result:{evidenceQuotes:['伪造']}};assert.equal(validFormal(saved,()=>true),false);
  assert.ok(profiles.hr.focus!==profiles.business.focus);assert.ok(validFormal({count:5},()=>true));
 });
+test('frozen blueprint rejects changed criteria and capability swaps while legacy records remain valid',()=>{
+ const p=require('../interview-policy'),r=record();r.role='产品';r.blueprint=p.blueprint('business','产品');r.questions.slice(1,6).forEach((q,i)=>Object.assign(q,{competencyId:r.blueprint.competencies[i].id,criteria:r.blueprint.competencies[i].criteria}));assert.ok(p.validFormal(r,()=>true));
+ const changed=JSON.parse(JSON.stringify(r));changed.blueprint.competencies[0].criteria[0].description='临时换标准';assert.equal(p.validFormal(changed,()=>true),false);
+ const swapped=JSON.parse(JSON.stringify(r));swapped.questions[1].competencyId=r.blueprint.competencies[1].id;assert.equal(p.validFormal(swapped,()=>true),false);
+ delete r.blueprint;r.questions.forEach(q=>{delete q.competencyId;delete q.criteria;});assert.ok(p.validFormal(r,()=>true));
+});

@@ -786,6 +786,7 @@
           <button class="btn btn-ghost" type="button" id="mockUseResume">使用简历助手的当前版本</button><div class="field"><label for="mockResumeVersion">或选择已保存的简历版本</label><select id="mockResumeVersion"><option value="">选择版本后带入</option></select></div><p class="mock-note" id="mockResumeCheck"></p>
           <label class="resume-confirm"><input id="mockConfirmResume" type="checkbox"> 我已核对本次简历 / 经历；缺少的事实会如实说明</label>
           <div class="field"><label for="mockInterviewer">面试官</label><select id="mockInterviewer"><option value="business">业务面试 · 项目贡献与结果验证</option><option value="hr">HR 初面 · 动机与协作沟通</option></select></div><p class="mock-note" id="mockInterviewerFocus"></p>
+          <section class="ai-feedback" id="mockBlueprint" aria-label="本轮考察范围"></section>
           <div class="field"><label for="mockMode">练习方式</label><select id="mockMode"><option value="formal">正式模拟 · 连续问答，结束后统一复盘</option><option value="coaching">专项练习 · 逐题点评，修改后重答</option></select></div>
           <div id="formalStartControls"><button class="btn btn-primary" type="button" id="formalStart">开始正式模拟 →</button><p class="mock-note">约 15 分钟 · 开场、5 道岗位问题、候选人反问 · 每道岗位题最多两次追问。可提前结束，回答会保留。</p></div>
           <div id="coachingStartControls" hidden><div class="paste-actions"><button class="btn btn-primary" id="mockPersonalStart">AI 个性化专项练习 →</button><button class="btn btn-ghost" id="mockStart">题库专项练习 →</button></div><p class="mock-note">逐题看建议、补充事实，再修改重答。</p></div><p id="mockPlanMsg" class="mock-note" role="status" aria-live="polite"></p>
@@ -1169,18 +1170,18 @@
     const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>typeof x==='string'&&x.length<=2000);
     return !!(data?.meta && typeof data.meta.model==='string' && typeof data.meta.promptVersion==='string' && typeof data.meta.createdAt==='string' && data.result &&
       ['relevance','structure','evidence','depth'].every(k=>Number.isInteger(data.result.scores?.[k])&&data.result.scores[k]>=0&&data.result.scores[k]<=5) &&
-      ['strengths','gaps','suggestions','evidenceQuotes'].every(k=>strings(data.result[k])) && typeof data.result.followUp==='string'&&data.result.followUp.length<=2000);
+      ['strengths','gaps','suggestions','evidenceQuotes'].every(k=>strings(data.result[k])) && typeof data.result.followUp==='string'&&data.result.followUp.length<=2000&&InterviewPolicy.validCriteriaEnvelope(data));
   }
   function validAiEntry(entry,answer){
     if(entry===null)return true;
-    if(entry?.retry!==undefined&&(!entry.retry||typeof entry.retry.answer!=='string'||entry.retry.answer.length>12000||(entry.retry.evaluation!==null&&(!isInterviewEnvelope(entry.retry.evaluation)||!entry.retry.evaluation.result.evidenceQuotes.length||!entry.retry.evaluation.result.evidenceQuotes.every(q=>entry.retry.answer.includes(q))))))return false;
+    if(entry?.retry!==undefined&&(!entry.retry||typeof entry.retry.answer!=='string'||entry.retry.answer.length>12000||(entry.retry.evaluation!==null&&(!isInterviewEnvelope(entry.retry.evaluation)||!InterviewPolicy.validCriteriaEnvelope(entry.retry.evaluation,entry.retry.answer)||!entry.retry.evaluation.result.evidenceQuotes.length||!entry.retry.evaluation.result.evidenceQuotes.every(q=>entry.retry.answer.includes(q))))))return false;
     return !!(entry && entry.sourceAnswer===answer && typeof entry.followUpAnswer==='string'&&entry.followUpAnswer.length<=12000 &&
-      isInterviewEnvelope(entry.initial)&&entry.initial.result.evidenceQuotes.every(q=>answer.includes(q))&&
-      (entry.final===null||(isInterviewEnvelope(entry.final)&&entry.final.result.evidenceQuotes.every(q=>(answer+'\n'+entry.followUpAnswer).includes(q)))));
+      isInterviewEnvelope(entry.initial)&&InterviewPolicy.validCriteriaEnvelope(entry.initial,answer)&&entry.initial.result.evidenceQuotes.every(q=>answer.includes(q))&&
+      (entry.final===null||(isInterviewEnvelope(entry.final)&&InterviewPolicy.validCriteriaEnvelope(entry.final,answer+'\n'+entry.followUpAnswer)&&entry.final.result.evidenceQuotes.every(q=>(answer+'\n'+entry.followUpAnswer).includes(q)))));
   }
   function aiFeedbackHtml(envelope,title='AI 点评'){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
-    return `<div class="ai-feedback"><h4>${esc(title)}</h4><div class="ai-scores">${Object.entries(labels).map(([k,l])=>`<span>${l} ${r.scores[k]}/5</span>`).join('')}</div><p class="mock-note">用于练习参考，不代表录用概率。</p>${[['strengths','优点'],['gaps','缺失'],['suggestions','下一次怎么答']].map(([key,label])=>`<b>${label}</b><ul>${r[key].map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`).join('')}<b>依据你的回答</b>${r.evidenceQuotes.map(q=>`<blockquote>${esc(q)}</blockquote>`).join('')}<div class="meta">${esc(envelope.meta.model)} · 评价标准 ${esc(envelope.meta.promptVersion)}</div></div>`;
+    return `<div class="ai-feedback"><h4>${esc(title)}</h4><div class="ai-scores">${Object.entries(labels).map(([k,l])=>`<span>${l} ${r.scores[k]}/5</span>`).join('')}</div><p class="mock-note">用于练习参考，不代表录用概率。</p>${FormalInterview.criteriaHtml?.(envelope)||''}${[['strengths','优点'],['gaps','缺失'],['suggestions','下一次怎么答']].map(([key,label])=>`<b>${label}</b><ul>${r[key].map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`).join('')}<b>依据你的回答</b>${r.evidenceQuotes.map(q=>`<blockquote>${esc(q)}</blockquote>`).join('')}<div class="meta">${esc(envelope.meta.model)} · 评价标准 ${esc(envelope.meta.competencyVersion||envelope.meta.promptVersion)}</div></div>`;
   }
   function renderMockAi(){
     const box=document.getElementById('mockAiBox');if(!box||!mockSession)return;
@@ -1209,7 +1210,7 @@
     if(followUp && (!entry||!entry.followUpAnswer.trim())){msg('请先填写追问的补充回答。');return;}
     stopMockVoice();stopTimer();persistDraft();setMockAiBusy(true);msg('AI 正在阅读回答，最多等待约 105 秒……');
     try{
-      const body={interviewer:mockSession.interviewer||'business',jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',question:mockQuestions[index].q,answer};
+      const body={...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',question:mockQuestions[index].q,answer};
       if(followUp)body.followUp={question:entry.initial.result.followUp,answer:entry.followUpAnswer};
       const data=await requestAi('interview',body);
       if(!isInterviewEnvelope(data))throw new Error('点评格式异常，请重试。');
@@ -1248,7 +1249,7 @@
     if(answer.trim()===entry.sourceAnswer.trim()){msg('重答与初答相同，请先根据建议补充或调整。');return;}
     stopMockVoice();stopTimer();persistDraft();setMockAiBusy(true);msg('正在按同一标准评价重答，最多等待约 105 秒…');
     try{
-      const data=await requestAi('interview',{interviewer:mockSession.interviewer||'business',question:mockQuestions[index].q,answer,jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',retry:true});
+      const data=await requestAi('interview',{...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',question:mockQuestions[index].q,answer,jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',retry:true});
       if(!isInterviewEnvelope(data)||!data.result.evidenceQuotes.length||!data.result.evidenceQuotes.every(q=>answer.includes(q)))throw new Error('重答点评依据异常，请重试。');
       if(mockSession?.id!==id||mockIdx!==index||mockSession.ai?.[index]!==entry||entry.retry.answer!==answer)return;
       entry.retry.evaluation=data;persistDraft();renderMockAi();

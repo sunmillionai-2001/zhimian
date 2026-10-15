@@ -90,3 +90,17 @@ test('formal end-of-session evaluation includes all follow-up evidence and suppr
  const configuration={...cfg,transport:async(c,p)=>{const u=JSON.parse(p.messages[1].content);assert.equal(u.followUps.length,2);return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:['核对交付记录']})}}]};}};
  const out=await runAi('interview',{interviewer:'hr',question:'如何验证？',answer:'我整理需求',followUps:[{question:'具体职责？',answer:'我列出边界'},{question:'如何验证？',answer:'核对交付记录'}],reviewOnly:true},configuration);assert.equal(out.result.followUp,'');assert.equal(out.meta.interviewer,'hr');
 });
+test('formal blueprint enforces competency coverage and rejects rubric drift before transport',async()=>{
+ const {blueprint,competencyVersion}=require('../interview-policy'),b=blueprint('hr','产品');let calls=0;
+ const configuration={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.deepEqual(u.blueprint,b.competencies);return {choices:[{message:{content:JSON.stringify({questions:u.blueprint.map((a,i)=>({competencyId:a.id,topic:'任意文字',q:'具体问题'+i,points:['提示'],source:{kind:'jd',quote:'产品经理'}}))})}}]};}};
+ const out=await runAi('interview-plan',{interviewer:'hr',role:'产品',jd:'产品经理',count:5,blueprintVersion:competencyVersion},configuration);assert.equal(out.result.questions[0].topic,'求职动机');assert.deepEqual(out.result.questions[0].criteria,b.competencies[0].criteria);
+ await assert.rejects(runAi('interview-plan',{blueprintVersion:'invented',jd:'产品经理',count:5},configuration),/版本/);assert.equal(calls,1);
+ assert.throws(()=>validateQuestionPlan({questions:out.result.questions.map(q=>({...q,competencyId:'hr.ownership'}))},'','产品经理',5,b),/考察能力/);
+});
+test('competency grading keeps the same criteria for retry and requires literal evidence for met judgments',async()=>{
+ const {blueprint,competencyVersion}=require('../interview-policy'),a=blueprint('business').competencies[1];let forged=false;
+ const configuration={...cfg,transport:async(c,p)=>{const u=JSON.parse(p.messages[1].content);assert.equal(u.competency.id,a.id);return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:['整理需求'],criteria:a.criteria.map(x=>({id:x.id,status:'met',quote:forged?'没说过':'整理需求',reason:'说明具体行动'}))})}}]};}};
+ for(const retry of [false,true]){const out=await runAi('interview',{interviewer:'business',question:'职责？',answer:'我整理需求',blueprintVersion:competencyVersion,competencyId:a.id,reviewOnly:true,retry},configuration);assert.equal(out.meta.competencyId,a.id);assert.equal(out.result.criteria.length,2);}
+ forged=true;await assert.rejects(runAi('interview',{question:'职责？',answer:'我整理需求',blueprintVersion:competencyVersion,competencyId:a.id,reviewOnly:true},configuration),/标准或回答依据/);
+ await assert.rejects(runAi('interview',{interviewer:'hr',competencyId:a.id,blueprintVersion:competencyVersion,question:'职责？',answer:'整理需求'},configuration),/不属于/);
+});
