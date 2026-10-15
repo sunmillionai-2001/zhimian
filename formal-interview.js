@@ -15,7 +15,8 @@ window.FormalInterview=(()=>{
  }
  function refreshHome(){
   if(!ready||!$('overviewTraining'))return;
-  const draft=mockStore.draft,last=mockStore.records.find(r=>r.mode==='formal'),r=draft||last;
+  const current={jd:$('mockJd').value,...selectedJobAssociation('mockJob')};
+  const {context,draft,last}=InterviewPolicy.homeState(current,mockStore),r=draft||last||context;
   const goal=r?label(r):($('mockJd').value.trim().split('\n')[0]||'还没有目标岗位');
   const reviews=last?.formal?.evaluations.filter(Boolean)||[],weak=reviews.flatMap(e=>e.result.gaps)[0];
   $('overviewTraining').innerHTML=`<span class="eyebrow">Your next interview</span><h3>${esc(goal)}</h3><p>${draft?(draft.status==='active'?'有一场尚未完成的'+(draft.mode==='formal'?'正式模拟':'专项练习')+'，可以接着上次的位置继续。':'上次面试已结束，可以查看并完善复盘。'):'确认目标岗位与简历，完整练一场，再针对薄弱点重练。'}</p><p class="mock-note">${weak?'上次优先改进：'+esc(weak):'准备流程：目标岗位 → 简历确认 → 正式模拟 → 统一复盘 → 专项练习'}</p><div class="paste-actions">${draft?'<button class="btn btn-primary" id="homeContinue">继续上次练习 / 复盘 →</button>':''}<button class="btn ${draft?'btn-ghost':'btn-primary'}" id="homePrepare">准备正式模拟 →</button>${last?'<button class="btn btn-ghost" id="homeLastReport">查看上次正式复盘</button>':''}</div>`;

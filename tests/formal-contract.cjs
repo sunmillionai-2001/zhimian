@@ -1,4 +1,14 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),{validFormal,profiles}=require('../interview-policy');
+test('overview isolates weaknesses, report and draft to the selected target, including legacy unlinked JDs',()=>{
+ const {homeState,sameGoal}=require('../interview-policy');
+ const a={mode:'formal',jobId:'a',jd:'相同职位要求'},b={mode:'formal',jobId:'b',jd:'相同职位要求'};
+ const store={draft:b,records:[b,a]};assert.equal(homeState(a,store).last,a);assert.equal(homeState(a,store).draft,null);
+ assert.equal(homeState({jobId:'new',jd:'新岗位'},store).last,null);assert.equal(homeState(b,store).draft,b);
+ assert.equal(sameGoal({jd:'产品经理\n 需求分析'},{jd:' 产品经理 需求分析 '}),true);
+ assert.equal(sameGoal({jd:'产品经理'},{jd:'后端开发'}),false);assert.equal(sameGoal({jd:'相同职位要求'},a),false);
+ assert.equal(sameGoal({goalId:'one',jd:'同样 JD'},{goalId:'two',jd:'同样 JD'}),false);
+ assert.equal(homeState({},store).last,b);
+});
 function record(){return {mode:'formal',interviewer:'business',count:7,index:1,status:'active',answers:['介绍','我整理需求','','','','',''],questions:[{kind:'intro'},...Array.from({length:5},()=>({kind:'main'})),{kind:'closing'}],formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(7).fill(null)}};}
 test('formal state validates follow-up provenance, limits, phases and malformed imports without throwing',()=>{
  const r=record();assert.ok(validFormal(r,()=>true));r.formal.pending={question:'具体是什么？',quote:'整理需求'};assert.ok(validFormal(r,()=>true));r.formal.pending.quote='虚构原话';assert.equal(validFormal(r,()=>true),false);r.formal.pending=null;
