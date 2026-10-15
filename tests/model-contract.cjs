@@ -81,3 +81,9 @@ test('quick connection check only lists models, never generates, and persists se
  await assert.rejects(s.test('alice',p.id),/没有当前模型/);response={};await assert.rejects(s.test('alice',p.id),/列表格式异常/);
  assert.equal(s.list('alice').profiles[0].checkedAt,null);return s;
 }));
+test('formal turn idempotency coalesces retries, rejects changed content and remains account scoped',sandbox(async dir=>{
+ let calls=0;const s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async()=>{calls++;await new Promise(r=>setTimeout(r,15));return result({action:'next',question:'',quote:''});}});s.store.save(BUILTIN,profile());
+ const request={...body,sessionId:'session-a',turnId:'1:answer:0'};const replies=await Promise.all([s.execute('alice','interview-turn',request),s.execute('alice','interview-turn',request)]);assert.equal(calls,1);assert.equal(replies[1].meta.reusedDecision,true);
+ await s.execute('alice','interview-turn',request);assert.equal(calls,1);await assert.rejects(s.execute('alice','interview-turn',{...request,answer:'不同材料'}),e=>e.status===409);
+ await s.execute('bob','interview-turn',request);assert.equal(calls,2);await assert.rejects(s.execute('alice','interview-turn',{...request,turnId:undefined}),/标识/);return s;
+}));

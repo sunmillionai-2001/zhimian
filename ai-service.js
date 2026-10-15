@@ -72,7 +72,7 @@ function readFollowUps(value){
  return value.map(t=>({question:text(t?.question,'追问问题',1000),answer:text(t?.answer,'追问回答',12000)}));
 }
 async function runAi(task,body,cfg){
-  let instruction,data,validate;
+  let instruction,data,validate,shortcut;
   const interviewer=profile(body.interviewer??'business');
   if(body.blueprintVersion!==undefined&&body.blueprintVersion!==competencyVersion)throw fail('能力标准版本不支持，请重新准备本场面试');
   if(body.competencyId&&body.blueprintVersion!==competencyVersion)throw fail('请指定能力标准版本');
@@ -96,15 +96,26 @@ async function runAi(task,body,cfg){
   }else if(task==='interview-turn'){
     const question=text(body.question,'面试问题',5000),answer=text(body.answer,'回答',12000),followUps=readFollowUps(body.followUps);
     const source=[answer,...followUps.map(t=>t.answer)].join('\n');
-    data={question,answer,followUps,jd:text(body.jd??'','JD',10000,true),resume:text(body.resume??'','简历',30000,true),interviewer:interviewer.name};
+    const history=body.history??[];if(!Array.isArray(history)||history.length>6)throw fail('面试覆盖摘要过长');
+    const previous=history.map(t=>({question:text(t?.question,'已问题目',5000),answer:text(t?.answer??'','已答摘要',1500,true),competencyId:text(t?.competencyId??'','能力标识',100,true),truncated:t?.truncated===true}));
+    data={question,answer,followUps,history:previous,...(competency?{competency}:{}),jd:text(body.jd??'','JD',10000,true),resume:text(body.resume??'','简历',30000,true),interviewer:interviewer.name};
     instruction='决定正式面试的下一步，不打分、不点评、不提供参考答案。仅在回答缺少重要事实时追问；已经回答清楚、用户说不知道或不会时进入下一题。每次仅一个简短问题，不重复已有问题。返回 {action:"followup" 或 "next",question:追问内容或空字符串,quote:支持追问的用户回答逐字引用或空字符串}。追问不可假设用户做过未说的事，不捏造指标。';
+    instruction+=' history 是本场先前题目的有限摘要，truncated 表示被截短，不代表完整回答。不要重复索取其中已经讲清的事实，围绕当前能力尚缺的依据追问；不能确认有缺口时前进。';
+    const latest=followUps.at(-1)?.answer||answer;
+    if(followUps.length===2||/^(?:我)?(?:暂时)?(?:不清楚|不知道|不会|没做过|没有经验|想不起来)(?:[，,。！!\s]*(?:请)?(?:跳过|下一题|换一题))?[。！!\s]*$/.test(latest.trim()))shortcut={action:'next',question:'',quote:''};
     validate=v=>{
       if(!['followup','next'].includes(v?.action))throw fail('追问决策格式异常',502);
       if(v.action==='next'||followUps.length===2)return {action:'next',question:'',quote:''};
       const q=text(v.question,'追问',1000),quote=text(v.quote,'追问依据',500);
-      if(!source.includes(quote)||[question,...followUps.map(t=>t.question)].includes(q))throw fail('追问依据不符或问题重复',502);
+      if(!source.includes(quote))throw fail('追问依据不符',502);
+      const normalized=s=>s.toLowerCase().replace(/[\p{P}\p{S}\s]/gu,'');
+      if([question,...followUps.map(t=>t.question),...previous.map(t=>t.question)].some(old=>normalized(old)===normalized(q)))return {action:'next',question:'',quote:''};
       return {action:'followup',question:q,quote};
     };
+  }else if(task==='interview-clarify'){
+    const question=text(body.question,'待澄清问题',5000);data={question,interviewer:interviewer.name};
+    instruction='只解释面试题在问什么，澄清任务范围。不提供解法、参考答案、作答框架或用户经历，不编造企业信息。返回 {explanation:简短题意说明,quote:问题中的逐字原文}。';
+    validate=v=>{const explanation=text(v?.explanation,'题意说明',1000),quote=text(v?.quote,'题目引用',500);if(!question.includes(quote))throw fail('澄清依据不在原问题中',502);return {explanation,quote};};
   }else if(task==='interview'){
     const question=text(body.question,'面试问题',5000),answer=text(body.answer,'回答',12000),jd=text(body.jd??'','JD',10000,true);
     let followUp=null,source=answer;const followUps=readFollowUps(body.followUps);
@@ -129,8 +140,8 @@ async function runAi(task,body,cfg){
     instruction='仅改写这一段简历。只使用原段落和已确认的补充回答中的事实，JD 是要求，不是个人经历。没有指标可以用范围、方法、交付结果表达，绝不补造数字、公司、职位、年限或技术。不要把问题里的假设当事实。不加入待填写占位符。返回 {rewritten:候选改写,evidence:[{claim:改写中的原样陈述,source:原段落或补充回答的逐字引用}]}。所有新增事实都必须给来源。';
     validate=v=>validateRewrite(v,source);
   }else throw fail('未知 AI 任务',404);
-  const raw=await callModel(cfg,[{role:'system',content:BASE+'\n'+(task.startsWith('interview')?interviewer.instruction+'\n':'')+instruction},{role:'user',content:JSON.stringify(data)}]);
-  try{return {result:validate(parseResult(raw)),meta:{model:cfg.actualModel||cfg.model,promptVersion:RUBRIC_VERSION,createdAt:new Date().toISOString(),usage:cfg.usage||{},...(task.startsWith('interview')?{interviewer:interviewer.id,interviewPolicyVersion:INTERVIEW_VERSION}:{}),...(body.blueprintVersion?{competencyVersion,...(competency?{competencyId:competency.id}:{})}:{})}};}
+  const raw=shortcut?null:await callModel(cfg,[{role:'system',content:BASE+'\n'+(task.startsWith('interview')?interviewer.instruction+'\n':'')+instruction},{role:'user',content:JSON.stringify(data)}]);
+  try{return {result:validate(shortcut||parseResult(raw)),meta:{model:cfg.actualModel||cfg.model,promptVersion:RUBRIC_VERSION,createdAt:new Date().toISOString(),usage:cfg.usage||{},...(shortcut?{decisionSource:'rules'}:{}),...(task.startsWith('interview')?{interviewer:interviewer.id,interviewPolicyVersion:INTERVIEW_VERSION}:{}),...(body.blueprintVersion?{competencyVersion,...(competency?{competencyId:competency.id}:{})}:{})}};}
   catch(e){if(e.status===400)e.status=502;throw e;}
 }
 module.exports={runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan};

@@ -104,3 +104,13 @@ test('competency grading keeps the same criteria for retry and requires literal 
  forged=true;await assert.rejects(runAi('interview',{question:'职责？',answer:'我整理需求',blueprintVersion:competencyVersion,competencyId:a.id,reviewOnly:true},configuration),/标准或回答依据/);
  await assert.rejects(runAi('interview',{interviewer:'hr',competencyId:a.id,blueprintVersion:competencyVersion,question:'职责？',answer:'整理需求'},configuration),/不属于/);
 });
+test('turn decisions carry bounded prior coverage and stop repeated questions or explicit unknown answers',async()=>{
+ let calls=0;const c={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.equal(u.history[0].answer,'我整理需求');assert.match(p.messages[0].content,/不要重复索取/);return {choices:[{message:{content:JSON.stringify({action:'followup',question:'你的职责是什么？',quote:'负责整理'})}}]};}};
+ const body={question:'方案是什么？',answer:'我负责整理需求',history:[{question:'你的职责是什么',answer:'我整理需求'}]};const out=await runAi('interview-turn',body,c);assert.equal(out.result.action,'next');assert.equal(calls,1);
+ assert.equal((await runAi('interview-turn',{question:'方案？',answer:'我不知道，下一题'},c)).meta.decisionSource,'rules');assert.equal(calls,1);
+ await assert.rejects(runAi('interview-turn',{...body,history:Array(7).fill(body.history[0])},c),/摘要过长/);assert.equal(calls,1);
+});
+test('clarification is based on the question only and rejects ungrounded source quotes',async()=>{
+ let forged=false;const c={...cfg,transport:async(c,p)=>{const u=JSON.parse(p.messages[1].content);assert.deepEqual(Object.keys(u).sort(),['interviewer','question']);assert.match(p.messages[0].content,/不提供解法/);return {choices:[{message:{content:JSON.stringify({explanation:'请说明备选方案之间的选择原因',quote:forged?'虚构题目':'取舍'})}}]};}};
+ assert.equal((await runAi('interview-clarify',{question:'请解释方案取舍'},c)).result.quote,'取舍');forged=true;await assert.rejects(runAi('interview-clarify',{question:'请解释方案取舍'},c),/不在原问题/);
+});

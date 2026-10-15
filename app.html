@@ -1063,7 +1063,7 @@
   }
   function updateClock(){ const el=document.getElementById('mockClock');if(el)el.textContent=String(Math.floor(mockSec/60)).padStart(2,'0')+':'+String(mockSec%60).padStart(2,'0'); }
   let mockTick=0;
-  function startTimer(){stopTimer();mockTick=Date.now();updateClock();mockTimer=setInterval(()=>{captureTime();updateClock();if(mockSec%5===0)persistDraft();},1000);}
+  function startTimer(){stopTimer();if(mockSession?.formal?.control?.paused)return;mockTick=Date.now();updateClock();mockTimer=setInterval(()=>{captureTime();updateClock();if(mockSec%5===0)persistDraft();},1000);}
   function captureTime(){if(mockTick){const now=Date.now(),n=Math.floor((now-mockTick)/1000);mockSec+=n;mockTick+=n*1000;}}
   function stopTimer(){captureTime();if(mockTimer)clearInterval(mockTimer);mockTimer=null;mockTick=0;}
   function snapshot(){
@@ -1199,7 +1199,8 @@
   }
   function setMockAiBusy(busy){
     mockAiBusy=busy;
-    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockRetryAnswer','mockRetryEvaluate','mockBeginRetry','mockPersonalStart','formalStart','formalNext','formalSkip','formalEnd','formalEvaluate','formalSetup','mockSave','mockStart','mockResume','mockStory','mockUseStory'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
+    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockRetryAnswer','mockRetryEvaluate','mockBeginRetry','mockPersonalStart','formalStart','formalNext','formalSkip','formalEnd','formalEvaluate','formalSetup','formalPause','formalClarify','formalUnknown','mockSave','mockStart','mockResume','mockStory','mockUseStory'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
+    if(!busy)FormalInterview.syncControls?.();
   }
   async function evaluateMock(followUp){
     if(mockAiBusy||!mockSession)return;
@@ -1265,7 +1266,7 @@
   function mountMockVoice(targetId,hostId){
     const host=document.getElementById(hostId),target=document.getElementById(targetId);if(!host||!target||target.readOnly)return;
     const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    host.innerHTML='<div class="paste-actions"><button type="button" class="btn btn-ghost" data-voice>语音作答</button>'+(targetId==='mockA'?'<button type="button" class="btn btn-ghost" data-read>朗读本题</button>':'')+'</div><p class="mock-note" role="status" data-voice-status></p>';
+    host.innerHTML='<div class="paste-actions"><button type="button" class="btn btn-ghost" data-voice>语音作答</button>'+(targetId==='mockA'?'<button type="button" class="btn btn-ghost" data-read>'+(mockSession?.mode==='formal'?'重复问题':'朗读本题')+'</button>':'')+'</div><p class="mock-note" role="status" data-voice-status></p>';
     const button=host.querySelector('[data-voice]'),notice=host.querySelector('[data-voice-status]');
     notice.textContent=Recognition?'语音转写由浏览器提供，可能需要联网。请核对文字后再提交。':'当前浏览器不支持语音转写，可用系统听写或键盘作答。';button.disabled=!Recognition;
     button.onclick=()=>{

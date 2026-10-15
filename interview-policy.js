@@ -75,6 +75,12 @@
   if(!Array.isArray(record.answers)||!Number.isInteger(record.index)||!f||!Object.hasOwn(profiles,record.interviewer)||record.count!==7||!['active','report'].includes(f.phase)||!Array.isArray(f.turns)||f.turns.length>10||f.turns.some(t=>!t||typeof t!=='object')||!str(f.draft,12000)||typeof f.decisionPending!=='boolean'||!Array.isArray(f.evaluations)||f.evaluations.length!==record.count)return false;
   if(record.questions[0]?.kind!=='intro'||record.questions[6]?.kind!=='closing'||record.questions.slice(1,6).some(q=>q.kind!=='main'))return false;
   if(record.blueprint&&record.questions.slice(1,6).some((q,i)=>q.competencyId!==record.blueprint.competencies[i].id))return false;
+  if(f.control!==undefined){
+   const c=f.control;if(!c||typeof c.paused!=='boolean'||!Array.isArray(c.skipped)||c.skipped.length>7||!Array.isArray(c.clarifications)||c.clarifications.length>17||new Set(c.skipped.map(x=>x?.index)).size!==c.skipped.length||new Set(c.clarifications.map(x=>x?.key)).size!==c.clarifications.length)return false;
+   if(c.skipped.some(x=>!x||!Number.isInteger(x.index)||x.index<0||x.index>6||!['skip','unknown'].includes(x.reason)))return false;
+   if(c.clarifications.some(x=>!x||!Number.isInteger(x.index)||x.index<0||x.index>6||!str(x.key,100)||!str(x.question,5000)||!str(x.explanation,1000)||!str(x.quote,500)||!x.quote.trim()||!x.question.includes(x.quote)||![record.questions[x.index].q,...f.turns.filter(t=>t.index===x.index).map(t=>t.question),...(record.index===x.index&&f.pending?[f.pending.question]:[])].includes(x.question)))return false;
+   if(f.phase==='report'&&c.paused)return false;
+  }
   for(let i=0;i<record.count;i++){
    const turns=f.turns.filter(t=>t.index===i);
    if(turns.length>2||turns.some((t,j)=>!Number.isInteger(t.index)||i<1||i>5||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||![record.answers[i],...turns.slice(0,j).map(x=>x.answer)].join('\n').includes(t.quote)||!str(t.answer,12000)))return false;
