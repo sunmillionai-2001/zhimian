@@ -16,6 +16,7 @@ const { spawn } = require('node:child_process');
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('startup timeout')),5000);server.stdout.once('data',()=>{clearTimeout(timer);resolve();});});
     browser=await chromium.launch({headless:true});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
+    await context.route('**/fonts.googleapis.com/**',r=>r.abort());
     const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(`http://127.0.0.1:${port}/app.html#mock`);
     await page.locator('#mockJd').fill('产品经理\n用户需求分析、PRD、团队协作');

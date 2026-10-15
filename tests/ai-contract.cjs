@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {runAi,validateInterview,validateDiagnosis,validateRewrite}=require('../ai-service');
+const {runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan}=require('../ai-service');
 const cfg={baseUrl:'http://controlled.local/v1',model:'test-model',apiKey:'fake-key'};
 const evaluation={scores:{relevance:4,structure:3,evidence:3,depth:2},strengths:['行动清楚'],gaps:['补验证方法'],suggestions:['描述对比'],evidenceQuotes:['优化缓存'],followUp:'你如何验证？'};
 test('interview scores and quotes must be grounded in the actual answer',()=>{
@@ -59,4 +59,20 @@ test('adopted sections replace original offsets without rewriting another candid
   const source=html.match(/  function composedResume\(\)\{[^\n]+\}/)[0];
   const context=vm.createContext({resumeState:{text:'原段甲\n原段乙',sections:[{original:'原段甲',adopted:'改写中引用原段乙'},{original:'原段乙',adopted:'第二段改写'}]}});
   vm.runInContext(source,context);assert.equal(context.composedResume(),'改写中引用原段乙\n第二段改写');
+});
+
+test('personal interview plan requires exact count, unique questions and literal evidence from both supplied sources',()=>{
+ const resume='维护运营报表，核对指标口径',jd='岗位要求：指标分析、跨团队沟通';
+ const questions=Array.from({length:5},(_,i)=>({topic:'指标分析',q:'问题 '+i,points:['说明个人行动'],source:{kind:i%2?'jd':'resume',quote:i%2?'指标分析':'维护运营报表'}}));
+ assert.equal(validateQuestionPlan({questions},resume,jd,5).questions.length,5);
+ assert.throws(()=>validateQuestionPlan({questions:questions.slice(1)},resume,jd,5),/数量/);
+ assert.throws(()=>validateQuestionPlan({questions:[questions[0],...questions.slice(0,4)]},resume,jd,5),/重复/);
+ assert.throws(()=>validateQuestionPlan({questions:questions.map(q=>({...q,source:{kind:'resume',quote:'虚构项目'}}))},resume,jd,5),/依据/);
+ assert.throws(()=>validateQuestionPlan({questions:questions.map(q=>({...q,source:{kind:'resume',quote:'维护运营报表'}}))},resume,jd,5),/同时覆盖/);
+});
+test('plan validates inputs before transport and retry evaluates only the new answer without another follow-up',async()=>{
+ let calls=0;const configuration={...cfg,transport:async(c,p)=>{calls++;const user=JSON.parse(p.messages[1].content);assert.equal(user.retry,true);return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:[user.answer]})}}]};}};
+ await assert.rejects(runAi('interview-plan',{resume:'',jd:'',count:5},configuration),/先填写/);
+ await assert.rejects(runAi('interview-plan',{resume:'维护报表',count:99},configuration),/请选择/);assert.equal(calls,0);
+ const r=await runAi('interview',{question:'如何验证？',answer:'我核对口径并交付周报',retry:true},configuration);assert.equal(r.result.followUp,'');assert.deepEqual(r.result.evidenceQuotes,['我核对口径并交付周报']);
 });

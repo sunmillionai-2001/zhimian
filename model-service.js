@@ -14,7 +14,7 @@ function createModelService(directory,legacy={},options={}){
    const deadline=Date.now()+96000;let last;
    for(let i=0;i<candidates.length;i++){
     const c=candidates[i];if(!c.enabled||!c.apiKey)throw fail('个人模型已停用，请选择内置 AI 或其他个人模型');
-    try{const result=await runAi(task,body,{...c,transport,timeoutMs:Math.min(selected?90000:30000,Math.max(100,deadline-Date.now()-2000)),maxTokens:task==='resume-diagnose'?8192:4096,connectionJson:true});return {...result,meta:{...result.meta,model:result.meta?.model||c.model,requestedModel:c.model,connectionName:c.name,source:selected?'personal':'builtin',fallback:i>0,attempts:i+1}};}
+    try{const result=await runAi(task,body,{...c,transport,timeoutMs:Math.min(selected?90000:30000,Math.max(100,deadline-Date.now()-2000)),maxTokens:['resume-diagnose','interview-plan'].includes(task)?8192:4096,connectionJson:true});return {...result,meta:{...result.meta,model:result.meta?.model||c.model,requestedModel:c.model,connectionName:c.name,source:selected?'personal':'builtin',fallback:i>0,attempts:i+1}};}
     catch(e){last=e;if(e.status!==502||selected||Date.now()>=deadline)throw e;}
    }
    throw fail('内置 AI 暂时不可用，请稍后重试；填写内容已保留',last?.status||503);
