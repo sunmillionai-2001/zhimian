@@ -2175,7 +2175,8 @@
     let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(50000)});}
     catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
     let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
-    if(!response.ok){if((data.error||'').includes('未配置'))document.getElementById('aiSettings').open=true;throw new Error(data.error||'AI 请求失败。');}
+    if(!response.ok){if((data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings)settings.open=true;}throw new Error(data.error||'AI 请求失败。');}
+    if(window.ZM_ACCOUNT&&data.meta){const notice=document.getElementById('modelUsageMessage');if(notice)notice.textContent='本次使用：'+data.meta.connectionName+' · '+data.meta.model+(data.meta.fallback?'（已自动切换备用连接）':'');}
     return data;
   }
   async function loadAiConfig(){
@@ -2201,7 +2202,7 @@
   document.getElementById('aiConfigSave').addEventListener('click',()=>configureAi('save'));
   document.getElementById('aiConfigTest').addEventListener('click',()=>configureAi('test'));
   document.getElementById('aiConfigClear').addEventListener('click',()=>configureAi('clear'));
-  if(!window.ZM_ACCOUNT||window.ZM_ACCOUNT.role==='admin')loadAiConfig();
+  if(!window.ZM_ACCOUNT)loadAiConfig();
 
   /* ================= 简历助手：原文 → 补事实 → 候选 → 采用 ================= */
   const RESUME_KEY='zm_resume_store_v1';
@@ -2343,5 +2344,6 @@
   if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply'].forEach(id=>document.getElementById(id).disabled=true);
 
 </script>
+<script src="model-settings.js"></script>
 </body>
 </html>

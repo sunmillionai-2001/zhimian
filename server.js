@@ -8,6 +8,8 @@ const { createReviewStore } = require('./review-store');
 const { runAi } = require('./ai-service');
 const { importDocument } = require('./document-import');
 const { createAuthStore } = require('./auth-store');
+const { createModelService } = require('./model-service');
+const { BUILTIN } = require('./model-store');
 
 const ROOT = __dirname;                              // 本目录即站点根，含 app.html
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
@@ -25,7 +27,7 @@ function sessionCookie(res,token){res.setHeader('Set-Cookie','zm_session='+token
 
 const DEFAULT_CONFIG = {
   baseUrl: 'https://api.deepseek.com/v1',
-  model: 'deepseek-chat',
+  model: 'deepseek-flash',
   apiKey: ''
 };
 
@@ -79,6 +81,8 @@ function storeFileName(key) {
   return 'store-' + String(key).replace(/[^a-zA-Z0-9_-]/g, '_') + '.json';
 }
 
+const modelService=localMode?null:createModelService(DATA_DIR,readConfig());
+
 const server = http.createServer(async (req, res) => {
   try {
   let url;
@@ -93,6 +97,7 @@ const server = http.createServer(async (req, res) => {
 
   if(['POST','DELETE'].includes(req.method)&&req.headers['sec-fetch-site']==='cross-site')return sendJson(res,403,{error:'只允许同源请求'});
   const account=authStore?.authenticate(tokenOf(req));
+  if(!localMode&&url.startsWith('/api/')&&req.headers['x-zm-account']&&req.headers['x-zm-account']!==account?.id)return sendJson(res,409,{error:'账号已变化，请重新打开工作台',code:'ACCOUNT_CHANGED'});
   if(url==='/api/auth/me'&&req.method==='GET')return sendJson(res,200,{enabled:!localMode,user:account||null});
   if(!localMode&&['/api/auth/register','/api/auth/login'].includes(url)&&req.method==='POST'){
     throttle(req);const body=await readBody(req);const result=await authStore[url.endsWith('register')?'register':'login'](body.username,body.password);sessionCookie(res,result.token);return sendJson(res,200,{user:result.user});
@@ -104,13 +109,23 @@ const server = http.createServer(async (req, res) => {
     if(url==='/api/admin/codes'&&req.method==='GET')return sendJson(res,200,{codes:authStore.codes()});
     if(url==='/api/admin/codes'&&req.method==='POST')return sendJson(res,200,{codes:authStore.issue(await readBody(req),account.id)});
     if(url.startsWith('/api/admin/codes/')&&req.method==='DELETE'){authStore.revoke(url.slice('/api/admin/codes/'.length),account.id);return sendJson(res,200,{ok:true});}
+    if(url==='/api/admin/models'&&req.method==='GET')return sendJson(res,200,{profiles:modelService.store.list(BUILTIN)});
+    if(url==='/api/admin/models'&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(BUILTIN,await readBody(req))});
+    const modelMatch=/^\/api\/admin\/models\/([a-zA-Z0-9-]+)(\/test)?$/.exec(url);
+    if(modelMatch){const id=modelMatch[1];if(modelMatch[2]&&req.method==='POST')return sendJson(res,200,await modelService.test(BUILTIN,id,account.id));if(!modelMatch[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(BUILTIN,await readBody(req),id)});if(!modelMatch[2]&&req.method==='DELETE'){modelService.store.remove(BUILTIN,id);return sendJson(res,200,{ok:true});}}
     return sendJson(res,404,{error:'接口不存在'});
   }
   if(!localMode&&url.startsWith('/api/')){
-    if(req.headers['x-zm-account']&&req.headers['x-zm-account']!==account?.id)return sendJson(res,409,{error:'账号已变化，请重新打开工作台',code:'ACCOUNT_CHANGED'});
     if(!account)return sendJson(res,401,{error:'请先登录'});
     if(url==='/api/config'||url==='/api/chat'||url==='/api/ai/test'){if(account.role!=='admin')return sendJson(res,403,{error:'需要管理员权限'});}
     else if(!account.active)return sendJson(res,403,{error:'请兑换工作台使用权限，或续期后继续'});
+  }
+  if(!localMode){
+    if(url==='/api/models'&&req.method==='GET')return sendJson(res,200,modelService.list(account.id));
+    if(url==='/api/models'&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(account.id,await readBody(req))});
+    if(url==='/api/models/selection'&&req.method==='POST'){const b=await readBody(req);modelService.store.select(account.id,b.profileId??null);return sendJson(res,200,modelService.list(account.id));}
+    const m=/^\/api\/models\/([a-zA-Z0-9-]+)(\/test)?$/.exec(url);
+    if(m){if(m[2]&&req.method==='POST')return sendJson(res,200,await modelService.test(account.id,m[1]));if(!m[2]&&req.method==='POST')return sendJson(res,200,{profile:await modelService.save(account.id,await readBody(req),m[1])});if(!m[2]&&req.method==='DELETE'){modelService.store.remove(account.id,m[1]);return sendJson(res,200,{ok:true});}}
   }
   const userDirectory=localMode?DATA_DIR:path.join(DATA_DIR,'users',account?.id||'none');
   const reviewStore=localMode?localReviews:createReviewStore(userDirectory);
@@ -133,9 +148,8 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/resume/import' && req.method === 'POST') return sendJson(res, 200, await importDocument(await readBody(req)));
 
   if (url.startsWith('/api/ai/') && req.method === 'POST') {
-    const cfg=readConfig();
-    if(account?.role==='user'&&!cfg.apiKey)return sendJson(res,400,{error:'AI 服务暂未配置，请联系工作台管理员。'});
-    return sendJson(res, 200, await runAi(url.slice('/api/ai/'.length), await readBody(req), cfg));
+    const task=url.slice('/api/ai/'.length),body=await readBody(req);
+    return sendJson(res,200,localMode?await runAi(task,body,readConfig()):await modelService.execute(account.id,task,body));
   }
 
   // ---------- 大模型代理（浏览器直连大模型常被 CORS 拦，这里由服务端转发）----------
@@ -223,7 +237,7 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;

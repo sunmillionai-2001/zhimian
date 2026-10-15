@@ -1,6 +1,6 @@
 {
   "name": "zhimian-workbench",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "职面求职工作台",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs",
+    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs tests/model-contract.cjs",
     "account": "node account-cli.js"
   },
   "dependencies": {

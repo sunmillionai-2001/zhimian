@@ -3,7 +3,7 @@ const {spawn}=require('node:child_process'),{createAuthStore}=require('../auth-s
 const root=path.join(__dirname,'..');let tmp,child,base,admin,alice,bob,store;
 async function request(url,method='GET',body,cookie,extra={}){const r=await fetch(base+url,{method,redirect:'manual',headers:{...(body?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...extra},body:body?JSON.stringify(body):undefined});const text=await r.text();let data;try{data=JSON.parse(text);}catch{}return {status:r.status,data,text,headers:r.headers,cookie:r.headers.get('set-cookie')?.split(';')[0]};}
 before(async()=>{
- tmp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-accounts-'));for(const f of ['app.html','account.html','account-session.js','skill-learning.js','server.js','auth-store.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(tmp,f));
+ tmp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-accounts-'));for(const f of ['app.html','account.html','account-session.js','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(tmp,f));
  fs.writeFileSync(path.join(tmp,'server.config.json'),JSON.stringify({apiKey:'test-private-key'}));
  const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));base='http://127.0.0.1:'+port;
  child=spawn(process.execPath,['server.js'],{cwd:tmp,env:{...process.env,ZM_LOCAL_MODE:'0',PORT:String(port),PUBLIC_ORIGIN:base},stdio:['ignore','pipe','pipe']});await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('startup timeout')),6000);child.stdout.once('data',()=>{clearTimeout(timer);resolve();});child.once('error',reject);});store=createAuthStore(path.join(tmp,'data'));
@@ -35,6 +35,19 @@ test('review and generic store are isolated by authenticated account, never body
  const record={id:'same-id',company:'Alice公司',role:'产品经理',stage:'初面',result:'待定',date:'2026-10-14',tags:[],note:'私有记录'};
  assert.equal((await request('/api/reviews','POST',record,alice.cookie)).status,200);assert.equal((await request('/api/reviews','GET',null,bob.cookie)).data.records.length,0);await request('/api/reviews/same-id','DELETE',{},bob.cookie);assert.equal((await request('/api/reviews','GET',null,alice.cookie)).data.records.length,1);
  await request('/api/store','POST',{key:'zm_resume_store_v1',value:{text:'alice私有简历'},userId:bob.data.user.id},alice.cookie);assert.deepEqual((await request('/api/store','GET',null,bob.cookie)).data,{});assert.equal((await request('/api/store','GET',null,alice.cookie)).data.zm_resume_store_v1.text,'alice私有简历');assert.equal((await request('/api/store','POST',{key:'../escape',value:{}},alice.cookie)).status,400);
+});
+test('model HTTP APIs enforce owner/admin boundaries, never return Keys and reject private URLs',async()=>{
+ const presets=await request('/api/admin/models','GET',null,admin.cookie);assert.equal(presets.status,200);assert.equal(presets.data.profiles.length,4);for(const p of presets.data.profiles.filter(p=>p.enabled))await request('/api/admin/models/'+p.id,'POST',{enabled:false,baseUrl:'https://8.8.8.8/v1'},admin.cookie);
+ assert.equal((await request('/api/admin/models','GET',null,bob.cookie)).status,403);assert.equal((await request('/api/models','GET')).status,401);
+ const p={name:'个人 <img onerror=alert(1)>',model:'test',baseUrl:'https://8.8.8.8/v1',apiKey:'my-personal-secret',enabled:true,preset:'custom',owner:bob.data.user.id};
+ const saved=await request('/api/models','POST',p,alice.cookie);assert.equal(saved.status,200);const id=saved.data.profile.id;assert.ok(!saved.text.includes('my-personal-secret'));
+ const a=await request('/api/models','GET',null,alice.cookie),b=await request('/api/models','GET',null,bob.cookie);assert.equal(a.data.profiles.length,1);assert.equal(b.data.profiles.length,0);assert.ok(!a.text.includes('my-personal-secret'));
+ assert.equal((await request('/api/models/'+id,'DELETE',{},bob.cookie)).status,404);assert.equal((await request('/api/models/'+id+'/test','POST',{},bob.cookie)).status,404);assert.equal((await request('/api/models/selection','POST',{profileId:id},bob.cookie)).status,400);
+ assert.equal((await request('/api/models','POST',{...p,baseUrl:'https://169.254.169.254'},alice.cookie)).status,400);
+ await request('/api/models/selection','POST',{profileId:id},alice.cookie);assert.equal((await request('/api/models','GET',null,alice.cookie)).data.selectedId,id);
+ await request('/api/models/'+id,'DELETE',{},alice.cookie);assert.equal((await request('/api/models','GET',null,alice.cookie)).data.selectedId,null);
+ const empty=await request('/api/models','POST',{...p,name:'未配置',enabled:false,apiKey:''},alice.cookie);assert.equal((await request('/api/models/'+empty.data.profile.id+'/test','POST',{},alice.cookie)).status,400);
+ assert.equal((await request('/api/ai/interview','POST',{question:'项目？',answer:'实际回答',role:'通用'},alice.cookie)).status,503);
 });
 test('expiry, revocation, cross-origin, logout and password reset invalidate access',async()=>{
  const [c]=store.issue({days:1});const user=await store.register('expired','expired-test-password');store.redeem(user.user.id,c.code);const db=new DatabaseSync(path.join(tmp,'data/accounts.sqlite'));db.prepare('UPDATE codes SET used_at=? WHERE id=?').run(Date.now()-2*86400000,c.id);db.close();assert.equal((await request('/api/reviews','GET',null,'zm_session='+user.token)).status,403);
