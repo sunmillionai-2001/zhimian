@@ -15,7 +15,7 @@ function engine() {
   const ctx = vm.createContext({ document: { getElementById: id => els[id] }, localStorage: {
     getItem: k => stored.get(k) ?? null,
     setItem: (k,v) => { if (failWrite) throw new Error('quota'); stored.set(k,v); }
-  }, Date, crypto: require('node:crypto').webcrypto });
+  }, InterviewPolicy:require('../interview-policy'),FormalInterview:{setStageMode(){},refreshHome(){}},Date, crypto: require('node:crypto').webcrypto });
   vm.runInContext(script.slice(script.indexOf('  const QUIZ_BANK'), script.indexOf("  document.getElementById('mockSample')")), ctx);
   return { els, stored, run: s => vm.runInContext(s, ctx), fail: () => { failWrite = true; } };
 }
@@ -81,7 +81,7 @@ function request(url, method='GET', body, headers={}) {
 }
 before(async()=>{
   temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-test-'));
-  for(const f of ['skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
+  for(const f of ['skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
   for(const f of ['app.html','index.html','index-sidebar.html'])fs.writeFileSync(path.join(temp,f),'test page');
   fs.writeFileSync(path.join(temp,'server.config.json'),JSON.stringify({apiKey:'fake-regression-secret'}));
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));port=reserve.address().port;await new Promise(r=>reserve.close(r));

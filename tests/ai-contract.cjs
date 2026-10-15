@@ -76,3 +76,17 @@ test('plan validates inputs before transport and retry evaluates only the new an
  await assert.rejects(runAi('interview-plan',{resume:'维护报表',count:99},configuration),/请选择/);assert.equal(calls,0);
  const r=await runAi('interview',{question:'如何验证？',answer:'我核对口径并交付周报',retry:true},configuration);assert.equal(r.result.followUp,'');assert.deepEqual(r.result.evidenceQuotes,['我核对口径并交付周报']);
 });
+
+test('formal HR/business policies change the prompt; turn responses expose only grounded decisions',async()=>{
+ const seen=[],configuration={...cfg,transport:async(c,p)=>{seen.push(p);return {choices:[{message:{content:JSON.stringify({action:'followup',question:'你具体负责哪一部分？',quote:'整理需求',scores:{depth:0}})}}]};}};
+ for(const interviewer of ['hr','business']){const out=await runAi('interview-turn',{interviewer,question:'项目职责是什么？',answer:'我整理需求并核对交付',jd:'产品经理'},configuration);assert.deepEqual(Object.keys(out.result).sort(),['action','question','quote']);assert.equal(out.meta.interviewer,interviewer);}
+ assert.match(seen[0].messages[0].content,/求职动机/);assert.match(seen[1].messages[0].content,/业务主管/);
+ await assert.rejects(runAi('interview-turn',{interviewer:'unknown',question:'职责？',answer:'回答'},configuration),/请选择/);
+ await assert.rejects(runAi('interview-turn',{question:'职责？',answer:'回答',followUps:Array(3).fill({question:'追问',answer:'补充'})},configuration),/最多两次/);
+ const invalid={...cfg,transport:async()=>({choices:[{message:{content:JSON.stringify({action:'followup',question:'为什么？',quote:'虚构原话'})}}]})};
+ await assert.rejects(runAi('interview-turn',{question:'职责？',answer:'我整理需求'},invalid),/依据/);
+});
+test('formal end-of-session evaluation includes all follow-up evidence and suppresses further questions',async()=>{
+ const configuration={...cfg,transport:async(c,p)=>{const u=JSON.parse(p.messages[1].content);assert.equal(u.followUps.length,2);return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:['核对交付记录']})}}]};}};
+ const out=await runAi('interview',{interviewer:'hr',question:'如何验证？',answer:'我整理需求',followUps:[{question:'具体职责？',answer:'我列出边界'},{question:'如何验证？',answer:'核对交付记录'}],reviewOnly:true},configuration);assert.equal(out.result.followUp,'');assert.equal(out.meta.interviewer,'hr');
+});

@@ -10,14 +10,14 @@ const { spawn } = require('node:child_process');
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-browser-'));
   let server,browser;
   try {
-    for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
+    for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
     const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
     server=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('startup timeout')),5000);server.stdout.once('data',()=>{clearTimeout(timer);resolve();});});
     browser=await chromium.launch({headless:true});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/fonts.googleapis.com/**',r=>r.abort());
-    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{const mode=document.getElementById('mockMode');if(mode){mode.value='coaching';mode.dispatchEvent(new Event('change'));}const advanced=document.getElementById('mockAdvanced');if(advanced)advanced.open=true;}));const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(`http://127.0.0.1:${port}/app.html#mock`);
     await page.locator('#mockJd').fill('产品经理\n用户需求分析、PRD、团队协作');
     await page.locator('#mockCount [data-n="5"]').click();await page.locator('#mockStart').click();
@@ -42,7 +42,7 @@ const { spawn } = require('node:child_process');
     assert.equal(store.records.length,1);assert.equal(store.draft,null);assert.equal(store.records[0].questions.length,5);assert.ok(store.records[0].durations[0]>=1);
     const downloadPromise=page.waitForEvent('download');await page.locator('#mockExport').click();const download=await downloadPromise;
     const exported=JSON.parse(fs.readFileSync(await download.path(),'utf8'));assert.deepEqual(exported.records,store.records);
-    const second=await browser.newContext(),p2=await second.newPage();await p2.goto(`http://127.0.0.1:${port}/app.html#mock`);
+    const second=await browser.newContext();await second.route('**/fonts.googleapis.com/**',r=>r.abort());const p2=await second.newPage();await p2.goto(`http://127.0.0.1:${port}/app.html#mock`);
     await p2.locator('#mockImportFile').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});
     await p2.waitForFunction(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).records.length===1);
     await p2.locator('#mockImportFile').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});
@@ -51,7 +51,7 @@ const { spawn } = require('node:child_process');
     await p2.waitForFunction(()=>document.getElementById('mockStorageMsg').textContent.includes('导入失败'));
     assert.equal(await p2.evaluate(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).records.length),1);
     // Switching JD after an earlier parse must change actual questions.
-    await p2.locator('#mockJd').fill('后端开发\nRedis Java MySQL');await p2.locator('#mockParse').click();await p2.locator('#mockJd').fill('产品经理\nPRD 用户需求分析');await p2.locator('#mockStart').click();
+    await p2.locator('#mockMode').selectOption('coaching');await p2.locator('#mockJd').fill('后端开发\nRedis Java MySQL');await p2.locator('#mockParse').click();await p2.locator('#mockJd').fill('产品经理\nPRD 用户需求分析');await p2.locator('#mockStart').click();
     const topics=await p2.evaluate(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).draft.questions.map(q=>q.topic));
     assert.ok(!topics.some(t=>['Redis','MySQL','Java / JVM'].includes(t)));
     // A new start must not silently erase a pending draft.
