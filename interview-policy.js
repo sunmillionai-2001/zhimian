@@ -8,8 +8,8 @@
  function combined(record,index){return [record.answers[index],...(record.formal?.turns||[]).filter(t=>t.index===index).map(t=>t.answer)].filter(Boolean).join('\n');}
  function sameGoal(a,b){
   if(!a||!b)return false;
-  if(a.goalId&&b.goalId)return a.goalId===b.goalId;
   if(a.jobId||b.jobId)return !!a.jobId&&a.jobId===b.jobId;
+  if(a.goalId&&b.goalId)return a.goalId===b.goalId;
   const normalize=s=>(s||'').trim().replace(/\s+/g,' ').toLowerCase();
   return !!normalize(a.jd)&&normalize(a.jd)===normalize(b.jd);
  }
@@ -17,7 +17,21 @@
   const context=current?.goalId||current?.jobId||current?.jd?.trim()?current:store.draft||store.records.find(r=>r.mode==='formal');
   return {context,draft:sameGoal(context,store.draft)?store.draft:null,last:store.records.find(r=>r.mode==='formal'&&sameGoal(context,r))||null};
  }
+ const bounded=(v,n)=>typeof v==='string'&&v.length<=n;
+ function validSetup(s){return !!s&&bounded(s.jd,10000)&&bounded(s.resume,30000)&&['hr','business'].includes(s.interviewer)&&['formal','coaching'].includes(s.mode)&&bounded(s.roleSelection,100)&&['manual','resume-current','resume-version'].includes(s.resumeSource)&&(s.resumeVersionId===null||bounded(s.resumeVersionId,100))&&bounded(s.resumeLabel,200);}
+ function validGoals(s){
+  if(!s||s.schemaVersion!==1||!Array.isArray(s.goals)||s.goals.length>1000||!(s.activeId===null||bounded(s.activeId,100)))return false;
+  const ids=new Set(),jobs=new Set();
+  for(const g of s.goals){if(!g||!bounded(g.id,100)||!g.id||ids.has(g.id)||!bounded(g.name,200)||!(g.jobId===null||bounded(g.jobId,100))||!validSetup(g.working)||!validSetup(g.defaults))return false;ids.add(g.id);if(g.jobId){if(jobs.has(g.jobId))return false;jobs.add(g.jobId);}}
+  return s.activeId===null||ids.has(s.activeId);
+ }
+ function validPreparation(r){
+  if(r.goalId!==undefined&&(!bounded(r.goalId,100)||!r.goalId))return false;
+  const p=r.preparation;if(p===undefined)return true;
+  return !!p&&p.goalId===r.goalId&&bounded(p.goalName,200)&&['goal_default','session'].includes(p.origin)&&['manual','resume-current','resume-version'].includes(p.resumeSource)&&(p.resumeVersionId===null||bounded(p.resumeVersionId,100))&&bounded(p.resumeLabel,200)&&typeof p.confirmed==='boolean';
+ }
  function validFormal(record,envelope){
+  if(!validPreparation(record))return false;
   if(record.mode!==undefined&&!['formal','coaching'].includes(record.mode))return false;
   if(record.interviewer!==undefined&&!Object.hasOwn(profiles,record.interviewer))return false;
   if(record.mode!=='formal')return record.formal===undefined;
@@ -34,5 +48,5 @@
   if(f.pending!==null){const t=f.pending;if(!t||record.index<1||record.index>5||f.turns.filter(x=>x.index===record.index).length>=2||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||!combined(record,record.index).includes(t.quote)||f.decisionPending)return false;}
   return f.phase==='active'?record.status==='active':record.status!=='active'&&f.pending===null&&!f.decisionPending;
  }
- return {profiles,profile,combined,sameGoal,homeState,validFormal,version:'2026-10-15.roles.v1'};
+ return {profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,validFormal,version:'2026-10-15.roles.v1'};
 });

@@ -1,22 +1,67 @@
 // Formal simulation UI. The shared policy validates imported records; existing stores own persistence.
 window.FormalInterview=(()=>{
- const $=id=>document.getElementById(id),key='zm_interview_setup_v1';
- let ready=false,reviewBusy=false,setupBlocked=false,setupConfirmed='';
+ const $=id=>document.getElementById(id),key='zm_interview_setup_v1',goalsKey='zm_interview_goals_v1';
+ let ready=false,reviewBusy=false,setupConfirmed='',goalsBlocked=false,goalState={schemaVersion:1,activeId:null,goals:[]};
+ let resumeMeta={resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'};
  const label=r=>r.jobSnapshot?[r.jobSnapshot.company,r.jobSnapshot.role].filter(Boolean).join(' · '):(r.jd||'尚未设置目标岗位').split('\n')[0].slice(0,100);
  const profile=r=>InterviewPolicy.profile(r.interviewer||'business');
  function setStageMode(formal){document.querySelector('#mock .mock-wrap')?.classList.toggle('is-formal',formal);}
- function showSetup(){setStageMode(false);$('mockJd')?.focus({preventScroll:true});}
- function restoreControls(r){if(!ready)return;$('mockMode').value=r.mode||'coaching';$('mockInterviewer').value=r.interviewer||'business';setupConfirmed=r.resume||'';$('mockConfirmResume').checked=!!r.resume;updateControls();}
+ function showSetup(){setStageMode(false);if(ready)renderGoalCard();$('mockJd')?.focus({preventScroll:true});}
+ const emptySetup=()=>({jd:'',resume:'',interviewer:'business',mode:'formal',roleSelection:'auto',resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'});
+ const activeGoal=()=>goalState.goals.find(g=>g.id===goalState.activeId);
+ const fromRecord=r=>({...emptySetup(),jd:r.jd||'',resume:r.resume||'',interviewer:r.interviewer||'business',mode:r.mode||'coaching',roleSelection:r.roleSelection||'auto',...(r.preparation?{resumeSource:r.preparation.resumeSource,resumeVersionId:r.preparation.resumeVersionId,resumeLabel:r.preparation.resumeLabel}:{})});
+ function readSetup(){return {jd:$('mockJd').value,resume:$('mockProfile').value,interviewer:$('mockInterviewer').value,mode:$('mockMode').value,roleSelection:$('mockRole').value||'auto',...resumeMeta};}
+ function writeGoals(next){if(goalsBlocked)return false;try{if(!InterviewPolicy.validGoals(next))throw Error('准备材料格式不符或超过长度限制');localStorage.setItem(goalsKey,JSON.stringify(next));goalState=next;return true;}catch(e){storageMsg('目标准备未能保存：'+e.message+'。当前输入和原存储保留，请先导出。');return false;}}
+ function createGoal(setup=emptySetup(),association={}){
+  const goal={id:association.goalId||crypto.randomUUID(),jobId:association.jobId||null,name:(association.jobSnapshot?label(association):(setup.jd.trim().split('\n')[0]||'新的目标岗位')).slice(0,200),working:{...setup},defaults:{...setup}};
+  if(!writeGoals({...goalState,activeId:goal.id,goals:[...goalState.goals,goal]}))return null;return goal;
+ }
+ function applySetup(s){$('mockJd').value=s.jd;$('mockProfile').value=s.resume;$('mockMode').value=s.mode;$('mockInterviewer').value=s.interviewer;$('mockRole').value=s.roleSelection;resumeMeta={resumeSource:s.resumeSource,resumeVersionId:s.resumeVersionId,resumeLabel:s.resumeLabel};setupConfirmed='';$('mockConfirmResume').checked=false;parseJd();updateControls();renderGoalCard();}
+ function restoreControls(r){
+  if(!ready)return;let goal=goalState.goals.find(g=>g.id===r.goalId)||goalState.goals.find(g=>InterviewPolicy.sameGoal({goalId:g.id,jobId:g.jobId,jd:g.working.jd},r));
+  if(!goal)goal=createGoal(fromRecord(r),r);else writeGoals({...goalState,activeId:goal.id});
+  $('mockMode').value=r.mode||'coaching';$('mockInterviewer').value=r.interviewer||'business';resumeMeta=fromRecord(r);resumeMeta={resumeSource:resumeMeta.resumeSource,resumeVersionId:resumeMeta.resumeVersionId,resumeLabel:resumeMeta.resumeLabel};setupConfirmed=r.resume||'';$('mockConfirmResume').checked=!!r.resume;updateControls();renderGoalCard();refreshHome();
+ }
+ function context(){const g=activeGoal();if(!g)return {};const s=readSetup();return {goalId:g.id,preparation:{goalId:g.id,goalName:g.name,origin:JSON.stringify(s)===JSON.stringify(g.defaults)?'goal_default':'session',...resumeMeta,confirmed:!s.resume.trim()||$('mockConfirmResume').checked&&setupConfirmed===s.resume.trim()}};}
+ function useResume(value,jd=''){
+  if(!ready||mockAiBusy||goalsBlocked)return;if(jd.trim()&&jd.trim()!==$('mockJd').value.trim()){
+   saveSetup();const match=goalState.goals.find(g=>g.working.jd.trim()===jd.trim()),g=match||createGoal({...emptySetup(),jd});if(!g)return;activateGoal(g.id);
+  }
+  const version=resumeState.versions.find(v=>v.text===value);resumeMeta={resumeSource:version?'resume-version':'resume-current',resumeVersionId:version?.id||null,resumeLabel:version?'已保存简历 · '+displayMockDate(version.date):'简历助手当前采用稿（未保存版本）'};
+  $('mockProfile').value=value;$('mockConfirmResume').checked=false;setupConfirmed='';showSetup();saveSetup();
+ }
+ function activateGoal(id){
+  if(mockAiBusy||mockPlanBusy||goalsBlocked)return;const g=goalState.goals.find(g=>g.id===id);if(!g||!writeGoals({...goalState,activeId:id}))return;
+  stopMockVoice();stopTimer();if(mockSession&&mockSession.status!=='saved')persistDraft();
+  if(g.jobId&&!Array.from($('mockJob').options).some(o=>o.value===g.jobId))$('mockJob').add(new Option('原关联岗位（已删除）',g.jobId));$('mockJob').value=g.jobId||'';applySetup(g.working);showSetup();
+  $('mockStage').innerHTML='<div class="stage-empty"><h3>准备你的这一场面试</h3><p>确认左侧材料与面试方式后开始。已有草稿可通过「恢复草稿」继续。</p></div>';refreshHome();
+ }
+ function selectJob(id){
+  if(!ready||mockAiBusy||mockPlanBusy||goalsBlocked)return;saveSetup();const existing=goalState.goals.find(g=>id&&g.jobId===id);if(existing){activateGoal(existing.id);return;}
+  const j=jobs.find(j=>j.id===id),s=j?{...emptySetup(),jd:j.jd||j.role,mode:$('mockMode').value,interviewer:$('mockInterviewer').value}:readSetup();const goal=createGoal(s,j?{jobId:j.id,jobSnapshot:j}:{});if(goal)activateGoal(goal.id);
+ }
+ function renderGoalCard(){
+  const box=$('mockGoalCard');if(!ready||!box)return;const g=activeGoal(),s=readSetup(),origin=g&&JSON.stringify(s)===JSON.stringify(g.defaults)?'目标默认材料':'本场临时材料';
+  box.innerHTML=`<h4>当前目标准备</h4><div class="field"><label for="mockGoalSelect">选择准备目标</label><select id="mockGoalSelect"><option value="">尚未设置目标</option>${goalState.goals.map(x=>`<option value="${esc(x.id)}" ${x.id===g?.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><p>${esc(g?.name||'先选择岗位或粘贴 JD')} · ${origin}</p><p class="mock-note">简历来源：${esc(resumeMeta.resumeLabel)}${s.resume.trim()?'':' · 尚未填写，可仅按 JD 开练'}</p><details><summary>核对本场材料</summary><p>岗位要求</p><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.jd||'尚未填写')}</blockquote><p>简历 / 经历</p><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.resume||'尚未填写')}</blockquote></details><div class="paste-actions"><button class="btn btn-ghost" id="mockGoalNew">新建准备目标</button><button class="btn btn-ghost" id="mockGoalDefault" ${g?'':'disabled'}>保存为目标默认</button><button class="btn btn-ghost" id="mockGoalReset" ${g?'':'disabled'}>恢复目标默认</button><button class="btn btn-ghost" id="mockGoalExport">导出目标准备</button><button class="btn btn-ghost" id="mockGoalImport">导入目标准备</button><input id="mockGoalFile" type="file" accept=".json,application/json" hidden></div><p class="mock-note">目标材料保存在当前浏览器。每场开始时冻结快照，后续修改只影响下一场。</p>`;
+  $('mockGoalSelect').onchange=e=>{const id=e.target.value;if(id){saveSetup();activateGoal(id);}};
+  $('mockGoalNew').onclick=()=>{if(mockAiBusy||mockPlanBusy)return;if(!saveSetup())return;const n=createGoal();if(n)activateGoal(n.id);};
+  $('mockGoalDefault').onclick=()=>{if(mockAiBusy||!g)return;if(writeGoals({...goalState,goals:goalState.goals.map(x=>x.id===g.id?{...x,working:readSetup(),defaults:readSetup()}:x)}))renderGoalCard();};
+  $('mockGoalReset').onclick=()=>{if(mockAiBusy||!g)return;applySetup(g.defaults);saveSetup();};
+  $('mockGoalExport').onclick=()=>downloadAsset(goalsBlocked?{recovery:true,raw:localStorage.getItem(goalsKey)}:goalState,'zhimian-goal-preparation.json');
+  $('mockGoalImport').onclick=()=>{if(!mockAiBusy)$('mockGoalFile').click();};$('mockGoalFile').onchange=async e=>{try{if(goalsBlocked)throw Error('原目标准备存储异常，请先导出检查');const file=e.target.files[0];if(!file)return;if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!InterviewPolicy.validGoals(data))throw Error('目标备份格式错误');const added=data.goals.filter(x=>!goalState.goals.some(g=>g.id===x.id||g.jobId&&g.jobId===x.jobId));if(writeGoals({...goalState,activeId:goalState.activeId||data.activeId,goals:[...goalState.goals,...added]})){renderGoalCard();storageMsg('已合并目标准备，同目标保留现有材料。');}}catch(err){storageMsg(err.message+'，原数据保留。');}finally{e.target.value='';}};
+  const select=$('mockResumeVersion');if(select){const value=select.value;select.innerHTML='<option value="">选择版本后带入</option>'+resumeState.versions.map(v=>`<option value="${esc(v.id)}">${esc(displayMockDate(v.date))} · ${v.text.length} 字</option>`).join('');select.value=value;}
+ }
  function updateControls(){const formal=$('mockMode').value==='formal';$('formalStartControls').hidden=!formal;$('coachingStartControls').hidden=formal;$('mockAdvanced').open=!formal;$('mockInterviewerFocus').textContent='重点考察：'+InterviewPolicy.profile($('mockInterviewer').value).focus;$('mockResumeCheck').textContent=$('mockProfile').value.trim()?'本场会使用上方这份简历快照，后续修改不会改变旧报告。':'可以先用目标 JD 开练；缺少经历时，个性化程度会有限。';}
  function saveSetup(){
-  if(!ready||setupBlocked)return;
-  try{localStorage.setItem(key,JSON.stringify({jd:$('mockJd').value,resume:$('mockProfile').value,jobId:$('mockJob').value,interviewer:$('mockInterviewer').value,mode:$('mockMode').value}));}catch{storageMsg('准备材料未能写入浏览器，当前输入仍保留。');}
-  updateControls();refreshHome();
+  if(!ready||goalsBlocked)return false;const s=readSetup();let g=activeGoal();
+  if(!g&&(s.jd.trim()||s.resume.trim()))g=createGoal(s,selectedJobAssociation('mockJob'));
+  if(g&&!writeGoals({...goalState,goals:goalState.goals.map(x=>x.id===g.id?{...x,name:x.jobId?x.name:(s.jd.trim().split('\n')[0]||x.name).slice(0,200),working:s}:x)}))return false;
+  updateControls();renderGoalCard();refreshHome();return true;
  }
  function refreshHome(){
   if(!ready||!$('overviewTraining'))return;
-  const current={jd:$('mockJd').value,...selectedJobAssociation('mockJob')};
-  const {context,draft,last}=InterviewPolicy.homeState(current,mockStore),r=draft||last||context;
+  const current={...context(),jd:$('mockJd').value,...selectedJobAssociation('mockJob')};
+  const {context:goalContext,draft,last}=InterviewPolicy.homeState(current,mockStore),r=draft||last||goalContext;
   const goal=r?label(r):($('mockJd').value.trim().split('\n')[0]||'还没有目标岗位');
   const reviews=last?.formal?.evaluations.filter(Boolean)||[],weak=reviews.flatMap(e=>e.result.gaps)[0];
   $('overviewTraining').innerHTML=`<span class="eyebrow">Your next interview</span><h3>${esc(goal)}</h3><p>${draft?(draft.status==='active'?'有一场尚未完成的'+(draft.mode==='formal'?'正式模拟':'专项练习')+'，可以接着上次的位置继续。':'上次面试已结束，可以查看并完善复盘。'):'确认目标岗位与简历，完整练一场，再针对薄弱点重练。'}</p><p class="mock-note">${weak?'上次优先改进：'+esc(weak):'准备流程：目标岗位 → 简历确认 → 正式模拟 → 统一复盘 → 专项练习'}</p><div class="paste-actions">${draft?'<button class="btn btn-primary" id="homeContinue">继续上次练习 / 复盘 →</button>':''}<button class="btn ${draft?'btn-ghost':'btn-primary'}" id="homePrepare">准备正式模拟 →</button>${last?'<button class="btn btn-ghost" id="homeLastReport">查看上次正式复盘</button>':''}</div>`;
@@ -26,17 +71,18 @@ window.FormalInterview=(()=>{
  }
  function init(){
   ready=true;
-  try{const raw=localStorage.getItem(key);if(raw){const data=JSON.parse(raw);if(!data||typeof data.jd!=='string'||data.jd.length>10000||typeof data.resume!=='string'||data.resume.length>30000||!['formal','coaching'].includes(data.mode)||!Object.hasOwn(InterviewPolicy.profiles,data.interviewer))throw Error();
-   if(!mockStore.draft){$('mockJd').value=data.jd;$('mockProfile').value=data.resume;if(Array.from($('mockJob').options).some(o=>o.value===data.jobId))$('mockJob').value=data.jobId;$('mockMode').value=data.mode;$('mockInterviewer').value=data.interviewer;parseJd();}
-  }}catch{setupBlocked=true;storageMsg('上次准备材料格式异常，原数据保留；本次可重新填写并开始面试。');}
-  if(mockStore.draft)restoreControls(mockStore.draft);
-  for(const id of ['mockMode','mockInterviewer','mockJd','mockJob'])$(id).addEventListener('change',saveSetup);
-  $('mockProfile').addEventListener('input',()=>{$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();});
+  try{const raw=localStorage.getItem(goalsKey);if(raw){const data=JSON.parse(raw);if(!InterviewPolicy.validGoals(data))throw Error();goalState=data;}else{const legacy=JSON.parse(localStorage.getItem(key)||'null');if(legacy&&InterviewPolicy.validSetup({...emptySetup(),...legacy}))createGoal({...emptySetup(),...legacy},legacy);else if(mockStore.draft)createGoal(fromRecord(mockStore.draft),mockStore.draft);}}catch{goalsBlocked=true;storageMsg('目标准备存储异常，原数据保留，请导出检查；已保存的面试仍可查看和导出。');}
+  const g=activeGoal();if(mockStore.draft&&g&&InterviewPolicy.sameGoal({goalId:g.id,jobId:g.jobId,jd:g.working.jd},mockStore.draft))restoreControls(mockStore.draft);else if(g)activateGoal(g.id);
+  for(const id of ['mockMode','mockInterviewer','mockRole'])$(id).addEventListener('change',saveSetup);
+  $('mockJd').addEventListener('input',saveSetup);for(const id of ['mockSample','mockParse'])$(id).addEventListener('click',saveSetup);
+  $('mockProfile').addEventListener('input',()=>{$('mockConfirmResume').checked=false;setupConfirmed='';resumeMeta={resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'};saveSetup();});
   $('mockConfirmResume').onchange=()=>{setupConfirmed=$('mockConfirmResume').checked?$('mockProfile').value.trim():'';};
   $('mockUseResume').onclick=()=>{if(resumeBlocked){$('mockPlanMsg').textContent='简历助手存储异常，请先导出检查。';return;}const value=composedResume();if(value.length>30000){$('mockPlanMsg').textContent='简历当前版本超过 30000 字，请先精简或仅粘贴相关经历。';return;}if(!value.trim()){$('mockPlanMsg').textContent='简历助手还没有正文，可先直接粘贴经历。';return;}
    if($('mockProfile').value.trim()&&$('mockProfile').value.trim()!==value.trim()&&!confirm('用简历助手的当前版本替换本次准备材料？已保存的面试不变。'))return;
+   const version=resumeState.versions.find(v=>v.text===value);resumeMeta={resumeSource:version?'resume-version':'resume-current',resumeVersionId:version?.id||null,resumeLabel:version?'已保存简历 · '+displayMockDate(version.date):'简历助手当前采用稿（未保存版本）'};
    $('mockProfile').value=value;if(!$('mockJd').value.trim())$('mockJd').value=resumeState.jd;$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();$('mockPlanMsg').textContent='已带入当前采用的简历，请核对后勾选确认。';};
-  $('formalStart').onclick=start;$('overviewPrepareTarget').onclick=()=>{if(mockAiBusy)return;go('mock');showSetup();$('mockMode').value='formal';updateControls();};updateControls();refreshHome();
+  $('mockResumeVersion').onchange=e=>{const v=resumeState.versions.find(v=>v.id===e.target.value);if(!v||mockAiBusy)return;if(v.text.length>30000){$('mockPlanMsg').textContent='该版本超过 30000 字，请先精简。';return;}resumeMeta={resumeSource:'resume-version',resumeVersionId:v.id,resumeLabel:'已保存简历 · '+displayMockDate(v.date)};$('mockProfile').value=v.text;$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();};
+  $('formalStart').onclick=start;$('overviewPrepareTarget').onclick=()=>{if(mockAiBusy)return;go('mock');showSetup();$('mockMode').value='formal';saveSetup();};updateControls();renderGoalCard();refreshHome();
  }
  async function start(){
   if(mockAiBusy||mockPlanBusy||mockStorageBlocked)return;
@@ -47,14 +93,14 @@ window.FormalInterview=(()=>{
   if(resume&&(!$('mockConfirmResume').checked||setupConfirmed!==resume)){message.textContent='请先核对本次简历 / 经历并勾选确认。';return;}
   if(mockStore.draft&&!confirm('开始新的正式模拟会替换当前草稿，已保存记录保留。继续吗？'))return;
   stopMockVoice();stopTimer();if(mockSession?.status==='active'&&!persistDraft()){message.textContent='草稿保存失败，请先导出备份。';return;}
-  parseJd();saveSetup();const context={jd,resume,role:mockRole,roleSelection:$('mockRole').value,interviewer:$('mockInterviewer').value,...selectedJobAssociation('mockJob')};
+  parseJd();if(!saveSetup())return;const runContext={...context(),jd,resume,role:mockRole,roleSelection:$('mockRole').value,interviewer:$('mockInterviewer').value,...selectedJobAssociation('mockJob')};
   const controls=[...document.querySelectorAll('#mock .mock-setup input,#mock .mock-setup textarea,#mock .mock-setup select,#mock .mock-setup button')],disabled=controls.map(el=>el.disabled);
   controls.forEach(el=>el.disabled=true);mockPlanBusy=true;setMockAiBusy(true);message.textContent='面试官正在根据岗位与经历准备问题，原材料和草稿会保留…';
   try{
-   const plan=await requestAi('interview-plan',{...context,count:5});
+   const plan=await requestAi('interview-plan',{...runContext,count:5});
    if(plan.result?.questions?.length!==5||!plan.result.questions.every(q=>q&&typeof q.q==='string'&&typeof q.topic==='string'&&Array.isArray(q.points)&&q.points.length>0&&q.points.every(x=>typeof x==='string')&&q.source&&['resume','jd'].includes(q.source.kind)&&typeof q.source.quote==='string'&&q.source.quote.trim()&&(q.source.kind==='resume'?resume:jd).includes(q.source.quote)))throw Error('题目或材料依据异常，请重试。');
    const questions=[{kind:'intro',topic:'开场介绍',q:'请用两分钟介绍与你目标岗位最相关的经历，以及这次求职的方向。',points:['相关经历','个人职责','求职方向']},...plan.result.questions.map(q=>({...q,kind:'main'})),{kind:'closing',topic:'候选人反问',q:'面试接近结束，你有什么想向面试官了解的问题？也可以直接结束。',points:[]}];
-   const session={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),...context,mode:'formal',questionPlan:plan.meta,questions,answers:Array(7).fill(''),durations:Array(7).fill(0),ai:Array(7).fill(null),count:7,index:0,rate:'未评',keywords:mockFound.slice(),status:'active',formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(7).fill(null)}};
+   const session={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),...runContext,mode:'formal',questionPlan:plan.meta,questions,answers:Array(7).fill(''),durations:Array(7).fill(0),ai:Array(7).fill(null),count:7,index:0,rate:'未评',keywords:mockFound.slice(),status:'active',formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(7).fill(null)}};
    if(!writeMockStore({...mockStore,draft:session})){message.textContent='新场次保存失败，原草稿仍保留，请先导出备份。';return;}
    mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';message.textContent='已准备好，正式模拟开始。';renderQuestion();renderMockHistory();
   }catch(e){message.textContent=e.message+' 材料和原草稿已保留，可重试或切换专项练习。';}
@@ -127,8 +173,8 @@ window.FormalInterview=(()=>{
    if(!writeMockStore({...mockStore,records:[{...original,status:'saved'},...mockStore.records.filter(r=>r.id!==original.id)],draft:mockStore.draft?.id===original.id?null:mockStore.draft}))return;original.status='saved';
   }
   if(mockStore.draft&&mockStore.draft.id!==original.id&&!confirm('开始这道专项练习会替换当前草稿；正式模拟报告保留。继续吗？'))return;
-  const answer=InterviewPolicy.combined(original,index),session={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:original.jd,resume:original.resume,role:original.role,roleSelection:original.roleSelection||'auto',...(original.jobId?{jobId:original.jobId,jobSnapshot:original.jobSnapshot}:{}),mode:'coaching',interviewer:original.interviewer,origin:{recordId:original.id,index},questions:[original.questions[index]],answers:[answer],durations:[0],ai:[{sourceAnswer:answer,initial:original.formal.evaluations[index],followUpAnswer:'',final:null,retry:{answer:'',evaluation:null}}],count:1,index:0,rate:'未评',keywords:original.keywords.slice(),status:'active'};
+  const answer=InterviewPolicy.combined(original,index),session={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:original.jd,resume:original.resume,role:original.role,roleSelection:original.roleSelection||'auto',...(original.goalId?{goalId:original.goalId,preparation:original.preparation}:{}),...(original.jobId?{jobId:original.jobId,jobSnapshot:original.jobSnapshot}:{}),mode:'coaching',interviewer:original.interviewer,origin:{recordId:original.id,index},questions:[original.questions[index]],answers:[answer],durations:[0],ai:[{sourceAnswer:answer,initial:original.formal.evaluations[index],followUpAnswer:'',final:null,retry:{answer:'',evaluation:null}}],count:1,index:0,rate:'未评',keywords:original.keywords.slice(),status:'active'};
   if(!writeMockStore({...mockStore,draft:session}))return;mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';restoreControls(session);window.renderQuestion();renderMockHistory();$('mockRetryAnswer')?.focus();
  }
- return {init,showSetup,restoreControls,saveSetup,refreshHome,setStageMode,renderQuestion,renderReport,reportHtml,bindReport,clock};
+ return {init,showSetup,restoreControls,saveSetup,selectJob,useResume,context,refreshPreparation:()=>{if(ready)renderGoalCard();},refreshHome,setStageMode,renderQuestion,renderReport,reportHtml,bindReport,clock};
 })();
