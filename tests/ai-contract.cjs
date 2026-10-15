@@ -114,3 +114,9 @@ test('clarification is based on the question only and rejects ungrounded source 
  let forged=false;const c={...cfg,transport:async(c,p)=>{const u=JSON.parse(p.messages[1].content);assert.deepEqual(Object.keys(u).sort(),['interviewer','question']);assert.match(p.messages[0].content,/不提供解法/);return {choices:[{message:{content:JSON.stringify({explanation:'请说明备选方案之间的选择原因',quote:forged?'虚构题目':'取舍'})}}]};}};
  assert.equal((await runAi('interview-clarify',{question:'请解释方案取舍'},c)).result.quote,'取舍');forged=true;await assert.rejects(runAi('interview-clarify',{question:'请解释方案取舍'},c),/不在原问题/);
 });
+test('only user-selected in-scope focus is passed to a new plan, without treating old evidence as current answers',async()=>{
+ const {competencyVersion}=require('../interview-policy');let calls=0;const c={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.equal(u.focus[0].standard.id,'hr.motivation.direction');assert.match(p.messages[0].content,/既往片段不能作为本题已经回答/);return {choices:[{message:{content:JSON.stringify({questions:u.blueprint.map((a,i)=>({competencyId:a.id,topic:'考察',q:'新问题'+i,points:['标准'],source:{kind:'jd',quote:'产品经理'}}))})}}]};}};
+ const focus=[{criterionId:'hr.motivation.direction',reason:'没讲清方向',sourceQuote:'整理需求',previousQuestion:'你为什么应聘？'}];await runAi('interview-plan',{interviewer:'hr',jd:'产品经理',count:5,blueprintVersion:competencyVersion,focus},c);assert.equal(calls,1);
+ await assert.rejects(runAi('interview-plan',{interviewer:'business',jd:'产品经理',count:5,focus},c),/不属于/);assert.equal(calls,1);
+ await assert.rejects(runAi('interview-plan',{jd:'产品经理',count:5,focus:[...focus,...focus,...focus]},c),/最多选择两项/);
+});

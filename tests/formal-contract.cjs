@@ -34,3 +34,14 @@ test('frozen blueprint rejects changed criteria and capability swaps while legac
  const swapped=JSON.parse(JSON.stringify(r));swapped.questions[1].competencyId=r.blueprint.competencies[1].id;assert.equal(p.validFormal(swapped,()=>true),false);
  delete r.blueprint;r.questions.forEach(q=>{delete q.competencyId;delete q.criteria;});assert.ok(p.validFormal(r,()=>true));
 });
+test('practice tasks preserve baseline evidence and only verify a matching criterion with new quoted evidence',()=>{
+ const p=require('../interview-policy'),r=record();r.id='parent';r.role='产品';r.status='saved';r.formal.phase='report';r.blueprint=p.blueprint('business','产品');r.questions.slice(1,6).forEach((q,i)=>Object.assign(q,{q:'问题'+i,competencyId:r.blueprint.competencies[i].id,criteria:r.blueprint.competencies[i].criteria}));
+ const a=r.blueprint.competencies[0],envelope={meta:{interviewer:'business',competencyVersion:p.competencyVersion,competencyId:a.id,model:'m',createdAt:'2026-10-15'},result:{evidenceQuotes:['整理需求'],criteria:a.criteria.map((c,i)=>({id:c.id,status:i?'met':'missing',quote:i?'整理需求':'',reason:i?'已说明':'缺少目标与约束'}))}};r.formal.evaluations[1]=envelope;r.formal.tasks=p.deriveTasks(r);assert.equal(r.formal.tasks.length,1);assert.ok(p.validTasks(r));
+ const task=r.formal.tasks[0],answer='我先确定需求目标，列出时间和资源约束',evaluation=JSON.parse(JSON.stringify(envelope));evaluation.result.criteria[0]={...evaluation.result.criteria[0],status:'met',quote:'确定需求目标',reason:'重答增加了目标与约束'};evaluation.result.criteria[1].quote='资源约束';
+ const result=p.verifyTask(task,evaluation,answer);assert.equal(result.outcome,'verified');assert.equal(task.status,'suggested');
+ task.status='verified';task.attempts.push({recordId:'practice',date:'2026-10-15',answer,model:'m',version:p.competencyVersion,...result});assert.ok(p.validTasks(r));
+ const forged=JSON.parse(JSON.stringify(r));forged.formal.tasks[0].attempts[0].criterion.quote='没说过';assert.equal(p.validTasks(forged),false);
+ const wrong=JSON.parse(JSON.stringify(evaluation));wrong.meta.competencyVersion='new';assert.throws(()=>p.verifyTask(task,wrong,answer),/不一致/);
+ const uncertain=JSON.parse(JSON.stringify(evaluation));uncertain.result.criteria[0]={...uncertain.result.criteria[0],status:'unknown',quote:''};assert.equal(p.verifyTask(task,uncertain,answer).outcome,'unknown');
+ const missing=JSON.parse(JSON.stringify(evaluation));missing.result.criteria[0]={...missing.result.criteria[0],status:'missing',quote:''};assert.equal(p.verifyTask(task,missing,answer).outcome,'needs_more');
+});
