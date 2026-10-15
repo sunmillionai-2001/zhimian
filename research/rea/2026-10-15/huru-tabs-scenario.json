@@ -1,0 +1,36 @@
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  },
+  "start_url": {
+    "url": "https://huru.ai/"
+  },
+  "actions": [
+    {
+      "step_id": "settle-public",
+      "action": "wait_for_timeout",
+      "duration_ms": 800
+    },
+    {
+      "step_id": "select-job-import",
+      "action": "click",
+      "locator": {
+        "kind": "css",
+        "selector": "button:has-text(\"Upload a Job Post\")"
+      },
+      "timeout_ms": 10000
+    }
+  ],
+  "capture": {
+    "at_end": [
+      "dom",
+      "accessibility",
+      "url"
+    ],
+    "events": [
+      "network",
+      "page-errors"
+    ]
+  }
+}

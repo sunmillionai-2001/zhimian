@@ -1,0 +1,27 @@
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  },
+  "start_url": {
+    "url": "https://appv2.huru.ai/conversational-interview/setup"
+  },
+  "actions": [
+    {
+      "step_id": "settle-auth",
+      "action": "wait_for_timeout",
+      "duration_ms": 1500
+    }
+  ],
+  "capture": {
+    "at_end": [
+      "dom",
+      "accessibility",
+      "url"
+    ],
+    "events": [
+      "network",
+      "page-errors"
+    ]
+  }
+}

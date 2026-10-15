@@ -1,0 +1,1133 @@
+{
+  "schema_version": 1,
+  "kind": "curated_research_manifest_not_full_rea_evidence",
+  "created_at": "2026-10-15T09:32:58.406112+00:00",
+  "baseline_commit": "75839c628f1d7c061e55f419c88e4c0ecaf525d4",
+  "tool": {
+    "name": "rea-agents",
+    "version": "6.5.0",
+    "node": "24.12.0",
+    "browser": "Google Chrome 155.0.8059.79",
+    "use": "CLI; no persistent MCP configuration; optional native instrumentation dependencies omitted"
+  },
+  "scope": {
+    "authenticated_interviews_exercised": false,
+    "accounts_created": false,
+    "paid_sessions_started": false,
+    "api_mutations_invoked": false,
+    "public_scripts_statically_inspected": true,
+    "notes": [
+      "Public browser navigation loads ordinary site resources; application API call definitions were inspected without manually invoking authenticated APIs.",
+      "Yoodli default headless user agent showed a compatibility prompt; a separate standard Chrome user agent context reached signin and was captured through REA.",
+      "Passive network captures are attach-limited; scenario event coverage is incomplete. Do not infer absent requests or end-to-end success.",
+      "Application semantic graph hit per-file node ceiling; no complete call-graph recovery is claimed.",
+      "Full third-party bundles and large raw REA envelopes are intentionally not redistributed; source digests and bounded identifiers support rechecking."
+    ]
+  },
+  "sources": [
+    {
+      "id": "index-DxR_0fPz.js",
+      "product": "Huru",
+      "url": "https://appv2.huru.ai/assets/index-DxR_0fPz.js",
+      "sha256": "e0bfce7e59abc4255402119d6cfecf691636e842a0e843b3f40bdede3212f8fd",
+      "bytes": 3953210,
+      "anchors": [
+        {
+          "id": "H01",
+          "literal": "path:\"/conversational-interview/setup\"",
+          "occurrence": 1,
+          "offset_utf16": 3945649,
+          "line": 3390,
+          "column_utf16": 30033,
+          "finding": "连续对话模式有独立准备路由；不是登录后会话已实测。"
+        },
+        {
+          "id": "H02",
+          "literal": "S===\"conversational\"?n(\"/conversational-interview/setup\"",
+          "occurrence": 1,
+          "offset_utf16": 1947565,
+          "line": 2647,
+          "column_utf16": 71093,
+          "finding": "自定义题目入口按模式分流，保留原题目与来源。"
+        },
+        {
+          "id": "H03",
+          "literal": "functions.invoke(\"create-prep-session\"",
+          "occurrence": 2,
+          "offset_utf16": 3033441,
+          "line": 2742,
+          "column_utf16": 18107,
+          "finding": "准备会话独立创建；参数与用户材料关联。"
+        },
+        {
+          "id": "H04",
+          "literal": "WOe=10,KOe={5:3,10:5,15:7,20:9}",
+          "occurrence": 1,
+          "offset_utf16": 1265229,
+          "line": 2505,
+          "column_utf16": 20239,
+          "finding": "时长与目标主问题数量有前端映射，不能据此确认服务端最终策略。"
+        },
+        {
+          "id": "H05",
+          "literal": "JOe=[\"supportive\",\"standard\",\"demanding\"]",
+          "occurrence": 1,
+          "offset_utf16": 1265616,
+          "line": 2505,
+          "column_utf16": 20626,
+          "finding": "面试官身份和压力等级分开配置。"
+        },
+        {
+          "id": "H06",
+          "literal": "seedQuestions:E,plannedDurationMinutes:a",
+          "occurrence": 1,
+          "offset_utf16": 3379781,
+          "line": 2801,
+          "column_utf16": 14403,
+          "finding": "启动请求带种子问题、时长、语言、persona、压力等级和录制种类。"
+        },
+        {
+          "id": "H07",
+          "literal": "const pt=await gi.policy(mP())",
+          "occurrence": 1,
+          "offset_utf16": 3377083,
+          "line": 2801,
+          "column_utf16": 11705,
+          "finding": "开练前读取可用策略；还会检查音频能力与设备。"
+        },
+        {
+          "id": "H08",
+          "literal": "r.live.connect({model:t.model",
+          "occurrence": 1,
+          "offset_utf16": 3819314,
+          "line": 3389,
+          "column_utf16": 3181,
+          "finding": "业务代码调用 Live SDK 建立连接；不是仅存在 SDK 依赖。"
+        },
+        {
+          "id": "H09",
+          "literal": "mimeType:\"audio/pcm;rate=16000\"",
+          "occurrence": 1,
+          "offset_utf16": 3819887,
+          "line": 3389,
+          "column_utf16": 3754,
+          "finding": "实时麦克风音频发送格式的前端声明。"
+        },
+        {
+          "id": "H10",
+          "literal": "parent_question_seq",
+          "occurrence": 1,
+          "offset_utf16": 3842260,
+          "line": 3389,
+          "column_utf16": 26127,
+          "finding": "问题事件保留父题与能力标签。"
+        },
+        {
+          "id": "H11",
+          "literal": "sessionResumption:{handle:t.resumptionHandle}",
+          "occurrence": 1,
+          "offset_utf16": 3819228,
+          "line": 3389,
+          "column_utf16": 3095,
+          "finding": "Live 连接支持带恢复句柄的配置；实际恢复成功率未测。"
+        },
+        {
+          "id": "H12",
+          "literal": "ft.reason!==\"candidate_request\"",
+          "occurrence": 1,
+          "offset_utf16": 3842514,
+          "line": 3389,
+          "column_utf16": 26381,
+          "finding": "结束请求受前端时间条件约束；不建议照搬强行拖足时间。"
+        },
+        {
+          "id": "H13",
+          "literal": "video_status===\"failed\"",
+          "occurrence": 1,
+          "offset_utf16": 1779681,
+          "line": 2594,
+          "column_utf16": 49244,
+          "finding": "结果页存在录像失败时使用音频的分支。"
+        },
+        {
+          "id": "H14",
+          "literal": "await gi.reprocess(C.id)",
+          "occurrence": 1,
+          "offset_utf16": 3880065,
+          "line": 3389,
+          "column_utf16": 63932,
+          "finding": "结果页支持重新处理会话。"
+        },
+        {
+          "id": "H15",
+          "literal": "functions.invoke(\"generate-practice-topics\"",
+          "occurrence": 1,
+          "offset_utf16": 3101441,
+          "line": 2746,
+          "column_utf16": 9575,
+          "finding": "根据准备会话生成有推荐顺序的练习主题。"
+        },
+        {
+          "id": "H16",
+          "literal": "functions.invoke(\"analyze-practice-progress\"",
+          "occurrence": 1,
+          "offset_utf16": 3066601,
+          "line": 2745,
+          "column_utf16": 11052,
+          "finding": "练习进度分析按准备会话关联，带刷新参数。"
+        },
+        {
+          "id": "H17",
+          "literal": "functions.invoke(\"auto-sync-practice-feedback\"",
+          "occurrence": 1,
+          "offset_utf16": 3075632,
+          "line": 2745,
+          "column_utf16": 20083,
+          "finding": "有把练习反馈同步给教练的前端动作；后端同步语义未验证。"
+        },
+        {
+          "id": "H18",
+          "literal": "new MediaRecorder(r,c)",
+          "occurrence": 1,
+          "offset_utf16": 2742770,
+          "line": 2733,
+          "column_utf16": 83453,
+          "finding": "录像捕获有独立实现，不等同于实时面试决策。"
+        },
+        {
+          "id": "H19",
+          "literal": "localStorage.getItem(\"failedSubmissions\")",
+          "occurrence": 1,
+          "offset_utf16": 811223,
+          "line": 2419,
+          "column_utf16": 9299,
+          "finding": "视频提交失败的本地重试线索；恢复效果未实测。"
+        }
+      ]
+    },
+    {
+      "id": "main.c3ac7c87.js",
+      "product": "Yoodli",
+      "url": "https://app.yoodli.ai/static/js/main.c3ac7c87.js",
+      "sha256": "62effe18f672b26597a532e462305bcc89eca04d24fcb5b81c16df9c037cf43a",
+      "bytes": 2668765,
+      "anchors": [
+        {
+          "id": "Y01",
+          "literal": "E.get(\"/users/me/scenarios\"",
+          "occurrence": 1,
+          "offset_utf16": 687743,
+          "line": 19,
+          "column_utf16": 152181,
+          "finding": "场景读取是独立接口调用定义。"
+        },
+        {
+          "id": "Y02",
+          "literal": "E.post(\"/users/me/personas\"",
+          "occurrence": 1,
+          "offset_utf16": 694842,
+          "line": 19,
+          "column_utf16": 159280,
+          "finding": "对话对象的创建独立于场景。"
+        },
+        {
+          "id": "Y03",
+          "literal": "E.post(\"/v3/users/me/live_recording_followups/prepare\"",
+          "occurrence": 1,
+          "offset_utf16": 689916,
+          "line": 19,
+          "column_utf16": 154354,
+          "finding": "后续练习准备以 coach_speech_id 关联已有记录。"
+        },
+        {
+          "id": "Y04",
+          "literal": "E.get(\"/default_goals\"",
+          "occurrence": 1,
+          "offset_utf16": 699092,
+          "line": 19,
+          "column_utf16": 163530,
+          "finding": "评价目标有独立读取入口。"
+        },
+        {
+          "id": "Y05",
+          "literal": "post(\"/users/me/avatar/preload\"",
+          "occurrence": 1,
+          "offset_utf16": 17108,
+          "line": 1,
+          "column_utf16": 17108,
+          "finding": "数字人单独预加载，返回 id/url；并有释放动作。"
+        },
+        {
+          "id": "Y06",
+          "literal": "tavus_conversation_id:t",
+          "occurrence": 1,
+          "offset_utf16": 17533,
+          "line": 1,
+          "column_utf16": 17533,
+          "finding": "数字人与练习记录关联字段明确引用 Tavus；只证明该前端路径存在。"
+        }
+      ]
+    },
+    {
+      "id": "orgs.1d3740d3.js",
+      "product": "Yoodli",
+      "url": "https://app.yoodli.ai/static/js/orgs.1d3740d3.js",
+      "sha256": "04e48d5f44b5e8cfebfac3104dd647b3ef84a856e024c84d72ba1e4a073699d3",
+      "bytes": 2788251,
+      "anchors": [
+        {
+          "id": "Y07",
+          "literal": "job_title:\"\",company:\"\",demeanor:",
+          "occurrence": 1,
+          "offset_utf16": 51982,
+          "line": 1,
+          "column_utf16": 51982,
+          "finding": "人物配置表单分别保存职业、公司、性格、背景与声音。"
+        },
+        {
+          "id": "Y08",
+          "literal": "R?.goalWeights",
+          "occurrence": 1,
+          "offset_utf16": 960312,
+          "line": 178,
+          "column_utf16": 805439,
+          "finding": "评价目标存在权重配置引用。"
+        }
+      ]
+    }
+  ],
+  "rea_records": [
+    {
+      "id": "huru_page",
+      "evidence_id": "ev_17cfcb2549e47e48f949c95ac4cf11e880e17c4f43ddab81142458f6b9994aa3",
+      "operation": "inspect_web_page",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "0caa4b4d77a95991b82b6181a408ef674599e6492fede06253bbb7b71f0c4e3b",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "capture_window": {
+        "started_at": "2026-10-15T09:21:51.318Z",
+        "ended_at": "2026-10-15T09:21:52.205Z",
+        "observation_ms": 500
+      },
+      "completeness": {
+        "status": "policy_filtered",
+        "conditions": [
+          "attach_limited",
+          "policy_filtered"
+        ],
+        "policy_filtered_sections": [
+          "console_text",
+          "json_body_shapes",
+          "metadata",
+          "resources",
+          "scripts",
+          "storage_keys",
+          "websocket_shapes",
+          "workers"
+        ],
+        "attach_limited_sections": [
+          "console_events",
+          "metadata",
+          "network_requests",
+          "websocket_connections",
+          "websocket_frames"
+        ],
+        "truncated_sections": [],
+        "unavailable_sections": [],
+        "excluded": [
+          {
+            "section": "console_text",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "json_body_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "metadata",
+            "reason": "disallowed_origin",
+            "count": 6
+          },
+          {
+            "section": "resources",
+            "reason": "disallowed_origin",
+            "count": 5
+          },
+          {
+            "section": "scripts",
+            "reason": "disallowed_origin",
+            "count": 5
+          },
+          {
+            "section": "scripts",
+            "reason": "unattributed_origin",
+            "count": 2
+          },
+          {
+            "section": "storage_keys",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "websocket_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "workers",
+            "reason": "out_of_target_scope",
+            "count": 3
+          }
+        ],
+        "dropped_events": {
+          "scripts": 0,
+          "network_requests": 0,
+          "console_events": 0,
+          "websocket_connections": 0,
+          "websocket_frames": 0,
+          "webmcp_tools": 0,
+          "timeline_events": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "id": "huru_bundle",
+      "evidence_id": "ev_ca27aebbab25261930e0812afd745b9d410404753110f110f0deb0edfb0747e3",
+      "operation": "analyze_web_bundle",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "5241ed3a6286212202036e50ec34e6541f32a349d0b32472b1f00a02c332315b",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Static bundle findings are observations or bounded inferences; REA does not execute captured JavaScript.",
+        "Bare string arguments of unbound HTTP-method-named calls are low-confidence endpoint candidates; form, translation, storage and other APIs can use the same syntax. URL-shaped findings still do not prove network execution.",
+        "Endpoint candidates are deduplicated by script, value and detector; basis retains only the first matching source coordinate. They are not a complete call-site inventory or a runtime occurrence count. completeness.status=\"complete\" describes examination of captured source, not a call-site census.",
+        "String-built routes and endpoints, encrypted configuration, and server-side behavior may remain unknown.",
+        "Page-declared WebMCP metadata is untrusted and is never registered or invoked as an REA tool."
+      ],
+      "capture": {
+        "target_url": "https://appv2.huru.ai/login",
+        "scripts_observed": 2,
+        "scripts_analyzed": 2
+      },
+      "completeness": {
+        "status": "complete",
+        "parsed_scripts": 2,
+        "parse_failures": 0,
+        "visited_ast_nodes": 969172
+      }
+    },
+    {
+      "id": "huru_application",
+      "evidence_id": "ev_c516e1a4d23dd4bff5bfce4a370109b211cab56e93825f8a229b65750e1e1931",
+      "operation": "analyze_javascript_application",
+      "provider": {
+        "id": "rea-javascript-application",
+        "name": "REA JavaScript application analyzer",
+        "version": "1"
+      },
+      "original_envelope_sha256": "71fc6cfc8388e45c3e53a7bcf52bd10a42465f678387d14ec76bfb54504a5c13",
+      "limitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ],
+      "statistics": {
+        "relevant_files": 2,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 3953344,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 2,
+        "visited_ast_nodes": 969172,
+        "findings": 410,
+        "modules": 154,
+        "parse_failures": 0
+      },
+      "application_graph_coverage": {
+        "status": "partial",
+        "truncated": false,
+        "omitted_count": null,
+        "limits": []
+      },
+      "semantic_graph_coverage": {
+        "status": "partial",
+        "truncated": true,
+        "omitted_nodes": null,
+        "omitted_relations": null,
+        "limits": [
+          {
+            "name": "semantic_graph_file_node_ceiling",
+            "value": 20000,
+            "unit": "items"
+          },
+          {
+            "name": "semantic_graph_node_ceiling",
+            "value": 100000,
+            "unit": "items"
+          }
+        ]
+      }
+    },
+    {
+      "id": "huru_export",
+      "evidence_id": "ev_44d6b8de69955d7da3ecea442991aa34c6389c1d0d70b9ba7df0914cee717170",
+      "operation": "export_web_scripts",
+      "provider": {
+        "id": "rea-web-script-export",
+        "name": "REA captured script export",
+        "version": "1"
+      },
+      "original_envelope_sha256": "bcca4badac9ff16ab77c537e5e8b05f6174a11622e8bfbdeabffef87ec92fe0c",
+      "limitations": [
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Only script bytes retained in this capture are exported. Sources are not refetched or executed, and a response or Debugger source does not prove execution.",
+        "Ordinary unambiguous URL paths preserve relative module layouts by origin, including case-distinct spellings. Query variants, exact path collisions, file/directory prefixes, inline sources, and unrepresentable paths are isolated. A case-distinct pair is isolated only when the destination filesystem cannot store both spellings; the record names that pair. Browser module relationships of isolated paths remain unknown.",
+        "Local JavaScript analysis does not implement browser import maps, root-relative URL resolution, remote URL loading, or browser runtime behavior. It may strip import queries and fragments; isolated variants are not canonical targets.",
+        "Source-map declarations are retained as metadata. No source maps or missing dependencies are fetched or reconstructed.",
+        "Scenario response bytes preserve the output of Playwright's Response.body() API; any source-body provenance caveat from the capture is retained in this manifest. Debugger sources are the exposed text encoded as UTF-8. Redacted bytes are exported exactly as retained, and may no longer parse as JavaScript."
+      ]
+    },
+    {
+      "id": "yoodli_page",
+      "evidence_id": "ev_8c5f0193009b98d0b953669c3a7b9480490a95aeb9af31c0cf65070824baeb9a",
+      "operation": "inspect_web_page",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "6ea5f93fcc1edc9e57079a5e349d85474c30762e146a797cd236ad35bd19acf7",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "capture_window": {
+        "started_at": "2026-10-15T09:25:44.264Z",
+        "ended_at": "2026-10-15T09:25:44.941Z",
+        "observation_ms": 500
+      },
+      "completeness": {
+        "status": "policy_filtered",
+        "conditions": [
+          "attach_limited",
+          "policy_filtered"
+        ],
+        "policy_filtered_sections": [
+          "console_text",
+          "json_body_shapes",
+          "metadata",
+          "resources",
+          "scripts",
+          "storage_keys",
+          "websocket_shapes",
+          "workers"
+        ],
+        "attach_limited_sections": [
+          "console_events",
+          "metadata",
+          "network_requests",
+          "websocket_connections",
+          "websocket_frames"
+        ],
+        "truncated_sections": [],
+        "unavailable_sections": [],
+        "excluded": [
+          {
+            "section": "console_text",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "json_body_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "metadata",
+            "reason": "disallowed_origin",
+            "count": 14
+          },
+          {
+            "section": "resources",
+            "reason": "disallowed_origin",
+            "count": 12
+          },
+          {
+            "section": "scripts",
+            "reason": "disallowed_origin",
+            "count": 8
+          },
+          {
+            "section": "scripts",
+            "reason": "unattributed_origin",
+            "count": 5
+          },
+          {
+            "section": "storage_keys",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "websocket_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "workers",
+            "reason": "out_of_target_scope",
+            "count": 2
+          },
+          {
+            "section": "workers",
+            "reason": "unattributed_origin",
+            "count": 1
+          }
+        ],
+        "dropped_events": {
+          "scripts": 0,
+          "network_requests": 0,
+          "console_events": 0,
+          "websocket_connections": 0,
+          "websocket_frames": 0,
+          "webmcp_tools": 0,
+          "timeline_events": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "id": "yoodli_bundle",
+      "evidence_id": "ev_677329808c4187625a961a5a575e48f33c28a8d79c09bae84c420f39b1367803",
+      "operation": "analyze_web_bundle",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "2fc0c65410d560aead25dea75a38b5b52dafa2bf3af4ab8698a06444fb83de83",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Static bundle findings are observations or bounded inferences; REA does not execute captured JavaScript.",
+        "Bare string arguments of unbound HTTP-method-named calls are low-confidence endpoint candidates; form, translation, storage and other APIs can use the same syntax. URL-shaped findings still do not prove network execution.",
+        "Endpoint candidates are deduplicated by script, value and detector; basis retains only the first matching source coordinate. They are not a complete call-site inventory or a runtime occurrence count. completeness.status=\"complete\" describes examination of captured source, not a call-site census.",
+        "String-built routes and endpoints, encrypted configuration, and server-side behavior may remain unknown.",
+        "Page-declared WebMCP metadata is untrusted and is never registered or invoked as an REA tool."
+      ],
+      "capture": {
+        "target_url": "https://app.yoodli.ai/signin",
+        "scripts_observed": 11,
+        "scripts_analyzed": 11
+      },
+      "completeness": {
+        "status": "complete",
+        "parsed_scripts": 11,
+        "parse_failures": 0,
+        "visited_ast_nodes": 2474156
+      }
+    },
+    {
+      "id": "yoodli_export",
+      "evidence_id": "ev_3a74d2dffb53a8812a71a0ec9d363e8d2eb9e42ffe0b9996e4854bfa0bafaeb1",
+      "operation": "export_web_scripts",
+      "provider": {
+        "id": "rea-web-script-export",
+        "name": "REA captured script export",
+        "version": "1"
+      },
+      "original_envelope_sha256": "96f4b4fa28c9e00c6020494f2f649f51f16822fccd6ae48ea53f2d32d396073c",
+      "limitations": [
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Only script bytes retained in this capture are exported. Sources are not refetched or executed, and a response or Debugger source does not prove execution.",
+        "Ordinary unambiguous URL paths preserve relative module layouts by origin, including case-distinct spellings. Query variants, exact path collisions, file/directory prefixes, inline sources, and unrepresentable paths are isolated. A case-distinct pair is isolated only when the destination filesystem cannot store both spellings; the record names that pair. Browser module relationships of isolated paths remain unknown.",
+        "Local JavaScript analysis does not implement browser import maps, root-relative URL resolution, remote URL loading, or browser runtime behavior. It may strip import queries and fragments; isolated variants are not canonical targets.",
+        "Source-map declarations are retained as metadata. No source maps or missing dependencies are fetched or reconstructed.",
+        "Scenario response bytes preserve the output of Playwright's Response.body() API; any source-body provenance caveat from the capture is retained in this manifest. Debugger sources are the exposed text encoded as UTF-8. Redacted bytes are exported exactly as retained, and may no longer parse as JavaScript."
+      ]
+    },
+    {
+      "id": "yoodli_signin",
+      "evidence_id": "ev_0b4ea88cccb75185ead27b7c3338c98f78f136d75e04346d95df3c958d34cb8e",
+      "operation": "inspect_web_page",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "d30ea24f16c27bb6b5f8088f4b411b97001074c2cda57d67e0fb47ddd501b58c",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "capture_window": {
+        "started_at": "2026-10-15T09:30:49.134Z",
+        "ended_at": "2026-10-15T09:30:49.930Z",
+        "observation_ms": 500
+      },
+      "completeness": {
+        "status": "policy_filtered",
+        "conditions": [
+          "attach_limited",
+          "policy_filtered"
+        ],
+        "policy_filtered_sections": [
+          "console_text",
+          "json_body_shapes",
+          "metadata",
+          "network_requests",
+          "resources",
+          "script_sources",
+          "scripts",
+          "storage_keys",
+          "websocket_shapes",
+          "workers"
+        ],
+        "attach_limited_sections": [
+          "console_events",
+          "metadata",
+          "network_requests",
+          "websocket_connections",
+          "websocket_frames"
+        ],
+        "truncated_sections": [],
+        "unavailable_sections": [],
+        "excluded": [
+          {
+            "section": "console_text",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "json_body_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "metadata",
+            "reason": "disallowed_origin",
+            "count": 16
+          },
+          {
+            "section": "network_requests",
+            "reason": "disallowed_origin",
+            "count": 2
+          },
+          {
+            "section": "resources",
+            "reason": "disallowed_origin",
+            "count": 14
+          },
+          {
+            "section": "script_sources",
+            "reason": "not_approved",
+            "count": 11
+          },
+          {
+            "section": "scripts",
+            "reason": "disallowed_origin",
+            "count": 4
+          },
+          {
+            "section": "scripts",
+            "reason": "unattributed_origin",
+            "count": 11
+          },
+          {
+            "section": "storage_keys",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "websocket_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "workers",
+            "reason": "out_of_target_scope",
+            "count": 3
+          }
+        ],
+        "dropped_events": {
+          "scripts": 0,
+          "network_requests": 0,
+          "console_events": 0,
+          "websocket_connections": 0,
+          "websocket_frames": 0,
+          "webmcp_tools": 0,
+          "timeline_events": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "id": "finalround_document",
+      "evidence_id": "ev_37cdafb41ef6e4c245cf48ff2a66072267f33cf8ac2c041e2ff2188a103d018a",
+      "operation": "inspect_web_page",
+      "provider": {
+        "id": "rea-cdp-browser",
+        "name": "REA Chrome DevTools Protocol observation provider",
+        "version": "2"
+      },
+      "original_envelope_sha256": "9b002e3e8055804bb09d4cbbaf89901a9cdef3b69225b4bcddf7d7447a002636",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Observation starts when REA attaches; prior network and console activity is unavailable.",
+        "Raw network headers, bodies, cookies, storage values, console objects, and WebSocket payloads are never retained; explicitly requested primitive console text is retained verbatim, while payload captures retain value-free shapes.",
+        "Source maps are reported only as declarative URLs and are not fetched.",
+        "URL-less scripts and console events without an allowed source URL are excluded because their origin cannot be proven.",
+        "CDP discovery omitted the target attachment state; attached is reported as unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "capture_window": {
+        "started_at": "2026-10-15T09:29:43.456Z",
+        "ended_at": "2026-10-15T09:29:44.031Z",
+        "observation_ms": 500
+      },
+      "completeness": {
+        "status": "policy_filtered",
+        "conditions": [
+          "attach_limited",
+          "policy_filtered"
+        ],
+        "policy_filtered_sections": [
+          "console_text",
+          "json_body_shapes",
+          "metadata",
+          "resources",
+          "script_sources",
+          "scripts",
+          "storage_keys",
+          "websocket_shapes",
+          "workers"
+        ],
+        "attach_limited_sections": [
+          "console_events",
+          "metadata",
+          "network_requests",
+          "websocket_connections",
+          "websocket_frames"
+        ],
+        "truncated_sections": [],
+        "unavailable_sections": [],
+        "excluded": [
+          {
+            "section": "console_text",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "json_body_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "metadata",
+            "reason": "disallowed_origin",
+            "count": 4
+          },
+          {
+            "section": "resources",
+            "reason": "disallowed_origin",
+            "count": 2
+          },
+          {
+            "section": "resources",
+            "reason": "unsupported_url",
+            "count": 6
+          },
+          {
+            "section": "script_sources",
+            "reason": "not_approved",
+            "count": 34
+          },
+          {
+            "section": "scripts",
+            "reason": "unattributed_origin",
+            "count": 4
+          },
+          {
+            "section": "storage_keys",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "websocket_shapes",
+            "reason": "not_approved",
+            "count": null
+          },
+          {
+            "section": "workers",
+            "reason": "out_of_target_scope",
+            "count": 3
+          }
+        ],
+        "dropped_events": {
+          "scripts": 0,
+          "network_requests": 0,
+          "console_events": 0,
+          "websocket_connections": 0,
+          "websocket_frames": 0,
+          "webmcp_tools": 0,
+          "timeline_events": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "id": "huru_auth_scenario",
+      "evidence_id": "ev_7ff2cb2285e2852870e33abee9c2a4d09b16a4da96e75840982249f923f72032",
+      "operation": "capture_browser_scenario",
+      "provider": {
+        "id": "rea-playwright-browser-scenario",
+        "name": "REA Playwright browser scenario capture provider",
+        "version": "1"
+      },
+      "original_envelope_sha256": "7494247b7dae5f2d2df252ed97c050c257b36501c8ebb680779cbe196fcdafc2",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Event sequence records provider receipt order; simultaneous browser causality is not inferred.",
+        "Network content is retained only when selected; Playwright response-body bytes are API results and are not guaranteed to match wire bytes.",
+        "Request bytes are limited to what Playwright exposes; not_exposed does not establish body absence or multipart file coverage.",
+        "Network content reads settle within 5 seconds each and the observer does not request bodies from unfinished responses.",
+        "Playwright scenario events do not expose request initiator stacks; receipt order does not prove causality.",
+        "Storage values are hashed only after declared-secret redaction.",
+        "Some network requests had not completed when capture ended; later activity is unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "completeness": {
+        "status": "incomplete",
+        "equality_eligible": false,
+        "missing_sections": [
+          "events"
+        ],
+        "truncated_sections": []
+      },
+      "steps": [
+        {
+          "step_id": "scenario_start",
+          "action": "goto_start",
+          "status": "completed",
+          "after_url": "https://appv2.huru.ai/login",
+          "error": null,
+          "artifacts": {
+            "screenshot": {
+              "state": "not_requested"
+            },
+            "dom": {
+              "state": "not_requested"
+            },
+            "accessibility": {
+              "state": "not_requested"
+            },
+            "url": {
+              "state": "not_requested"
+            },
+            "history": {
+              "state": "not_requested"
+            },
+            "storage": {
+              "state": "not_requested"
+            }
+          }
+        },
+        {
+          "step_id": "settle-auth",
+          "action": "wait_for_timeout",
+          "status": "completed",
+          "after_url": "https://appv2.huru.ai/login",
+          "error": null,
+          "artifacts": {
+            "screenshot": {
+              "state": "not_requested"
+            },
+            "dom": {
+              "state": "captured",
+              "sha256": "bba63f392c002ce67ff22efbebd7a5dccfac0d4550eef76f2b32732ee21496d6",
+              "bytes": 26999
+            },
+            "accessibility": {
+              "state": "captured",
+              "sha256": "ce94ba7e800a1a381c05316b8d41f2e0ad45e408094a1e42595e69d2c93a89b8",
+              "bytes": 1042
+            },
+            "url": {
+              "state": "captured"
+            },
+            "history": {
+              "state": "not_requested"
+            },
+            "storage": {
+              "state": "not_requested"
+            }
+          }
+        }
+      ],
+      "network_content": {
+        "request_body": false,
+        "response_body": false,
+        "header_values": false
+      }
+    },
+    {
+      "id": "huru_tabs_scenario",
+      "evidence_id": "ev_c54857b33b5006fe360556b22cd37a40115bc7d4708fc9f1bf648dd8751cef54",
+      "operation": "capture_browser_scenario",
+      "provider": {
+        "id": "rea-playwright-browser-scenario",
+        "name": "REA Playwright browser scenario capture provider",
+        "version": "1"
+      },
+      "original_envelope_sha256": "ccf93b7f5f05b23cf76f095584c437c696c79374e179673b59e5e2beb4eb5155",
+      "limitations": [
+        "Artifact identity is unavailable for this observation.",
+        "Event sequence records provider receipt order; simultaneous browser causality is not inferred.",
+        "Network content is retained only when selected; Playwright response-body bytes are API results and are not guaranteed to match wire bytes.",
+        "Request bytes are limited to what Playwright exposes; not_exposed does not establish body absence or multipart file coverage.",
+        "Network content reads settle within 5 seconds each and the observer does not request bodies from unfinished responses.",
+        "Playwright scenario events do not expose request initiator stacks; receipt order does not prove causality.",
+        "Storage values are hashed only after declared-secret redaction.",
+        "Some network requests had not completed when capture ended; later activity is unknown.",
+        "Browser host platform and architecture were not observed."
+      ],
+      "completeness": {
+        "status": "incomplete",
+        "equality_eligible": false,
+        "missing_sections": [
+          "events"
+        ],
+        "truncated_sections": []
+      },
+      "steps": [
+        {
+          "step_id": "scenario_start",
+          "action": "goto_start",
+          "status": "completed",
+          "after_url": "https://huru.ai/",
+          "error": null,
+          "artifacts": {
+            "screenshot": {
+              "state": "not_requested"
+            },
+            "dom": {
+              "state": "not_requested"
+            },
+            "accessibility": {
+              "state": "not_requested"
+            },
+            "url": {
+              "state": "not_requested"
+            },
+            "history": {
+              "state": "not_requested"
+            },
+            "storage": {
+              "state": "not_requested"
+            }
+          }
+        },
+        {
+          "step_id": "settle-public",
+          "action": "wait_for_timeout",
+          "status": "completed",
+          "after_url": "https://huru.ai/",
+          "error": null,
+          "artifacts": {
+            "screenshot": {
+              "state": "not_requested"
+            },
+            "dom": {
+              "state": "not_requested"
+            },
+            "accessibility": {
+              "state": "not_requested"
+            },
+            "url": {
+              "state": "not_requested"
+            },
+            "history": {
+              "state": "not_requested"
+            },
+            "storage": {
+              "state": "not_requested"
+            }
+          }
+        },
+        {
+          "step_id": "select-job-import",
+          "action": "click",
+          "status": "completed",
+          "after_url": "https://huru.ai/",
+          "error": null,
+          "artifacts": {
+            "screenshot": {
+              "state": "not_requested"
+            },
+            "dom": {
+              "state": "captured",
+              "sha256": "311d8c35c808abc7961556b65ee099bbf00027fc13deb876b2f50f8972a1f993",
+              "bytes": 139545
+            },
+            "accessibility": {
+              "state": "captured",
+              "sha256": "f2c188a28d5239b3cf2a5adcec44dd21b07bb281c296ce3018fbd0534b5174bb",
+              "bytes": 21499
+            },
+            "url": {
+              "state": "captured"
+            },
+            "history": {
+              "state": "not_requested"
+            },
+            "storage": {
+              "state": "not_requested"
+            }
+          }
+        }
+      ],
+      "network_content": {
+        "request_body": false,
+        "response_body": false,
+        "header_values": false
+      }
+    }
+  ]
+}
