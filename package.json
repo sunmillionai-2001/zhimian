@@ -12,7 +12,9 @@
     "account": "node account-cli.js"
   },
   "dependencies": {
+    "docx": "^9.11.0",
     "mammoth": "1.13.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.4.299"
   },
   "overrides": {

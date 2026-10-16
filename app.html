@@ -266,6 +266,12 @@
   .paste-box textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:12px;padding:14px;font-family:var(--sans);font-size:14.5px;background:var(--card-hi);color:var(--ink);resize:vertical;line-height:1.7}
   .paste-box textarea:focus{outline:0;border-color:var(--seal);box-shadow:0 0 0 4px rgba(193,58,30,.12)}
   .paste-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .export-menu{position:relative}
+  .export-menu summary{list-style:none;cursor:pointer}
+  .export-menu summary::-webkit-details-marker{display:none}
+  .export-options{position:absolute;top:100%;left:0;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:180px;z-index:10;padding:6px}
+  .export-option{display:block;width:100%;text-align:left;padding:10px 14px;border:0;background:transparent;font-family:var(--sans);font-size:14px;color:var(--ink);cursor:pointer;border-radius:8px;transition:.15s}
+  .export-option:hover{background:var(--seal-soft);color:var(--seal-deep)}
   .mock-chat{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-soft);display:flex;flex-direction:column;min-height:460px}
   .mock-chat-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
   .mock-role{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--teal);color:#f4eee2;font-family:var(--serif);font-weight:900}
@@ -749,7 +755,17 @@
           <div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
           <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
           <p class="mock-note" id="resumeMsg" role="status" aria-live="polite">正文、补充和改写保存在当前浏览器。</p>
-          <div class="paste-actions"><button class="btn btn-ghost" id="resumeExport">导出当前简历</button><button class="btn btn-ghost" id="resumePractice">用这份简历模拟面试 →</button></div>
+          <div class="paste-actions">
+            <details class="export-menu">
+              <summary class="btn btn-ghost">导出简历 ▾</summary>
+              <div class="export-options">
+                <button class="export-option" id="resumeExportTxt">纯文本 (.txt)</button>
+                <button class="export-option" id="resumeExportWord">Word 文档 (.docx)</button>
+                <button class="export-option" id="resumeExportPdf">PDF 文档 (.pdf)</button>
+              </div>
+            </details>
+            <button class="btn btn-ghost" id="resumePractice">用这份简历模拟面试 →</button>
+          </div>
         </section>
         <section class="resume-work"><div id="resumeResults" class="record-form"><h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p></div></section>
       </div>
@@ -2409,11 +2425,62 @@
     if(!saveResume()){resumeState.versions.shift();s.adopted=previous;return;}
     renderResume();resumeMsg('已采用并保存新版本，原文保留。可导出或带入模拟面试。');
   }
-  function exportResume(){
-    let value=composedResume(),name='zhimian-resume.txt',type='text/plain;charset=utf-8';
-    if(resumeBlocked){try{value=localStorage.getItem(RESUME_KEY)||'';}catch(e){resumeMsg('无法读取原始存储。');return;}name='zhimian-resume-recovery.json';type='application/json';}
-    if(!value.trim()){resumeMsg('暂无简历内容可导出。');return;}
-    const url=URL.createObjectURL(new Blob([value],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  function exportResume(format = 'txt'){
+    const text = composedResume();
+    if (!text.trim()) { resumeMsg('暂无简历内容可导出。'); return; }
+
+    if (format === 'txt') {
+      // 纯文本导出（保留原有逻辑）
+      let value = text, name = 'zhimian-resume.txt', type = 'text/plain;charset=utf-8';
+      if (resumeBlocked) {
+        try { value = localStorage.getItem(RESUME_KEY) || ''; }
+        catch (e) { resumeMsg('无法读取原始存储。'); return; }
+        name = 'zhimian-resume-recovery.json'; type = 'application/json';
+      }
+      const url = URL.createObjectURL(new Blob([value], { type })), a = document.createElement('a');
+      a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
+
+    // Word 或 PDF 导出
+    if (!['http:', 'https:'].includes(location.protocol)) {
+      resumeMsg('Word 和 PDF 导出需要启动本地服务。'); return;
+    }
+
+    const endpoint = format === 'word' ? '/api/resume/export/word' : '/api/resume/export/pdf';
+    const fileName = format === 'word' ? 'zhimian-resume.docx' : 'zhimian-resume.pdf';
+
+    setResumeBusy(true);
+    resumeMsg(`正在生成 ${format === 'word' ? 'Word' : 'PDF'} 文件，请稍候……`);
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, title: '个人简历' }),
+      signal: AbortSignal.timeout(30000)
+    })
+    .then(async response => {
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '导出失败');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      resumeMsg(`${format === 'word' ? 'Word' : 'PDF'} 文件已生成。`);
+    })
+    .catch(err => {
+      resumeMsg((err.name === 'TimeoutError' ? '导出等待超时，请重试。' : err.message));
+    })
+    .finally(() => {
+      setResumeBusy(false);
+    });
   }
   function practiceResume(){
     if(resumeBusy)return;const text=composedResume();if(!text.trim()){resumeMsg('请先填写简历。');return;}
@@ -2428,7 +2495,9 @@
     if(resumeBlocked)return;resumeState[id==='resumeText'?'text':'jd']=e.target.value;resumeState.diagnosis=null;resumeState.sections=[];saveResume();renderResume();
   }));
   document.getElementById('resumeDiagnose').addEventListener('click',diagnoseResume);
-  document.getElementById('resumeExport').addEventListener('click',exportResume);
+  document.getElementById('resumeExportTxt').addEventListener('click', () => exportResume('txt'));
+  document.getElementById('resumeExportWord').addEventListener('click', () => exportResume('word'));
+  document.getElementById('resumeExportPdf').addEventListener('click', () => exportResume('pdf'));
   document.getElementById('resumePractice').addEventListener('click',practiceResume);
   renderResume();
   let resumeImported=null;
