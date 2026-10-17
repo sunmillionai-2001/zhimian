@@ -1,15 +1,28 @@
 // 简历导出服务：生成格式化的 Word 和 PDF 文件
+const fs = require('fs');
+const path = require('path');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
-const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const { PDFDocument, rgb } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
+
+// 中文字体（Noto Sans SC 子集，OFL 许可），覆盖 GB2312 全部汉字与常用符号
+const CJK_FONT_PATH = path.join(__dirname, 'assets', 'fonts', 'NotoSansSC-Regular.otf');
+let _fontBuffer = null;
+
+function loadFont() {
+  if (_fontBuffer) return _fontBuffer;
+  _fontBuffer = fs.readFileSync(CJK_FONT_PATH);
+  return _fontBuffer;
+}
 
 /**
  * 生成 Word 格式简历
  * @param {string} resumeText - 简历文本内容
- * @param {object} options - 可选配置 {title, name}
+ * @param {object} options - 可选配置 {title}
  * @returns {Promise<Buffer>} Word 文件的二进制数据
  */
 async function generateWordResume(resumeText, options = {}) {
-  const { title = '个人简历', name = '求职者' } = options;
+  const { title = '个人简历' } = options;
 
   // 将简历文本按段落分割
   const lines = resumeText.split('\n').filter(line => line.trim());
@@ -75,8 +88,10 @@ async function generatePdfResume(resumeText, options = {}) {
   const { title = '个人简历' } = options;
 
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  pdfDoc.registerFontkit(fontkit);
+
+  // 嵌入中文字体（子集化，只保留实际用到的字形）
+  const font = await pdfDoc.embedFont(loadFont(), { subset: true });
 
   let page = pdfDoc.addPage([595, 842]); // A4 尺寸
   const { width, height } = page.getSize();
@@ -84,22 +99,22 @@ async function generatePdfResume(resumeText, options = {}) {
   const maxWidth = width - 2 * margin;
 
   let yPosition = height - margin;
-  const lineHeight = 14;
-  const titleSize = 18;
-  const headingSize = 14;
-  const textSize = 11;
+  const lineHeight = 16;
+  const titleSize = 20;
+  const headingSize = 15;
+  const textSize = 12;
 
   // 添加标题
-  const titleWidth = boldFont.widthOfTextAtSize(title, titleSize);
+  const titleWidth = font.widthOfTextAtSize(title, titleSize);
   page.drawText(title, {
     x: (width - titleWidth) / 2,
     y: yPosition,
     size: titleSize,
-    font: boldFont,
-    color: rgb(0.2, 0.11, 0.08) // 墨色
+    font,
+    color: rgb(0.13, 0.11, 0.08) // 墨色
   });
 
-  yPosition -= 30;
+  yPosition -= 34;
 
   // 处理内容
   const lines = resumeText.split('\n').filter(line => line.trim());
@@ -124,16 +139,16 @@ async function generatePdfResume(resumeText, options = {}) {
         x: margin,
         y: yPosition,
         size: headingSize,
-        font: boldFont,
+        font,
         color: rgb(0.76, 0.23, 0.12) // 朱砂红
       });
-      yPosition -= lineHeight + 5;
+      yPosition -= lineHeight + 6;
     } else {
       // 处理长文本换行
-      const words = trimmed.split('');
+      const chars = Array.from(trimmed);
       let currentLine = '';
 
-      for (const char of words) {
+      for (const char of chars) {
         const testLine = currentLine + char;
         const testWidth = font.widthOfTextAtSize(testLine, textSize);
 
@@ -142,7 +157,7 @@ async function generatePdfResume(resumeText, options = {}) {
             x: margin,
             y: yPosition,
             size: textSize,
-            font: font,
+            font,
             color: rgb(0.13, 0.11, 0.08)
           });
           yPosition -= lineHeight;
@@ -164,7 +179,7 @@ async function generatePdfResume(resumeText, options = {}) {
           x: margin,
           y: yPosition,
           size: textSize,
-          font: font,
+          font,
           color: rgb(0.13, 0.11, 0.08)
         });
         yPosition -= lineHeight + 2;
@@ -172,8 +187,8 @@ async function generatePdfResume(resumeText, options = {}) {
     }
   }
 
-  // 生成 PDF buffer
-  return await pdfDoc.save();
+  // 生成 PDF buffer（pdf-lib 返回 Uint8Array，统一转为 Node Buffer）
+  return Buffer.from(await pdfDoc.save());
 }
 
 module.exports = {

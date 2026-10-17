@@ -1,5 +1,14 @@
 # 更新日志
 
+## 2026-10-18 · 简历成品输出（Word / PDF 导出）
+
+- 简历助手「导出当前简历」改为下拉菜单，支持纯文本、Word（.docx）、PDF（.pdf）三种格式；Word 和 PDF 由服务端生成，纯文本仍在前端直接下载。
+- 新增 `resume-export.js`：使用 docx 生成带标题层级和段落格式的 Word，使用 pdf-lib + fontkit 生成 PDF，章节标题用朱砂红、正文用墨色，自动分页和长文本换行。
+- 新增中文字体资产 `assets/fonts/NotoSansSC-Regular.otf`（Noto Sans CJK SC 子集，覆盖 GB2312 全部汉字与常用符号，约 3.4 MB）及 SIL OFL 1.1 许可说明；PDF 嵌入该字体并在运行时进一步子集化，避免中文乱码。
+- 新增接口 `POST /api/resume/export/word` 与 `POST /api/resume/export/pdf`，参数校验（缺少文本 400、超过 30000 字 400、生成失败 500）；接口内懒加载 `resume-export`，避免服务启动即依赖第三方库。
+- 前端 Word/PDF 导出需本地服务，纯文本与文件直开模式仍可用；未登录/未激活账号受既有 `/api/` 权限拦截。
+- 新增 `tests/resume-export.test.cjs` 7 项单元测试（Word/PDF 文件头、空文本、特殊字符、长文本分页、章节标题识别），`npm test` 现为 75 项。
+
 ## 2026-10-15 · 用户直接选择内置模型
 
 - 将管理员启用的共享模型逐个列入用户下拉列表，普通用户可直接选择 DeepSeek 等具体模型；保留自动选择与个人连接。

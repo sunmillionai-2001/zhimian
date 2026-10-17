@@ -10,7 +10,6 @@ const { importDocument } = require('./document-import');
 const { createAuthStore } = require('./auth-store');
 const { createModelService } = require('./model-service');
 const { BUILTIN } = require('./model-store');
-const { generateWordResume, generatePdfResume } = require('./resume-export');
 
 const ROOT = __dirname;                              // 本目录即站点根，含 app.html
 const CONFIG_FILE = path.join(ROOT, 'server.config.json');   // 大模型配置（已在 .gitignore）
@@ -148,7 +147,7 @@ const server = http.createServer(async (req, res) => {
 
   if (url === '/api/resume/import' && req.method === 'POST') return sendJson(res, 200, await importDocument(await readBody(req)));
 
-  // 简历导出接口
+  // 简历导出接口（懒加载 resume-export，避免 server 启动即依赖第三方库）
   if (url === '/api/resume/export/word' && req.method === 'POST') {
     const body = await readBody(req);
     if (!body.text || typeof body.text !== 'string') {
@@ -158,7 +157,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 400, { error: '简历文本过长，请控制在 30000 字以内' });
     }
     try {
-      const buffer = await generateWordResume(body.text, { title: body.title, name: body.name });
+      const { generateWordResume } = require('./resume-export');
+      const buffer = await generateWordResume(body.text, { title: body.title });
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="zhimian-resume.docx"',
@@ -179,6 +179,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 400, { error: '简历文本过长，请控制在 30000 字以内' });
     }
     try {
+      const { generatePdfResume } = require('./resume-export');
       const buffer = await generatePdfResume(body.text, { title: body.title });
       res.writeHead(200, {
         'Content-Type': 'application/pdf',
