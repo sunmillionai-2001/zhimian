@@ -1,5 +1,13 @@
 # 更新日志
 
+## 2026-10-19 · DeepSeek Flash 真实验收并正式启用
+
+- 确认 `deepseek-flash` 即 DeepSeek 当前 Flash 模型（官方文档，对应 DeepSeek-V4.1-Flash），模型名无需变更；思考模式关闭（`thinking:{type:'disabled'}`）已在既有代码中处理。
+- 新增 `tests/real-model-validate.cjs`：从 `server.config.json` 读 Key（已 gitignore），直接调用 `runAi` 跑 MODEL_VALIDATION.md 的 6 个固定样例，记录契约、质量、耗时与 token。
+- 新增 `scripts/configure-model.cjs`：把 `server.config.json` 的模型配置写入账号模式内置连接（`data/models.sqlite`，Key 经 AES-256-GCM 加密），并测试连接与验证 AI 输出。
+- 验收结果：连接检查 166ms 通过；6 个样例全部通过契约校验，无编造事实、不执行材料指令；诊断约 2.0s、改写约 0.8s、点评约 2.4s，单次 230–731 token。DeepSeek Flash 已启用为内置主力模型。
+- 本机账号模式的 DeepSeek 内置连接已写入 Key 并启用；`server.config.json` 与 `data/` 均不入库，密钥未进入 Git。
+
 ## 2026-10-19 · 首页三步准备进度
 
 - 首页 hero 之下新增「三步准备进度」横条，把主线（目标岗位 → 简历 → 面试）的状态并排展示，每步带跳转入口。
