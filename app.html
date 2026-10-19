@@ -176,6 +176,19 @@
   .modal-box.modal-wide{max-width:840px}
   .modal-close{position:absolute;top:16px;right:18px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card-hi);color:var(--ink-soft);font-size:20px;cursor:pointer;display:grid;place-items:center;transition:.18s}
   .modal-close:hover{background:var(--seal);color:#fff8ee;border-color:var(--seal)}
+  /* 新手指引弹层 */
+  .guide-hero{text-align:center;margin-bottom:22px}
+  .guide-hero .eyebrow{justify-content:center}
+  .guide-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 8px}
+  .guide-step{background:var(--card-hi);border:1px solid var(--line);border-radius:16px;padding:20px 18px;display:flex;flex-direction:column;gap:10px;transition:.2s}
+  .guide-step:hover{border-color:var(--seal);box-shadow:var(--shadow-soft)}
+  .gs-num{font-family:var(--latin);font-style:italic;font-size:13px;letter-spacing:1.5px;color:var(--seal);display:inline-flex;align-items:center;gap:8px}
+  .gs-num::after{content:"";width:22px;height:1px;background:var(--seal)}
+  .guide-step h4{font-family:var(--serif);font-weight:900;font-size:17px}
+  .guide-step p{font-size:13.5px;color:var(--ink-soft);line-height:1.6;flex:1}
+  .guide-step .btn{margin-top:auto;justify-content:center;font-size:13.5px}
+  .guide-foot{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+  .guide-foot .btn{min-width:200px;justify-content:center}
   .md-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
   .md-tag{font-family:var(--latin);font-style:italic;font-size:12px;letter-spacing:1.5px;color:var(--seal);text-transform:uppercase}
   .modal-box h2{font-family:var(--serif);font-weight:900;font-size:26px;margin:8px 0 4px}
@@ -429,6 +442,7 @@
     .sb-foot{margin-top:0;border-top:0;padding:0;flex-direction:row;align-items:center;margin-left:auto}
     .sb-copyright{display:none}
     .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid,.job-pool{grid-template-columns:1fr}
+    .guide-steps{grid-template-columns:1fr}
     .stage-actions{flex-wrap:wrap}
     .stage-actions .btn{flex:none;white-space:nowrap}
     .stage-actions .hint{width:100%;margin-left:0}
@@ -594,6 +608,7 @@
         <div class="hero-actions">
           <button class="btn btn-primary" id="overviewPrepareTarget">准备我的目标岗位 →</button>
           <button class="btn btn-ghost" data-goto="method">今学一个方法论 →</button>
+          <button class="btn btn-ghost" data-guide-open>新手指引 · 三步上手</button>
         </div>
       </div>
       <section id="overviewTraining" class="record-form target-training" aria-label="当前目标与练习"></section>
@@ -687,6 +702,42 @@
             <button class="btn btn-ghost" id="starCopy">复制</button><button class="btn btn-ghost" id="starToLibrary">存入个人答案库</button>
             <button class="btn btn-ghost" id="starClear">清空</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新手指引弹层 -->
+    <div class="modal" id="guideModal">
+      <div class="modal-box modal-wide">
+        <button class="modal-close" data-close="guideModal">×</button>
+        <div class="guide-hero">
+          <span class="eyebrow">Getting Started</span>
+          <h2>三步，准备好你的下一场面试</h2>
+          <p class="md-lead">围绕一个目标岗位，把简历改到能投，再把面试练到有底。</p>
+        </div>
+        <div class="guide-steps">
+          <div class="guide-step">
+            <span class="gs-num">01</span>
+            <h4>准备目标岗位</h4>
+            <p>把想投的岗位放进岗位池，或直接粘贴 JD，作为后面所有准备的依据。</p>
+            <button class="btn btn-ghost" data-guide-nav="jobs">去岗位池 →</button>
+          </div>
+          <div class="guide-step">
+            <span class="gs-num">02</span>
+            <h4>把简历改到能投</h4>
+            <p>导入简历，AI 诊断补事实、改写对比，最后导出 Word / PDF 直接投递。</p>
+            <button class="btn btn-ghost" data-guide-nav="resume">去简历助手 →</button>
+          </div>
+          <div class="guide-step">
+            <span class="gs-num">03</span>
+            <h4>把面试练到有底</h4>
+            <p>按目标岗位正式模拟，AI 追问点评，复盘后针对薄弱点专项重练。</p>
+            <button class="btn btn-ghost" data-guide-nav="mock">去模拟面试 →</button>
+          </div>
+        </div>
+        <div class="guide-foot">
+          <button class="btn btn-primary" data-guide-nav="resume">从简历开始 →</button>
+          <button class="btn btn-ghost" data-guide-close>稍后再说</button>
         </div>
       </div>
     </div>
@@ -1903,6 +1954,21 @@
       else renderGrid();
     }
   });
+
+  /* ================= 新手指引 ================= */
+  const GUIDE_KEY = 'zm_guide_seen_v1';
+  let guideSeen = false;
+  try{ guideSeen = !!localStorage.getItem(GUIDE_KEY); }catch(e){}
+  document.querySelectorAll('#guideModal [data-guide-nav]').forEach(b=>{
+    b.addEventListener('click', ()=>{ document.getElementById('guideModal').classList.remove('open'); go(b.dataset.guideNav); });
+  });
+  document.querySelectorAll('#guideModal [data-guide-close]').forEach(b=>{
+    b.addEventListener('click', ()=>document.getElementById('guideModal').classList.remove('open'));
+  });
+  // 打开即标记已看，避免各种关闭路径遗漏；下次进入不再自动弹出
+  if(!guideSeen){ try{ localStorage.setItem(GUIDE_KEY,'1'); }catch(e){} openModal('guideModal'); }
+  // 首页提供重新查看入口
+  document.querySelectorAll('[data-guide-open]').forEach(b=>b.addEventListener('click',()=>openModal('guideModal')));
 
   /* ================= 岗位 → 技能地图 · 完整功能 ================= */
   const SKILLMAP = {
