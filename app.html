@@ -189,6 +189,18 @@
   .guide-step .btn{margin-top:auto;justify-content:center;font-size:13.5px}
   .guide-foot{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
   .guide-foot .btn{min-width:200px;justify-content:center}
+  /* 首页 · 三步准备进度 */
+  .overview-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:8px 0 4px}
+  .ov-step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:9px;position:relative;transition:.2s}
+  .ov-step:hover{border-color:var(--seal);box-shadow:var(--shadow-soft)}
+  .ov-step.is-done{border-color:var(--teal)}
+  .ov-step .ov-top{display:flex;align-items:baseline;gap:10px}
+  .ov-num{font-family:var(--latin);font-style:italic;font-size:13px;letter-spacing:1.5px;color:var(--seal);white-space:nowrap}
+  .ov-step h4{font-family:var(--serif);font-weight:900;font-size:17px;margin:0}
+  .ov-step .ov-state{font-size:13.5px;color:var(--ink-soft);line-height:1.6;flex:1;overflow-wrap:anywhere}
+  .ov-step .ov-state b{color:var(--teal);font-weight:700}
+  .ov-step .btn{margin-top:auto;justify-content:center;font-size:13px;padding:9px 14px}
+  .ov-done-mark{position:absolute;top:14px;right:16px;color:var(--teal);font-family:var(--serif);font-weight:900;font-size:15px}
   .md-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
   .md-tag{font-family:var(--latin);font-style:italic;font-size:12px;letter-spacing:1.5px;color:var(--seal);text-transform:uppercase}
   .modal-box h2{font-family:var(--serif);font-weight:900;font-size:26px;margin:8px 0 4px}
@@ -443,6 +455,7 @@
     .sb-copyright{display:none}
     .status-grid,.module-grid,.lower-grid,.method-grid,.skill-map,.mock-wrap,.review-grid,.insight-grid,.form-row,.star-grid,.job-pool{grid-template-columns:1fr}
     .guide-steps{grid-template-columns:1fr}
+    .overview-steps{grid-template-columns:1fr}
     .stage-actions{flex-wrap:wrap}
     .stage-actions .btn{flex:none;white-space:nowrap}
     .stage-actions .hint{width:100%;margin-left:0}
@@ -611,6 +624,7 @@
           <button class="btn btn-ghost" data-guide-open>新手指引 · 三步上手</button>
         </div>
       </div>
+      <section id="overviewSteps" class="overview-steps" aria-label="三步准备进度"></section>
       <section id="overviewTraining" class="record-form target-training" aria-label="当前目标与练习"></section>
       <p class="mock-note" id="overviewDataStatus" role="status" aria-live="polite">正在载入面试复盘数据……</p>
       <button class="btn btn-ghost" id="reviewRetry" hidden>重新连接复盘数据</button>
@@ -981,6 +995,8 @@
     const titleEl = document.getElementById('pageTitle');
     if(titleEl) titleEl.textContent = titles[view];
     if(location.hash !== '#'+view) history.replaceState(null,'','#'+view);
+    // 深链初始化时 mockStore/resumeState 尚未就绪，静默跳过；由末尾 init 脚本补渲染
+    if(view==='overview'){ try{ renderOverviewSteps(); }catch(e){} }
     window.scrollTo({top:0, behavior:'instant'});
   }
   // 深链：进入页面时读取 #hash，未指定则回总览
@@ -2175,6 +2191,31 @@
     }));
   }
 
+  function renderOverviewSteps(){
+    const box = document.getElementById('overviewSteps');
+    if(!box) return;
+    // 目标岗位状态：当前 mock 设置的目标 JD（FormalInterview.init 后恢复）
+    const jd = (document.getElementById('mockJd')?.value || '').trim();
+    const goalName = jd ? jd.split('\n')[0].slice(0,60) : '';
+    // 简历状态
+    let resume = { text:'粘贴或导入简历，AI 诊断并改写', cta:'去简历助手 →', done:false };
+    if(resumeState.versions.length>0){ resume = { text:'已有 <b>'+resumeState.versions.length+'</b> 个采用版本，可导出 Word/PDF 投递', cta:'继续完善 →', done:true }; }
+    else if(resumeState.diagnosis){ resume = { text:'已诊断，可补事实后逐段改写', cta:'继续改写 →', done:false }; }
+    else if(resumeState.text.trim()){ resume = { text:'已粘贴正文，可开始诊断', cta:'开始诊断 →', done:false }; }
+    // 面试状态
+    const records = mockStore.records || [];
+    let mock = { text:'确认目标与简历后开练，AI 追问点评', cta:'去模拟面试 →', done:false };
+    if(mockStore.draft){ const t=mockStore.draft.mode==='formal'?'正式模拟':'专项练习'; mock = { text:'有一场未完成的'+t+'，可接着上次继续', cta:'继续练习 →', done:false }; }
+    else if(records.length>0){ mock = { text:'已完成 <b>'+records.length+'</b> 场练习，可查看复盘与薄弱点', cta:'查看复盘 →', done:true }; }
+    const steps = [
+      { n:'01', title:'目标岗位', state:goalName?('目标：<b>'+esc(goalName)+'</b>'):'先确定想投的岗位，后续准备都围绕它', cta:goalName?'调整目标 →':'去岗位池 →', goto:goalName?'mock':'jobs', done:!!goalName },
+      { n:'02', title:'简历准备', state:resume.text, cta:resume.cta, goto:'resume', done:resume.done },
+      { n:'03', title:'模拟面试', state:mock.text, cta:mock.cta, goto:'mock', done:mock.done }
+    ];
+    box.innerHTML = steps.map(s=>`<div class="ov-step${s.done?' is-done':''}"><div class="ov-top"><span class="ov-num">${s.n}</span><h4>${s.title}</h4>${s.done?'<span class="ov-done-mark">✓</span>':''}</div><p class="ov-state">${s.state}</p><button class="btn btn-ghost" data-ov-goto="${s.goto}">${s.cta}</button></div>`).join('');
+    box.querySelectorAll('[data-ov-goto]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.ovGoto)));
+  }
+
   function renderRvTags(){
     const box = document.getElementById('rvTags'); if(!box) return;
     box.innerHTML = REVIEW_TAGS.map(t=>`<span class="chip ${rvTags.includes(t)?'on':''}" data-t="${t}">${t}</span>`).join('');
@@ -2599,7 +2640,7 @@
   if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply'].forEach(id=>document.getElementById(id).disabled=true);
 
 </script>
-<script>FormalInterview.init();</script>
+<script>FormalInterview.init();renderOverviewSteps();</script>
 <script src="model-settings.js"></script>
 </body>
 </html>
