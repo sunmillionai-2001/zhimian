@@ -2203,9 +2203,10 @@
     else if(resumeState.diagnosis){ resume = { text:'已诊断，可补事实后逐段改写', cta:'继续改写 →', done:false }; }
     else if(resumeState.text.trim()){ resume = { text:'已粘贴正文，可开始诊断', cta:'开始诊断 →', done:false }; }
     // 面试状态
-    const records = mockStore.records || [];
+    const {context:goalContext,draft} = FormalInterview.homeState();
+    const records = (mockStore.records || []).filter(r=>InterviewPolicy.sameGoal(goalContext,r));
     let mock = { text:'确认目标与简历后开练，AI 追问点评', cta:'去模拟面试 →', done:false };
-    if(mockStore.draft){ const t=mockStore.draft.mode==='formal'?'正式模拟':'专项练习'; mock = { text:'有一场未完成的'+t+'，可接着上次继续', cta:'继续练习 →', done:false }; }
+    if(draft){ const t=draft.mode==='formal'?'正式模拟':'专项练习'; mock = draft.status==='active'?{ text:'有一场未完成的'+t+'，可接着上次继续', cta:'继续练习 →', done:false }:{text:'上次'+t+'已结束，可查看并完善复盘',cta:'查看复盘 →',done:true}; }
     else if(records.length>0){ mock = { text:'已完成 <b>'+records.length+'</b> 场练习，可查看复盘与薄弱点', cta:'查看复盘 →', done:true }; }
     const steps = [
       { n:'01', title:'目标岗位', state:goalName?('目标：<b>'+esc(goalName)+'</b>'):'先确定想投的岗位，后续准备都围绕它', cta:goalName?'调整目标 →':'去岗位池 →', goto:goalName?'mock':'jobs', done:!!goalName },
@@ -2213,7 +2214,14 @@
       { n:'03', title:'模拟面试', state:mock.text, cta:mock.cta, goto:'mock', done:mock.done }
     ];
     box.innerHTML = steps.map(s=>`<div class="ov-step${s.done?' is-done':''}"><div class="ov-top"><span class="ov-num">${s.n}</span><h4>${s.title}</h4>${s.done?'<span class="ov-done-mark">✓</span>':''}</div><p class="ov-state">${s.state}</p><button class="btn btn-ghost" data-ov-goto="${s.goto}">${s.cta}</button></div>`).join('');
-    box.querySelectorAll('[data-ov-goto]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.ovGoto)));
+    box.querySelectorAll('[data-ov-goto]').forEach((b,i)=>b.addEventListener('click',()=>{
+      if(i===2&&mockAiBusy)return;
+      go(b.dataset.ovGoto);
+      if(i!==2)return;
+      if(draft)resumeDraft();
+      else if(records.length)viewHistory(mockStore.records.indexOf(records[0]));
+      else FormalInterview.showSetup();
+    }));
   }
 
   function renderRvTags(){
@@ -2533,17 +2541,21 @@
     renderResume();resumeMsg('已采用并保存新版本，原文保留。可导出或带入模拟面试。');
   }
   function exportResume(format = 'txt'){
+    if(resumeBlocked){
+      if(format!=='txt'){resumeMsg('简历存储异常，请先通过纯文本入口导出原始备份。');return;}
+      let raw;
+      try{raw=localStorage.getItem(RESUME_KEY);}catch(e){resumeMsg('无法读取原始存储。');return;}
+      if(raw===null){resumeMsg('未找到可导出的原始存储。');return;}
+      const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');
+      a.href=url;a.download='zhimian-resume-recovery.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      resumeMsg('已导出原始备份，原数据保留；请保管好文件后再检查恢复。');return;
+    }
     const text = composedResume();
     if (!text.trim()) { resumeMsg('暂无简历内容可导出。'); return; }
 
     if (format === 'txt') {
       // 纯文本导出（保留原有逻辑）
-      let value = text, name = 'zhimian-resume.txt', type = 'text/plain;charset=utf-8';
-      if (resumeBlocked) {
-        try { value = localStorage.getItem(RESUME_KEY) || ''; }
-        catch (e) { resumeMsg('无法读取原始存储。'); return; }
-        name = 'zhimian-resume-recovery.json'; type = 'application/json';
-      }
+      const value = text, name = 'zhimian-resume.txt', type = 'text/plain;charset=utf-8';
       const url = URL.createObjectURL(new Blob([value], { type })), a = document.createElement('a');
       a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
       return;
@@ -2637,7 +2649,10 @@
     if(!saveResume()){resumeState=previous;return;}
     document.getElementById('resumeText').value=text;resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;renderResume();resumeMsg('已使用导入正文；原有内容已保留为版本，可重新诊断。');
   };
-  if(resumeBlocked)['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply'].forEach(id=>document.getElementById(id).disabled=true);
+  if(resumeBlocked){
+    ['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply','resumeExportWord','resumeExportPdf'].forEach(id=>document.getElementById(id).disabled=true);
+    document.getElementById('resumeExportTxt').textContent='导出原始备份 (.json)';
+  }
 
 </script>
 <script>FormalInterview.init();renderOverviewSteps();</script>

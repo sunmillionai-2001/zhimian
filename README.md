@@ -36,6 +36,12 @@ node server.js
 
 ---
 
+## 通过脚本配置内置模型
+
+管理员也可运行 `node scripts/configure-model.cjs [preset]`，预设默认为 `deepseek`，另支持 `qwen`、`glm`。脚本从本机 `server.config.json` 读取 `apiKey`、`baseUrl` 和 `model`；未填写接口地址或模型名时沿用该预设的现有值。
+
+配置先在临时库中进行模型列表检查和 JSON 输出验证，两项通过后才写入并启用正式内置连接。失败以非零状态退出，原有连接和用户选择保留；临时库及其密钥会在结束时清理。此验证只确认连接和基本 JSON 输出，业务效果仍按 `MODEL_VALIDATION.md` 验收。
+
 ## 目录结构
 
 ```
