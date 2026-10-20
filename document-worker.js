@@ -38,7 +38,9 @@ async function extract(ext,buffer){
   if(text.length>30000)throw new Error('提取文字超过 30000 字，请精简简历');
   return {text,pages,warnings};
 }
-process.on('message',async body=>{
+if(require.main===module)process.on('message',async body=>{
   try{process.send(await extract(body.ext,Buffer.from(body.base64,'base64')));}
   catch(e){const message=e.code==='MODULE_NOT_FOUND'||e.code==='ERR_MODULE_NOT_FOUND'?'缺少解析依赖，请在项目目录运行 npm ci。':e.name==='PasswordException'?'加密 PDF 请解密后导入。':e.message.startsWith('没有')||e.message.includes('超过')||e.message.includes('Word')?e.message:'无法解析该文件，请检查文件或粘贴正文。';process.send({error:message});}
 });
+
+module.exports={checkZip};

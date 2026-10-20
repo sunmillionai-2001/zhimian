@@ -559,6 +559,7 @@
   .target-item:focus-visible,.target-layout summary:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
   .target-layout .btn,.target-backup summary{min-height:44px}.target-backup{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.target-backup summary{cursor:pointer}
   @media(max-width:820px){.target-layout{grid-template-columns:minmax(0,1fr)}.target-layout .paste-actions{flex-wrap:wrap}.target-layout .btn{white-space:normal}}
+  .resume-document-frame{width:100%;max-height:680px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:white;margin:12px 0}.resume-document-frame img{display:block;width:100%;height:auto}.resume-document-frame[hidden]{display:none}#resumeSourceName{overflow-wrap:anywhere}@media(max-width:820px){.resume-document-frame{max-height:560px}}
   #resumeMsg[data-status="error"]{color:var(--seal-deep);background:var(--seal-soft);padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.7}
   #resumeMsg[data-status="success"]{color:var(--teal);font-size:14px}
 </style>
@@ -853,10 +854,10 @@
         <section class="record-form">
           <h3>01 · 简历与目标岗位</h3>
           <button class="btn btn-ghost" id="resumeFileChoose">导入 PDF / Word .docx</button><input id="resumeFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden/>
-          <p class="mock-note">最多 3 MB；PDF 最多 30 页。先预览文字，再确认替换正文；原有版本保留。</p>
-          <div id="resumeImportPreview" hidden><h4>导入预览 · 请核对文字顺序</h4><div class="field"><label for="resumeImportText">提取的文字（可修改）</label><textarea id="resumeImportText" rows="8" maxlength="30000"></textarea></div><p id="resumeImportWarning" class="mock-note"></p><div class="paste-actions"><button class="btn btn-primary" id="resumeImportApply">确认使用这份正文</button><button class="btn btn-ghost" id="resumeImportCancel">取消导入</button></div></div>
-          <div class="field"><label for="resumeText">粘贴简历正文</label><textarea id="resumeText" rows="12" maxlength="30000" placeholder="粘贴工作经历、项目经历、教育和技能……"></textarea></div>
-          <div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
+          <p class="mock-note">最多 3 MB；PDF 最多 30 页。先查看原版，再确认导入；原文件和原有版本保留。</p>
+          <div id="resumeImportPreview" hidden><h4>导入预览 · 保留原文件版式</h4><div class="resume-document-frame"><img id="resumeImportFrame" alt="导入文件原版第一页" hidden/></div><details><summary>核对用于诊断的文字</summary><div class="field"><label for="resumeImportText">识别的正文（请保留段落顺序）</label><textarea id="resumeImportText" rows="8" maxlength="30000"></textarea></div></details><p id="resumeImportWarning" class="mock-note"></p><div class="paste-actions"><button class="btn btn-primary" id="resumeImportApply">保留原版并使用</button><button class="btn btn-ghost" id="resumeImportCancel">取消导入</button></div></div>
+          <div id="resumeSourcePanel" hidden><h4 id="resumeSourceName"></h4><p id="resumeSourceNote" class="mock-note"></p><div class="resume-document-frame"><img id="resumeSourceFrame" alt="简历原版预览"/></div><div class="paste-actions"><button class="btn btn-ghost" id="resumePrevPage">上一页</button><span id="resumePageLabel" aria-live="polite"></span><button class="btn btn-ghost" id="resumeNextPage">下一页</button></div><div class="paste-actions"><button class="btn btn-ghost" id="resumePreviewUpdated">预览采用后的版式</button><a class="btn btn-ghost" id="resumeDownloadOriginal">下载导入原件</a></div><p id="resumePreviewStatus" class="mock-note" role="status"></p></div><p id="resumeNoSource" class="mock-note">保留原排版请导入 PDF 或 Word 原文件。仅粘贴文字时，导出使用基础排版；旧版导入的简历需重新导入一次。</p><details id="resumeTextDetails" open><summary>诊断用正文 · 可查看和修改</summary><div class="field"><label for="resumeText">粘贴简历正文</label><textarea id="resumeText" rows="12" maxlength="30000" placeholder="粘贴工作经历、项目经历、教育和技能……"></textarea></div>
+          </details><div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
           <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
           <p class="mock-note" id="resumeMsg" role="status" aria-live="polite">正文、补充和改写保存在当前浏览器。</p>
           <div class="paste-actions">
@@ -2509,19 +2510,20 @@
     if(kind==='diagnosis')return str(r.overview,2000)&&strings(r.matched)&&strings(r.missing)&&Array.isArray(r.sections)&&r.sections.length>0&&r.sections.length<=6&&r.sections.every(s=>str(s.original,6000)&&str(s.issue,12020)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=18&&s.questions.every(q=>str(q,2000))&&(s.start===undefined||Number.isInteger(s.start)&&s.start>=0&&s.start<30000));
     return str(r.rewritten)&&Array.isArray(r.evidence)&&r.evidence.length>0&&r.evidence.length<=12&&r.evidence.every(e=>str(e.claim,2000)&&str(e.source,6000));
   }
+  function validResumeSource(s){return !!s&&typeof s.id==='string'&&/^[a-f0-9]{32}$/.test(s.id)&&typeof s.name==='string'&&s.name.length<=240&&['.pdf','.docx'].includes(s.ext);}
   function validResumeState(state){
     const str=(v,max)=>typeof v==='string'&&v.length<=max;
     const section=s=>!!s&&str(s.original,6000)&&str(s.issue,12020)&&(s.start===undefined||Number.isInteger(s.start)&&s.start>=0&&s.start<30000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=18&&s.questions.every(q=>str(q,2000))&&
       Array.isArray(s.answers)&&s.answers.length===s.questions.length&&s.answers.every(a=>str(a,6000))&&typeof s.confirmedFacts==='boolean'&&
       (s.candidate===null||validResumeEnvelope(s.candidate,'rewrite'))&&str(s.candidateText,8000)&&(s.adopted===null||str(s.adopted,8000));
     const sections=(v,source)=>Array.isArray(v)&&v.length<=6&&v.every(s=>section(s)&&(s.start===undefined||source.slice(s.start,s.start+s.original.length)===s.original));
-    return !!(state?.schemaVersion===1&&str(state.text,30000)&&str(state.jd,10000)&&
+    return !!(state?.schemaVersion===1&&(!state.source||validResumeSource(state.source))&&str(state.text,30000)&&str(state.jd,10000)&&
       (state.diagnosis===null||validResumeEnvelope(state.diagnosis,'diagnosis'))&&sections(state.sections,state.text)&&
       Array.isArray(state.versions)&&state.versions.length<=1000&&state.versions.every(v=>!!v&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections,v.sourceText)));
   }
   function saveResume(){
     if(resumeBlocked){resumeMsg('简历存储异常，已停止覆盖原数据；请先导出备份检查。');return false;}
-    try{localStorage.setItem(RESUME_KEY,JSON.stringify(resumeState));resumeMsg('已保存到当前浏览器。');return true;}
+    try{localStorage.setItem(RESUME_KEY,JSON.stringify(resumeState));renderResumeSource();resumeMsg('已保存到当前浏览器。');return true;}
     catch(e){resumeMsg('保存失败：存储不可用或空间不足。请导出当前简历保留内容。');return false;}
   }
   function setResumeBusy(busy){
@@ -2534,7 +2536,28 @@
     if(s.candidate){const field=document.getElementById('resumeCandidate'+index);field.value=s.candidateText;field.addEventListener('input',()=>{s.candidateText=field.value;saveResume();});}
     box.querySelector('[data-adopt]')?.addEventListener('click',()=>adoptResume(index));
   }
+  var resumeSourceDisplayed=null,resumePreviewUrl=null,resumePreviewText=null,resumePreviewPage=1,resumePreviewPages=1;
+  function renderResumeSource(){
+    const source=resumeState.source,panel=document.getElementById('resumeSourcePanel');panel.hidden=!source;document.getElementById('resumeNoSource').hidden=!!source;
+    document.getElementById('resumeExportWord').textContent=source?(source.ext==='.pdf'?'Word · 保留外观（页面图像）':'Word · 保留原版式'):'Word · 基础排版';
+    document.getElementById('resumeExportPdf').textContent=source?'PDF · 保留原版式':'PDF · 基础排版';
+    if(!source)return;
+    if(resumeSourceDisplayed!==source.id||(resumePreviewUrl&&resumePreviewText!==composedResume())){
+      resumePreviewUrl=null;resumePreviewText=null;resumePreviewPage=1;resumePreviewPages=source.pages||1;
+      resumeSourceDisplayed=source.id;document.getElementById('resumeSourceFrame').src='/api/resume/source/'+source.id+'/page/1';document.getElementById('resumeTextDetails').open=false;
+      document.getElementById('resumePreviewStatus').textContent='当前展示导入原件；采用改写后，点击上方按钮生成最新预览。';
+    }
+    document.getElementById('resumeSourceName').textContent=source.name;
+    document.getElementById('resumeSourceNote').textContent=source.ext==='.docx'?'导出沿用原文件的字体、表格、分栏和图片，采用的文字写回原位置。文字变长会按原文档规则换行。':'保留原页面、照片和分栏；改写需适合原位置。PDF 更新后以页面图像保留外观；Word 导出也是页面图像，不支持逐字编辑。';
+    document.getElementById('resumePageLabel').textContent='第 '+resumePreviewPage+' / '+resumePreviewPages+' 页';
+    document.getElementById('resumeDownloadOriginal').href='/api/resume/source/'+source.id+'/original';
+  }
+  async function previewResumeLayout(page=1){
+    if(resumeBusy||resumeBlocked||!resumeState.source)return;if(page<1||page>30)return;setResumeBusy(true);const status=document.getElementById('resumePreviewStatus');status.textContent='正在生成采用后的版式预览……';
+    try{const r=await fetch('/api/resume/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:composedResume(),sourceId:resumeState.source.id,page}),signal:AbortSignal.timeout(65000)});const data=await r.json();if(!r.ok)throw Error(data.error||'预览生成失败');if(typeof data.base64!=='string'||!Number.isInteger(data.pages))throw Error('预览生成失败');resumePreviewText=composedResume();resumePreviewUrl='data:image/png;base64,'+data.base64;resumePreviewPage=page;resumePreviewPages=data.pages;document.getElementById('resumeSourceFrame').src=resumePreviewUrl;document.getElementById('resumePageLabel').textContent='第 '+page+' / '+data.pages+' 页';status.textContent='已展示当前采用版本的版式，请核对分页和换行后导出。';}catch(e){status.textContent=e.name==='TimeoutError'?'预览等待超时，原文件保留，请稍后重试。':e.message;}finally{setResumeBusy(false);}
+  }
   function renderResume(){
+    renderResumeSource();
     const box=document.getElementById('resumeResults'),d=resumeState.diagnosis;
     if(!d){box.innerHTML='<h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p>';}
     else{
@@ -2581,7 +2604,7 @@
     if(!s.confirmedFacts||!s.candidateText.trim()){resumeMsg('请确认事实并检查候选文字后再采用。');return;}
     if(resumeState.versions.length>=1000){resumeMsg('版本已达上限，请导出保留内容后整理。');return;}
     const previous=s.adopted;s.adopted=s.candidateText;
-    const version={id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))};
+    const version={source:resumeState.source||null,id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))};
     resumeState.versions.unshift(version);
     if(!saveResume()){resumeState.versions.shift();s.adopted=previous;return;}
     renderResume();resumeMsg('已采用并保存新版本，原文保留。可导出或带入模拟面试。');
@@ -2621,8 +2644,8 @@
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, title: '个人简历' }),
-      signal: AbortSignal.timeout(30000)
+      body: JSON.stringify({ text, title: '个人简历',sourceId:resumeState.source?.id }),
+      signal: AbortSignal.timeout(65000)
     })
     .then(async response => {
       if (!response.ok) {
@@ -2659,6 +2682,10 @@
   ['resumeText','resumeJd'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{
     if(resumeBlocked)return;resumeState[id==='resumeText'?'text':'jd']=e.target.value;resumeState.diagnosis=null;resumeState.sections=[];saveResume();renderResume();
   }));
+  document.getElementById('resumePreviewUpdated').addEventListener('click',()=>previewResumeLayout(1));
+  document.getElementById('resumePrevPage').onclick=()=>resumePreviewPage>1&&previewResumeLayout(resumePreviewPage-1);
+  document.getElementById('resumeNextPage').onclick=()=>resumePreviewPage<resumePreviewPages&&previewResumeLayout(resumePreviewPage+1);
+  document.getElementById('resumeSourceFrame').onerror=()=>{document.getElementById('resumePreviewStatus').textContent='原版预览暂不可用，请点击预览按钮重试，或下载原件查看。';};
   document.getElementById('resumeDiagnose').addEventListener('click',diagnoseResume);
   document.getElementById('resumeExportTxt').addEventListener('click', () => exportResume('txt'));
   document.getElementById('resumeExportWord').addEventListener('click', () => exportResume('word'));
@@ -2671,15 +2698,17 @@
     const file=e.target.files[0];if(!file||resumeBusy||resumeBlocked)return;
     if(!['http:','https:'].includes(location.protocol)){resumeMsg('文件导入需要启动本地服务。');e.target.value='';return;}
     resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;document.getElementById('resumeImportText').value='';
-    setResumeBusy(true);resumeMsg('正在提取文件文字，最多等待 25 秒……');
+    setResumeBusy(true);resumeMsg('正在保留原文件并生成版式预览，请稍候……');
     try{
       if(file.size>3*1024*1024)throw Error('文件超过 3 MB，请精简文件');
       if(!/\.(pdf|docx)$/i.test(file.name))throw Error('仅支持 PDF / Word .docx；旧 .doc 请先转换');
       const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('无法读取文件'));reader.readAsDataURL(file);});
-      const response=await fetch('/api/resume/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,base64}),signal:AbortSignal.timeout(25000)});
+      const response=await fetch('/api/resume/source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,base64}),signal:AbortSignal.timeout(65000)});
       const data=await response.json();if(!response.ok)throw Error(data.error||'文件解析失败');
       if(typeof data.text!=='string'||!data.text.trim()||data.text.length>30000||!Array.isArray(data.warnings)||!data.warnings.every(w=>typeof w==='string'))throw Error('解析结果异常');
-      resumeImported=data;document.getElementById('resumeImportText').value=data.text;document.getElementById('resumeImportWarning').textContent=file.name+' · '+data.warnings.join(' ');document.getElementById('resumeImportPreview').hidden=false;resumeMsg('文字已提取，请检查预览后确认使用；原正文尚未替换。');
+      if(!validResumeSource(data.source))throw Error('原文件未能保留，请重新导入');
+      document.getElementById('resumeImportFrame').src='/api/resume/source/'+data.source.id+'/page/1';document.getElementById('resumeImportFrame').hidden=false;
+      resumeImported=data;document.getElementById('resumeImportText').value=data.text;document.getElementById('resumeImportWarning').textContent=file.name+' · '+data.warnings.join(' ');document.getElementById('resumeImportPreview').hidden=false;resumeMsg('原文件已保留，请核对原版预览和识别文字；确认前不会替换当前简历。');
     }catch(err){resumeMsg((err.name==='TimeoutError'?'文件解析等待超时，请重试。':err.message)+' 原文和已有版本保留。');}
     finally{e.target.value='';setResumeBusy(false);}
   };
@@ -2687,13 +2716,12 @@
   document.getElementById('resumeImportApply').onclick=()=>{
     if(resumeBusy||resumeBlocked||!resumeImported)return;const text=document.getElementById('resumeImportText').value.trim();
     if(!text||text.length>30000){resumeMsg('请检查预览文字，最多 30000 字。');return;}
-    if(resumeState.text===text){document.getElementById('resumeImportCancel').click();resumeMsg('导入文字与现有正文相同。');return;}
     if(resumeState.versions.length>=1000){resumeMsg('版本已达上限，请先导出。');return;}
     const previous=JSON.parse(JSON.stringify(resumeState));
-    if(resumeState.text.trim())resumeState.versions.unshift({id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))});
-    resumeState.text=text;resumeState.diagnosis=null;resumeState.sections=[];
+    if(resumeState.text.trim())resumeState.versions.unshift({source:resumeState.source||null,id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))});
+    resumeState.source=resumeImported.source;resumeState.text=text;resumeState.diagnosis=null;resumeState.sections=[];
     if(!saveResume()){resumeState=previous;return;}
-    document.getElementById('resumeText').value=text;resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;renderResume();resumeMsg('已使用导入正文；原有内容已保留为版本，可重新诊断。');
+    document.getElementById('resumeText').value=text;resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;renderResume();resumeMsg('已保留原文件和版式；诊断及采用改写后，可先预览再导出。原有内容已保留为版本。');
   };
   if(resumeBlocked){
     ['resumeText','resumeJd','resumeDiagnose','resumePractice','resumeFileChoose','resumeImportApply','resumeExportWord','resumeExportPdf'].forEach(id=>document.getElementById(id).disabled=true);

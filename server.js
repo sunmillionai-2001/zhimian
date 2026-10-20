@@ -147,6 +147,20 @@ const server = http.createServer(async (req, res) => {
 
   if (url === '/api/resume/import' && req.method === 'POST') return sendJson(res, 200, await importDocument(await readBody(req)));
 
+  if(url==='/api/resume/source'&&req.method==='POST')return sendJson(res,200,await require('./resume-layout').createSourceStore(userDirectory).import(await readBody(req)));
+  if(url==='/api/resume/preview'&&req.method==='POST'){
+    const body=await readBody(req);return sendJson(res,200,await require('./resume-layout').createSourceStore(userDirectory).page(body.sourceId,body.page||1,body.text));
+  }
+  const pageMatch=/^\/api\/resume\/source\/([a-f0-9]{32})\/page\/(\d+)$/.exec(url);
+  if(pageMatch&&req.method==='GET'){
+    const r=await require('./resume-layout').createSourceStore(userDirectory).page(pageMatch[1],Number(pageMatch[2]));res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(Buffer.from(r.base64,'base64'));
+  }
+  const sourceMatch=/^\/api\/resume\/source\/([a-f0-9]{32})\/(preview|original)$/.exec(url);
+  if(sourceMatch&&req.method==='GET'){
+    const {buffer,ext}=require('./resume-layout').createSourceStore(userDirectory).read(sourceMatch[1],sourceMatch[2]==='original');
+    res.writeHead(200,{'Content-Type':ext==='.pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Disposition':(sourceMatch[2]==='original'?'attachment':'inline')+'; filename="resume'+ext+'"'});return res.end(buffer);
+  }
+
   // 简历导出接口（懒加载 resume-export，避免 server 启动即依赖第三方库）
   if (url === '/api/resume/export/word' && req.method === 'POST') {
     const body = await readBody(req);
@@ -158,7 +172,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const { generateWordResume } = require('./resume-export');
-      const buffer = await generateWordResume(body.text, { title: body.title });
+      const buffer = body.sourceId ? await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word') : await generateWordResume(body.text, { title: body.title });
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="zhimian-resume.docx"',
@@ -166,7 +180,7 @@ const server = http.createServer(async (req, res) => {
       });
       return res.end(buffer);
     } catch (err) {
-      return sendJson(res, 500, { error: 'Word 生成失败：' + err.message });
+      return sendJson(res, err.status||500, { error: 'Word 生成失败：' + err.message });
     }
   }
 
@@ -180,7 +194,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const { generatePdfResume } = require('./resume-export');
-      const buffer = await generatePdfResume(body.text, { title: body.title });
+      const buffer = body.sourceId ? await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf') : await generatePdfResume(body.text, { title: body.title });
       res.writeHead(200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="zhimian-resume.pdf"',
@@ -188,7 +202,7 @@ const server = http.createServer(async (req, res) => {
       });
       return res.end(buffer);
     } catch (err) {
-      return sendJson(res, 500, { error: 'PDF 生成失败：' + err.message });
+      return sendJson(res, err.status||500, { error: 'PDF 生成失败：' + err.message });
     }
   }
 

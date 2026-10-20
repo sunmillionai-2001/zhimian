@@ -8,12 +8,16 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs tests/model-contract.cjs tests/formal-contract.cjs tests/resume-export.test.cjs tests/configure-model.test.cjs",
+    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs tests/model-contract.cjs tests/formal-contract.cjs tests/resume-export.test.cjs tests/configure-model.test.cjs tests/resume-layout.cjs",
     "account": "node account-cli.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "1.0.11",
     "@pdf-lib/fontkit": "^1.1.1",
+    "@xmldom/xmldom": "0.8.15",
+    "diff": "8.0.4",
     "docx": "^9.11.0",
+    "jszip": "3.10.2",
     "mammoth": "1.13.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.4.299"
