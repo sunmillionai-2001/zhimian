@@ -559,6 +559,8 @@
   .target-item:focus-visible,.target-layout summary:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
   .target-layout .btn,.target-backup summary{min-height:44px}.target-backup{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.target-backup summary{cursor:pointer}
   @media(max-width:820px){.target-layout{grid-template-columns:minmax(0,1fr)}.target-layout .paste-actions{flex-wrap:wrap}.target-layout .btn{white-space:normal}}
+  #resumeMsg[data-status="error"]{color:var(--seal-deep);background:var(--seal-soft);padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.7}
+  #resumeMsg[data-status="success"]{color:var(--teal);font-size:14px}
 </style>
 </head>
 <body>
@@ -2498,24 +2500,24 @@
   const RESUME_KEY='zm_resume_store_v1';
   let resumeState={schemaVersion:1,text:'',jd:'',diagnosis:null,sections:[],versions:[]};
   let resumeBusy=false,resumeBlocked=false;
-  function resumeMsg(t){document.getElementById('resumeMsg').textContent=t;}
+  function resumeMsg(t,status='info'){const el=document.getElementById('resumeMsg');el.textContent=t;el.dataset.status=status;}
   function validResumeEnvelope(envelope,kind){
     const str=(v,max=8000)=>typeof v==='string'&&v.length<=max;
     const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>str(x,2000));
     if(!envelope?.meta||!str(envelope.meta.model,200)||!str(envelope.meta.promptVersion,100)||!str(envelope.meta.createdAt,100)||!envelope.result)return false;
     const r=envelope.result;
-    if(kind==='diagnosis')return str(r.overview,2000)&&strings(r.matched)&&strings(r.missing)&&Array.isArray(r.sections)&&r.sections.length>0&&r.sections.length<=6&&r.sections.every(s=>str(s.original,6000)&&str(s.issue,2000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=3&&strings(s.questions));
+    if(kind==='diagnosis')return str(r.overview,2000)&&strings(r.matched)&&strings(r.missing)&&Array.isArray(r.sections)&&r.sections.length>0&&r.sections.length<=6&&r.sections.every(s=>str(s.original,6000)&&str(s.issue,12020)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=18&&s.questions.every(q=>str(q,2000))&&(s.start===undefined||Number.isInteger(s.start)&&s.start>=0&&s.start<30000));
     return str(r.rewritten)&&Array.isArray(r.evidence)&&r.evidence.length>0&&r.evidence.length<=12&&r.evidence.every(e=>str(e.claim,2000)&&str(e.source,6000));
   }
   function validResumeState(state){
     const str=(v,max)=>typeof v==='string'&&v.length<=max;
-    const section=s=>!!s&&str(s.original,6000)&&str(s.issue,2000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=3&&s.questions.every(q=>str(q,2000))&&
+    const section=s=>!!s&&str(s.original,6000)&&str(s.issue,12020)&&(s.start===undefined||Number.isInteger(s.start)&&s.start>=0&&s.start<30000)&&Array.isArray(s.questions)&&s.questions.length>0&&s.questions.length<=18&&s.questions.every(q=>str(q,2000))&&
       Array.isArray(s.answers)&&s.answers.length===s.questions.length&&s.answers.every(a=>str(a,6000))&&typeof s.confirmedFacts==='boolean'&&
       (s.candidate===null||validResumeEnvelope(s.candidate,'rewrite'))&&str(s.candidateText,8000)&&(s.adopted===null||str(s.adopted,8000));
-    const sections=v=>Array.isArray(v)&&v.length<=6&&v.every(section);
+    const sections=(v,source)=>Array.isArray(v)&&v.length<=6&&v.every(s=>section(s)&&(s.start===undefined||source.slice(s.start,s.start+s.original.length)===s.original));
     return !!(state?.schemaVersion===1&&str(state.text,30000)&&str(state.jd,10000)&&
-      (state.diagnosis===null||validResumeEnvelope(state.diagnosis,'diagnosis'))&&sections(state.sections)&&
-      Array.isArray(state.versions)&&state.versions.length<=1000&&state.versions.every(v=>!!v&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections)));
+      (state.diagnosis===null||validResumeEnvelope(state.diagnosis,'diagnosis'))&&sections(state.sections,state.text)&&
+      Array.isArray(state.versions)&&state.versions.length<=1000&&state.versions.every(v=>!!v&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections,v.sourceText)));
   }
   function saveResume(){
     if(resumeBlocked){resumeMsg('简历存储异常，已停止覆盖原数据；请先导出备份检查。');return false;}
@@ -2525,7 +2527,7 @@
   function setResumeBusy(busy){
     resumeBusy=busy;document.querySelectorAll('#resume input,#resume textarea,#resume button').forEach(el=>el.disabled=busy);
   }
-  function composedResume(){let text=resumeState.text;resumeState.sections.filter(s=>s.adopted!==null).map(s=>({...s,start:resumeState.text.indexOf(s.original)})).sort((a,b)=>b.start-a.start).forEach(s=>{if(s.start>=0)text=text.slice(0,s.start)+s.adopted+text.slice(s.start+s.original.length);});return text;}
+  function composedResume(){let text=resumeState.text;resumeState.sections.filter(s=>s.adopted!==null).map(s=>({...s,start:s.start===undefined?resumeState.text.indexOf(s.original):s.start})).sort((a,b)=>b.start-a.start).forEach(s=>{if(s.start>=0)text=text.slice(0,s.start)+s.adopted+text.slice(s.start+s.original.length);});return text;}
   function renderCandidate(index){
     const s=resumeState.sections[index],box=document.querySelector(`[data-candidate-panel="${index}"]`);if(!box)return;
     box.innerHTML=s.candidate?`<h4>候选改写 · 请核对后采用</h4><div class="comparison"><div><h4>改写前 · 原文</h4><pre>${esc(s.original)}</pre></div><div><h4>改写后 · 候选</h4><div class="field"><label for="resumeCandidate${index}">可以直接修改这段文字</label><textarea id="resumeCandidate${index}" rows="6" maxlength="8000"></textarea></div></div></div>${s.adopted!==null?`<details><summary>当前已采用的文字</summary><pre style="white-space:pre-wrap">${esc(s.adopted)}</pre></details>`:''}<details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details><button class="btn btn-primary" data-adopt="${index}">确认采用这版</button>${s.adopted!==null?'<p class="mock-note">已采用，原文和此前版本仍保留。</p>':''}`:'';
@@ -2549,14 +2551,19 @@
   async function diagnoseResume(){
     if(resumeBusy||resumeBlocked)return;
     if(!resumeState.text.trim()){resumeMsg('请先粘贴简历正文。');return;}
-    setResumeBusy(true);resumeMsg('正在检查简历的匹配、个人贡献、证据和表达……');
+    setResumeBusy(true);document.getElementById('resumeDiagnose').textContent='正在分析…';resumeMsg('正在阅读简历，整理值得改进的内容与补充问题，请稍候。');
     try{
       const data=await requestAi('resume-diagnose',{resume:resumeState.text,jd:resumeState.jd});
-      if(!validResumeEnvelope(data,'diagnosis')||!data.result.sections.every(s=>resumeState.text.includes(s.original)))throw new Error('诊断格式或原文引用异常，请重试。');
+      if(!validResumeEnvelope(data,'diagnosis'))throw new Error('诊断结果异常');
+      const ranges=data.result.sections.map(s=>{const start=s.start===undefined?resumeState.text.indexOf(s.original):s.start;return {start,end:start+s.original.length,original:s.original};});
+      if(ranges.some((r,i)=>r.start<0||resumeState.text.slice(r.start,r.end)!==r.original||ranges.some((other,j)=>i!==j&&r.start<other.end&&other.start<r.end)))throw new Error('诊断结果异常');
       resumeState.diagnosis=data;resumeState.sections=data.result.sections.map(s=>({...s,answers:s.questions.map(()=>''),confirmedFacts:false,candidate:null,candidateText:'',adopted:null}));
-      saveResume();renderResume();
-    }catch(e){resumeMsg(e.message+' 原文和已有结果已保留。');}
-    finally{setResumeBusy(false);}
+      const saved=saveResume();renderResume();if(saved)resumeMsg('分析完成，找到 '+resumeState.sections.length+' 处可改进内容。请查看下方建议，按实际经历补充后再生成改写。','success');
+    }catch(e){
+      const message=/诊断|分析未能|模型输出格式|原文引用/.test(e.message)?'这次简历分析没有完成，暂时无法给出可用建议。原文和上次结果已保留，你无需修改简历，可以稍后点击「重新诊断」。':e.message+' 原文和上次结果已保留。';
+      resumeMsg(message,'error');
+    }
+    finally{setResumeBusy(false);document.getElementById('resumeDiagnose').textContent='重新诊断 →';}
   }
   async function rewriteResume(index){
     if(resumeBusy||resumeBlocked)return;const s=resumeState.sections[index];

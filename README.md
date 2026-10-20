@@ -155,6 +155,7 @@ npm test
 ```bash
 node tests/browser.cjs
 node tests/ai-browser.cjs
+node tests/resume-diagnosis-browser.cjs
 node tests/workspace-browser.cjs
 node tests/skill-browser.cjs
 ```
@@ -188,6 +189,7 @@ node tests/skill-browser.cjs
 
 - 面试：作答后主动点「AI 点评并追问」，按切题、结构、事实证据、深度四维给训练建议，引用实际回答；补答一次后再次点评，不无限追问。修改初答会清除旧点评。点评、追问、模型及评价版本一起保存到草稿、报告与备份。
 - 简历：粘贴正文（最多 30000 字）与可选 JD，先诊断并逐段提问；补充真实经历、勾选确认后才生成候选。可手动编辑并明确采用；原文保留，每次采用保存完整快照与补充事实。支持文本导出、版本复制及带入下一场模拟面试。已扩展 PDF/Word .docx 导入与改写对比（见下节），不提供云同步。
+- 诊断由程序为原文编号，模型按编号给建议；重复或重叠反馈自动合并，改写按原文位置应用，避免相同文字出现在多个项目时改错位置。无法可靠整理的结果会明确提示分析未完成，并保留原文、上次结果和版本。
 - 字段与引用校验会拒绝不在原材料中的引用和新增数字；这不能保证每条改写语义完全真实，候选仍需本人核对采用。连接失败或输出异常保留材料和已有结果，可重试。
 - 服务端共享传输位于 `ai-service.js`，任务分别为 `POST /api/ai/test`、`/api/ai/interview`、`/api/ai/resume-diagnose`、`/api/ai/resume-rewrite`；等待上限 45 秒，浏览器 50 秒。
 - 28 项 Node 回归及浏览器端受控模型与跨模块流程已通过，未配置真实 Key，因此真实供应商输出质量和兼容性尚未验收。

@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan}=require('../ai-service');
+const {runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan,resumeParagraphs}=require('../ai-service');
 const cfg={baseUrl:'http://controlled.local/v1',model:'test-model',apiKey:'fake-key'};
 const evaluation={scores:{relevance:4,structure:3,evidence:3,depth:2},strengths:['行动清楚'],gaps:['补验证方法'],suggestions:['描述对比'],evidenceQuotes:['优化缓存'],followUp:'你如何验证？'};
 test('interview scores and quotes must be grounded in the actual answer',()=>{
@@ -9,11 +9,38 @@ test('interview scores and quotes must be grounded in the actual answer',()=>{
   assert.throws(()=>validateInterview({...evaluation,scores:{...evaluation.scores,depth:6}},'我优化缓存'),/分数/);
   assert.equal(validateInterview(evaluation,'我优化缓存',true).followUp,'');
 });
-test('resume diagnosis requires literal non-overlapping source excerpts and fact questions',()=>{
+test('resume diagnosis validates source excerpts and merges repeated feedback',()=>{
   const result={overview:'缺少结果',matched:[],missing:['证据'],sections:[{original:'维护报表',issue:'需要行动',questions:['做了什么？']}]};
   assert.equal(validateDiagnosis(result,'我维护报表').sections.length,1);
-  assert.throws(()=>validateDiagnosis(result,'我负责销售'),/原文/);
-  assert.throws(()=>validateDiagnosis({...result,sections:[...result.sections,...result.sections]},'我维护报表'),/重叠/);
+  assert.throws(()=>validateDiagnosis(result,'我负责销售'),/分析未能整理完成/);
+  const merged=validateDiagnosis({...result,sections:[...result.sections,...result.sections]},'我维护报表');assert.equal(merged.sections.length,1);assert.equal(merged.sections[0].start,1);assert.deepEqual(merged.sections[0].questions,['做了什么？']);
+});
+test('numbered paragraphs distinguish identical source text and retain every merged issue and question',()=>{
+ const resume='  维护报表。\n项目乙\n  维护报表。',parts=resumeParagraphs(resume);
+ assert.equal(parts.length,3);assert.equal(parts[0].original,parts[2].original);assert.notEqual(parts[0].start,parts[2].start);
+ const result=validateDiagnosis({overview:'补事实',matched:[],missing:[],sections:[{paragraphId:'p3',issue:'缺少行动',questions:['怎么维护？']},{paragraphId:'p3',issue:'缺少结果',questions:['如何验证？']},{paragraphId:'p1',issue:'说明职责',questions:['负责什么？']}]},resume);
+ assert.equal(result.sections.length,2);assert.equal(result.sections[1].start,parts[2].start);assert.equal(result.sections[1].issue,'缺少行动；缺少结果');assert.deepEqual(result.sections[1].questions,['怎么维护？','如何验证？']);
+ for(const section of result.sections)assert.equal(resume.slice(section.start,section.start+section.original.length),section.original);
+});
+test('nested and transitively overlapping legacy excerpts merge to one exact source span',()=>{
+ const resume='甲乙丙丁戊己庚辛';const sections=[['甲乙丙丁','问题一','问题1？'],['丙丁戊己','问题二','问题2？'],['己庚辛','问题三','问题3？'],['乙丙','问题四','问题4？']].map(([original,issue,q])=>({original,issue,questions:[q]}));
+ const output=validateDiagnosis({overview:'补充事实',matched:[],missing:[],sections},resume);
+ assert.equal(output.sections.length,1);assert.equal(output.sections[0].original,resume);assert.equal(output.sections[0].questions.length,4);assert.equal(output.sections[0].start,0);
+});
+test('invalid IDs, ambiguous legacy quotes, invented quotes and missing questions fail safely',()=>{
+ const base={overview:'诊断',matched:[],missing:[]},resume='同一句。\n同一句。';
+ for(const section of [{paragraphId:'p9',issue:'问题',questions:['补什么？']},{original:'同一句。',issue:'问题',questions:['补什么？']},{paragraphId:'p1',original:'编造',issue:'问题',questions:['补什么？']},{paragraphId:'p1',issue:'问题',questions:[]}]){
+  assert.throws(()=>validateDiagnosis({...base,sections:[section]},resume),e=>e.status===502&&/无需调整原文/.test(e.message)&&!/重复或重叠/.test(e.message));
+ }
+ const long='甲'.repeat(1200);for(const p of resumeParagraphs(long))assert.ok(p.original.length<=500);
+});
+test('diagnosis offsets stay relative to the original input including leading whitespace',async()=>{
+ const resume='\n  维护报表。\n';
+ const out=await runAi('resume-diagnose',{resume,jd:''},{...cfg,transport:async(_c,payload)=>{
+  const body=JSON.parse(payload.messages[1].content);assert.equal(body.resume,resume);
+  return {choices:[{message:{content:JSON.stringify({overview:'待补充',matched:[],missing:[],sections:[{paragraphId:'p1',issue:'说明行动',questions:['做了什么？']}]})}}]};
+ }});
+ assert.equal(out.result.sections[0].start,3);assert.equal(resume.slice(out.result.sections[0].start,out.result.sections[0].start+out.result.sections[0].original.length),'维护报表。');assert.equal(out.meta.promptVersion,'2026-10-20.paragraphs.v2');
 });
 test('rewrite cannot introduce unsupported numbers or fabricated source quotes',()=>{
   const result={rewritten:'优化响应时间 20%',evidence:[{claim:'20%',source:'下降 20%'}]};
@@ -40,6 +67,7 @@ test('shared transport uses task-specific prompts, metadata and one follow-up',a
     const b=await runAi('interview',{question:'项目是什么？',answer:'优化缓存',role:'后端',followUp:{question:a.result.followUp,answer:'通过压测验证'}},cfg);
     const c=await runAi('resume-diagnose',{resume:'维护报表',jd:'数据运营'},cfg);
     assert.equal(b.result.followUp,'');assert.equal(c.meta.model,'test-model');assert.equal(a.meta.promptVersion,'2026-10-13.v1');
+    assert.deepEqual(JSON.parse(calls[2].body.messages[1].content).paragraphs,[{id:'p1',text:'维护报表'}]);assert.match(calls[2].body.messages[0].content,/paragraphId/);
     assert.match(calls[0].body.messages[0].content,/relevance/);assert.match(calls[2].body.messages[0].content,/个人贡献/);
     assert.equal(calls[0].options.headers.Authorization,'Bearer fake-key');assert.equal(calls[0].body.stream,false);
   }finally{global.fetch=previous;}
@@ -59,6 +87,7 @@ test('adopted sections replace original offsets without rewriting another candid
   const source=html.match(/  function composedResume\(\)\{[^\n]+\}/)[0];
   const context=vm.createContext({resumeState:{text:'原段甲\n原段乙',sections:[{original:'原段甲',adopted:'改写中引用原段乙'},{original:'原段乙',adopted:'第二段改写'}]}});
   vm.runInContext(source,context);assert.equal(context.composedResume(),'改写中引用原段乙\n第二段改写');
+  context.resumeState={text:'相同原文\n中间内容\n相同原文',sections:[{original:'相同原文',start:10,adopted:'仅修改最后一段'}]};assert.equal(context.composedResume(),'相同原文\n中间内容\n仅修改最后一段');
 });
 
 test('personal interview plan requires exact count, unique questions and literal evidence from both supplied sources',()=>{
