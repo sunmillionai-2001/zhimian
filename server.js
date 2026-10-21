@@ -171,8 +171,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 400, { error: '简历文本过长，请控制在 30000 字以内' });
     }
     try {
-      const { generateWordResume } = require('./resume-export');
-      const buffer = body.sourceId ? await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word') : await generateWordResume(body.text, { title: body.title });
+      if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word');
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="zhimian-resume.docx"',
@@ -193,8 +193,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 400, { error: '简历文本过长，请控制在 30000 字以内' });
     }
     try {
-      const { generatePdfResume } = require('./resume-export');
-      const buffer = body.sourceId ? await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf') : await generatePdfResume(body.text, { title: body.title });
+      if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf');
       res.writeHead(200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="zhimian-resume.pdf"',

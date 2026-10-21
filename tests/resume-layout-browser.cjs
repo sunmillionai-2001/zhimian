@@ -96,6 +96,18 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
       }),
     );
     await p.goto(`http://127.0.0.1:${port}/app.html#resume`);
+    // Legacy text-only records must never silently export a replacement template.
+    await p.locator('#resumeText').fill('旧版正文，已有优化内容保留。');
+    assert.equal(await p.locator('#resumeTemplateRequired').isVisible(), true);
+    for (const format of ['word', 'pdf']) {
+      const button = format === 'word' ? '#resumeExportWord' : '#resumeExportPdf';
+      assert.equal(await p.locator(button).isDisabled(), true);
+      const response = await p.request.post(`http://127.0.0.1:${port}/api/resume/export/${format}`, {
+        data: { text: '旧版正文，已有优化内容保留。' }
+      });
+      assert.equal(response.status(), 409);
+      assert.equal((await response.json()).code, 'RESUME_SOURCE_REQUIRED');
+    }
     const word = await styledWord();
     await p.locator("#resumeFile").setInputFiles({
       name: "two-column.docx",
@@ -122,6 +134,9 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
       ),
       sourceId = saved.source.id;
     assert.equal(saved.source.name, "two-column.docx");
+    assert.equal(saved.versions[0].text, '旧版正文，已有优化内容保留。');
+    assert.equal(await p.locator('#resumeTemplateRequired').isVisible(), false);
+    assert.equal(await p.locator('#resumeExportWord').isEnabled(), true);
     assert.deepEqual(
       await (
         await p.request.get(
