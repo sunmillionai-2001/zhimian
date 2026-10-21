@@ -6,7 +6,6 @@ const fs = require("node:fs"),
 const JSZip = require("jszip"),
   { DOMParser, XMLSerializer } = require("@xmldom/xmldom"),
   { diffChars } = require("diff");
-const { PDFDocument, rgb } = require("pdf-lib");
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const problem = (m) => Object.assign(new Error(m), { userMessage: m });
 function sourceText(blocks) {
@@ -270,7 +269,7 @@ async function renderPage(
       return true;
     },
   });
-  const ops = [];
+  const ops = [], imageOps = [];
   await page.render({
     canvas: hidden.size ? null : canvas,
     canvasContext: proxy,
@@ -278,6 +277,7 @@ async function renderPage(
     recordOperations: record,
     operationsFilter(index, list) {
       hide = hidden.has(index);
+      if(record && [api.OPS.paintImageXObject,api.OPS.paintInlineImageXObject,api.OPS.paintImageMaskXObject].includes(list.fnArray[index])) imageOps.push(index);
       if (
         record &&
         [
@@ -298,7 +298,8 @@ async function renderPage(
       return true;
     },
   }).promise;
-  return { canvas, ops, width: vp.width, height: vp.height };
+  const images=imageOps.filter(i=>page.recordedBBoxes&&!page.recordedBBoxes.isEmpty(i)).map(i=>({top:page.recordedBBoxes.minY(i)*vp.height,bottom:page.recordedBBoxes.maxY(i)*vp.height}));
+  return { canvas, ops, images, width: vp.width, height: vp.height };
 }
 async function pdfBlocks(opened) {
   const blocks = [];
@@ -398,117 +399,8 @@ async function pdfBlocks(opened) {
   }
   return { blocks: paragraphs, text: sourceText(paragraphs) };
 }
-const {embedResumeFont}=require("./pdf-font");
 async function exportVisualPdf(opened, blocks, changes) {
-  const pdf = await PDFDocument.create();
-  const font = await embedResumeFont(pdf);
-  for (let p = 1; p <= opened.doc.numPages; p++) {
-    const edits = [...changes].filter(([b]) => b.page === p),
-      hidden = new Set(edits.flatMap(([b]) => b.ops)),
-      page = await opened.doc.getPage(p),
-      r = await renderPage(page, opened.api, hidden, 2);
-    if (edits.length) {
-      const original = await renderPage(page, opened.api, new Set(), 2);
-      for (const [b] of edits) {
-        const x = Math.max(0, Math.floor(b.rect[0] * 2)),
-          y = Math.max(0, Math.floor(b.rect[1] * 2));
-        const w = Math.min(
-          r.canvas.width - x,
-          Math.ceil((b.rect[2] - b.rect[0]) * 2),
-        );
-        const h = Math.min(
-          r.canvas.height - y,
-          Math.ceil((b.rect[3] - b.rect[1]) * 2),
-        );
-        if (w <= 0 || h <= 0)
-          throw problem("这段文字不在可编辑的页面区域内，请使用 Word 原稿。");
-        const before = original.canvas
-          .getContext("2d")
-          .getImageData(x, y, w, h).data;
-        const after = r.canvas.getContext("2d").getImageData(x, y, w, h).data;
-        if (!before.some((v, i) => Math.abs(v - after[i]) > 10))
-          throw problem(
-            "这段文字实际保存在页面图片里，无法可靠原位替换。请导入 Word 原稿，避免叠字。",
-          );
-      }
-    }
-    const out = pdf.addPage([r.width / 2, r.height / 2]);
-    out.drawImage(await pdf.embedPng(r.canvas.toBuffer("image/png")), {
-      x: 0,
-      y: 0,
-      width: r.width / 2,
-      height: r.height / 2,
-    });
-    // Preserve searchable text for untouched blocks without painting over the original page.
-    // Replaced source words are deliberately omitted from this layer.
-    for (const b of blocks.filter((b) => b.page === p && !changes.has(b))) {
-      const size = b.fontSize || Math.max(8, b.rect[3] - b.rect[1]);
-      out.drawText(b.text, {
-        font,
-        size,
-        x: b.rect[0],
-        y: b.height - (b.baseline?.[1] || b.rect[1] + size * 0.86),
-        opacity: 0,
-      });
-    }
-    for (const [b, text] of edits) {
-      if (!b.positioned && !b.rotated) throw problem("无法准确定位这段文字，请使用 Word 原稿，原文件已保留。");
-      const [x, y, x2, y2] = b.rect;
-      if (b.rotated)
-        throw problem("旋转文字暂不支持原位改写，请使用 Word 原稿。");
-      let size = b.fontSize || Math.max(8, y2 - y),
-        lines;
-      const availableWidth = x2 - x + 2,
-        availableHeight = y2 - y + 3;
-      while (size >= 8) {
-        lines = [""];
-        for (const c of (b.wrappedLines ? text.replace(/\n\n/g, '\n') : text)) {
-          if (c === "\n") {
-            lines.push("");
-            continue;
-          }
-          const last = lines.length - 1;
-          if (
-            font.widthOfTextAtSize(lines[last] + c, size) > availableWidth &&
-            lines[last]
-          )
-            lines.push(c);
-          else lines[last] += c;
-        }
-        if (
-          lines.length * size * 1.05 <= availableHeight &&
-          lines.every(
-            (line) => font.widthOfTextAtSize(line, size) <= availableWidth,
-          )
-        )
-          break;
-        size -= 0.25;
-      }
-      if (size < 8)
-        throw problem(
-          "第 " +
-            p +
-            " 页「" +
-            b.text.slice(0, 18) +
-            "…」的改写超出原位置。请缩短这段文字，或导入 Word 原稿以自动换行。",
-        );
-      const hex = /^#([a-f\d]{6})$/i.exec(b.color || "")?.[1] || "222222",
-        color = rgb(
-          parseInt(hex.slice(0, 2), 16) / 255,
-          parseInt(hex.slice(2, 4), 16) / 255,
-          parseInt(hex.slice(4, 6), 16) / 255,
-        );
-      for (let i = 0; i < lines.length; i++)
-        out.drawText(lines[i], {
-          x,
-          y: b.height - (b.baseline?.[1] || y + size * 0.86) - i * size * 1.05,
-          font,
-          size,
-          color,
-        });
-    }
-  }
-  return Buffer.from(await pdf.save());
+  return require('./resume-pdf-flow').exportFlow(opened, blocks, changes, renderPage);
 }
 async function visualWord(buffer) {
   const { Document, Packer, Paragraph, ImageRun } = require("docx"),
@@ -636,7 +528,7 @@ async function processDocument(body) {
         text,
         pages: opened.doc.numPages,
         warnings: [
-          "PDF 按原页面位置修改；改写过长时会提示缩短。导出 Word 为保留外观的页面图像，不是可逐字编辑的 Word 原稿。",
+          "PDF 沿用原模板，扩写会推动后续内容向下并按安全位置分页。导出 Word 为保留外观的页面图像，不是可逐字编辑的 Word 原稿。",
         ],
         pdf: buffer.toString("base64"),
       };

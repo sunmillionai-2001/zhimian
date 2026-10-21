@@ -2559,7 +2559,7 @@
       document.getElementById('resumePreviewStatus').textContent='当前展示导入原件；采用改写后，点击上方按钮生成最新预览。';
     }
     document.getElementById('resumeSourceName').textContent=source.name;
-    document.getElementById('resumeSourceNote').textContent=source.ext==='.docx'?'导出沿用原文件的字体、表格、分栏和图片，采用的文字写回原位置。文字变长会按原文档规则换行。':'保留原页面、照片和分栏；改写需适合原位置。PDF 更新后以页面图像保留外观；Word 导出也是页面图像，不支持逐字编辑。';
+    document.getElementById('resumeSourceNote').textContent=source.ext==='.docx'?'导出沿用原文件的字体、表格、分栏和图片，采用的文字写回原位置。文字变长会按原文档规则换行。':'保留原模板的照片、栏目和配色；扩写后续内容会向下顺延，放不下时自动分页。请预览核对。PDF 及由 PDF 导出的 Word 以页面图像保留外观，Word 不支持逐字编辑。';
     document.getElementById('resumePageLabel').textContent='第 '+resumePreviewPage+' / '+resumePreviewPages+' 页';
     document.getElementById('resumeDownloadOriginal').href='/api/resume/source/'+source.id+'/original';
   }

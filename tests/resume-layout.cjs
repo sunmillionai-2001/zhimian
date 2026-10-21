@@ -168,19 +168,21 @@ test("PDF layout retains colored sidebar and untouched text; only second repeate
     } finally {
       await changed.task.destroy();
     }
-    await assert.rejects(
-      processDocument({
-        base64: b.toString("base64"),
-        ext: ".pdf",
-        action: "export",
-        format: "pdf",
-        text: target.replace(
-          "Validated weekly reports.",
-          "Extremely long rewritten experience ".repeat(20),
-        ),
-      }),
-      /超出原位置/,
-    );
+    const expandedText=target.replace('Validated weekly reports.','Extremely long rewritten experience '.repeat(20));
+    const expanded=await processDocument({base64:b.toString('base64'),ext:'.pdf',action:'export',format:'pdf',text:expandedText});
+    const reflowed=await openPdf(Buffer.from(expanded.base64,'base64'));
+    try {
+      assert.ok(reflowed.doc.numPages>=2,'Expanded content should paginate instead of shrinking or failing');
+      let all='';
+      for(let n=1;n<=reflowed.doc.numPages;n++) {
+        const page=await reflowed.doc.getPage(n),view=page.getViewport({scale:1});
+        assert.equal(view.width,595);assert.equal(view.height,842);
+        all+=(await page.getTextContent()).items.map(i=>i.str||'').join('');
+      }
+      const chars=t=>Array.from(t.replace(/\s/g,'')).sort().join('');
+      assert.equal(chars(all),chars(expandedText),'Pagination must neither duplicate nor drop text');
+    } finally {await reflowed.task.destroy();}
+
   } finally {
     await o.task.destroy();
   }
@@ -340,4 +342,30 @@ test('PDF wrapped lines share an editing region while separate columns stay sepa
     assert.ok(blocks[0].rect[2]<440);
     assert.equal(editsFor(blocks,text,text.replace('continued here.','validated here.')).size,1);
   } finally { await opened.task.destroy(); }
+});
+
+test('PDF expansion moves subsequent content across pages without losing tail text', async () => {
+  const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),page=pdf.addPage([595,842]);
+  page.drawText('ORIGINAL HEADER',{x:50,y:790,size:16,font});
+  page.drawText('Editable experience description here.',{x:50,y:730,size:12,font});
+  page.drawText('TAIL MUST SURVIVE',{x:50,y:650,size:12,font});
+  const bytes=Buffer.from(await pdf.save()),opened=await openPdf(bytes);
+  let text;
+  try {text=(await pdfBlocks(opened)).text;}finally{await opened.task.destroy();}
+  const target=text.replace('Editable experience description here.','Expanded project experience with verified results. '.repeat(100));
+  const output=await processDocument({ext:'.pdf',base64:bytes.toString('base64'),action:'export',format:'pdf',text:target});
+  const rendered=await openPdf(Buffer.from(output.base64,'base64'));
+  try {
+    assert.ok(rendered.doc.numPages>=3);
+    let extracted='',tailPage=0;
+    for(let n=1;n<=rendered.doc.numPages;n++){
+      const items=(await(await rendered.doc.getPage(n)).getTextContent()).items;
+      extracted+=items.map(i=>i.str||'').join('');
+      if(items.some(i=>i.str.includes('TAIL MUST SURVIVE')))tailPage=n;
+    }
+    assert.equal(tailPage,rendered.doc.numPages);
+    const sorted=t=>Array.from(t.replace(/\s/g,'')).sort().join('');
+    assert.equal(sorted(extracted),sorted(target));
+    assert.equal(extracted.match(/TAIL MUST SURVIVE/g).length,1);
+  }finally{await rendered.task.destroy();}
 });
