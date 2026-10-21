@@ -325,3 +325,19 @@ test("Chinese PDF replacement remains selectable and no-op Word returns the orig
     w,
   );
 });
+
+test('PDF wrapped lines share an editing region while separate columns stay separate', async () => {
+  const pdf=await PDFDocument.create(), page=pdf.addPage([600,800]);
+  const font=await pdf.embedFont(StandardFonts.Helvetica);
+  page.drawText('Project delivery '.repeat(4).trim(),{x:40,y:700,size:12,font});
+  page.drawText('continued here.',{x:40,y:680,size:12,font});
+  page.drawText('Separate column',{x:440,y:700,size:12,font});
+  const opened=await openPdf(Buffer.from(await pdf.save()));
+  try {
+    const {blocks,text}=await pdfBlocks(opened);
+    assert.equal(blocks.length,2);
+    assert.ok(blocks[0].text.includes('\n\ncontinued here.'));
+    assert.ok(blocks[0].rect[2]<440);
+    assert.equal(editsFor(blocks,text,text.replace('continued here.','validated here.')).size,1);
+  } finally { await opened.task.destroy(); }
+});

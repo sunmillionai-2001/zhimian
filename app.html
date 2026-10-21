@@ -861,10 +861,11 @@
           </details><div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
           <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
           <p class="mock-note" id="resumeMsg" role="status" aria-live="polite">正文、补充和改写保存在当前浏览器。</p>
+          <p class="mock-note" id="resumeExportState" role="status"></p>
           <div id="resumeTemplateRequired" class="resume-template-required" role="note"><h4>补充原文件，才能保留你的简历模板</h4><p>当前只保留了正文，没有原模板的排版信息。可以继续诊断和保存改写；导出 PDF / Word 前，请导入最初的简历文件。已有正文和改写版本会保留。</p><button class="btn btn-ghost" id="resumeAttachOriginal">导入原简历文件</button><p class="mock-note">请使用优化前的原稿，不要重新导入已经丢失样式的导出文件。有 Word 原稿时优先使用 Word，增删内容可沿用原样式换行。</p></div>
           <div class="paste-actions">
             <details class="export-menu">
-              <summary class="btn btn-ghost">按原模板导出 ▾</summary>
+              <summary class="btn btn-ghost">导出优化版（原模板） ▾</summary>
               <div class="export-options">
                 <button class="export-option" id="resumeExportTxt">正文备份 (.txt)</button>
                 <button class="export-option" id="resumeExportWord">Word 文档 (.docx)</button>
@@ -2540,8 +2541,10 @@
     box.querySelector('[data-adopt]')?.addEventListener('click',()=>adoptResume(index));
   }
   var resumeSourceDisplayed=null,resumePreviewUrl=null,resumePreviewText=null,resumePreviewPage=1,resumePreviewPages=1;
+  function hasResumeOptimization(){return resumeState.sections.some(s=>s.adopted!==null&&s.adopted!==s.original);}
   function syncResumeExportAvailability(){
-    for(const id of ['resumeExportWord','resumeExportPdf'])document.getElementById(id).disabled=resumeBusy||resumeBlocked||!resumeState.source;
+    for(const id of ['resumeExportWord','resumeExportPdf'])document.getElementById(id).disabled=resumeBusy||resumeBlocked||!resumeState.source||!hasResumeOptimization();
+    document.getElementById('resumeExportState').textContent=hasResumeOptimization()?'导出内容：当前已采用的优化版，沿用原模板。未采用的候选不会写入。':'当前尚无已采用的优化。请先确认采用改写，或在下方历史版本中恢复已有优化；原件请使用“下载导入原件”。';
     document.getElementById('resumeTemplateRequired').hidden=!!resumeState.source;
   }
   function renderResumeSource(){
@@ -2576,7 +2579,8 @@
       resumeState.sections.forEach((s,i)=>renderCandidate(i));
     }
     const versions=document.getElementById('resumeVersions');
-    versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><div class="comparison"><div><h4>采用前 · 原始简历</h4><pre>${esc(v.sourceText)}</pre></div><div><h4>采用后 · 此版简历</h4><pre>${esc(v.text)}</pre></div></div><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
+    versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>版本 ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><div class="comparison"><div><h4>采用前 · 原始简历</h4><pre>${esc(v.sourceText)}</pre></div><div><h4>采用后 · 此版简历</h4><pre>${esc(v.text)}</pre></div></div><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-restore-resume="${i}">恢复这版优化到当前模板</button><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
+    versions.querySelectorAll('[data-restore-resume]').forEach(b=>b.addEventListener('click',()=>restoreResumeOptimization(Number(b.dataset.restoreResume))));
     versions.querySelectorAll('[data-copy-version]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(resumeState.versions[Number(b.dataset.copyVersion)].text);resumeMsg('已复制此版本。');}catch(e){resumeMsg('复制失败，请展开版本手动选择文字。');}}));
   }
   async function diagnoseResume(){
@@ -2606,6 +2610,33 @@
       s.candidate=data;s.candidateText=data.result.rewritten;saveResume();renderCandidate(index);
     }catch(e){resumeMsg(e.message+' 原文、补充事实和已有版本已保留。');}
     finally{setResumeBusy(false);}
+  }
+  function restoreResumeOptimization(index){
+    if(resumeBusy||resumeBlocked)return;
+    const v=resumeState.versions[index];if(!v)return;
+    if(!resumeState.source){resumeMsg('请先导入要使用的原模板，再恢复优化。');return;}
+    const compact=t=>{let text='',positions=[];for(let i=0;i<t.length;i++)if(!/\s/.test(t[i])){text+=t[i];positions.push(i);}return {text,positions};};
+    const base=compact(resumeState.text), mapped=[];
+    for(const old of v.sections.filter(s=>s.adopted!==null&&s.adopted!==s.original)){
+      const needle=compact(old.original).text,first=base.text.indexOf(needle);
+      let start,end;
+      if(v.sourceText===resumeState.text&&Number.isInteger(old.start)){
+        start=old.start;end=start+old.original.length;
+      }else{
+        if(!needle||first<0||base.text.indexOf(needle,first+1)>=0){resumeMsg('这版优化有段落无法唯一对应当前原稿，未恢复任何内容。请核对是否选择了同一份简历。');return;}
+        start=base.positions[first];end=base.positions[first+needle.length-1]+1;
+      }
+      if(mapped.some(s=>start<s.start+s.original.length&&end>s.start)){resumeMsg('历史段落位置冲突，未改动当前简历。');return;}
+      mapped.push({...JSON.parse(JSON.stringify(old)),start,original:resumeState.text.slice(start,end)});
+    }
+    if(!mapped.length){resumeMsg('这版没有已采用的优化内容。');return;}
+    if(resumeState.versions.length>=1000){resumeMsg('历史版本已满，请先备份整理。');return;}
+    const previous=JSON.parse(JSON.stringify(resumeState));
+    resumeState.versions.unshift({source:resumeState.source,id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))});
+    resumeState.sections=mapped;
+    resumeState.diagnosis={meta:{model:'历史优化',promptVersion:'restore-v1',createdAt:new Date().toISOString()},result:{overview:'已恢复此前确认采用的优化；保留当前原模板，请预览版式后导出。',matched:[],missing:[],sections:mapped.map(s=>({original:s.original,start:s.start,issue:s.issue,questions:s.questions}))}};
+    if(!saveResume()){resumeState=previous;renderResume();return;}
+    renderResume();resumeMsg('已恢复 '+mapped.length+' 段已采用优化，当前导出将使用这些内容；原稿与历史仍保留。');
   }
   function adoptResume(index){
     if(resumeBusy||resumeBlocked)return;const s=resumeState.sections[index];
@@ -2638,6 +2669,7 @@
       return;
     }
 
+    if(!hasResumeOptimization()){resumeMsg('尚未采用优化内容。请先采用改写或恢复历史优化；下载原稿请使用“下载导入原件”。');return;}
     // Word/PDF must retain a linked original; never silently generate a new template.
     if(!resumeState.source){resumeMsg('请先导入原简历文件，才能按原模板导出。正文和改写已保留。');return;}
     if (!['http:', 'https:'].includes(location.protocol)) {
@@ -2645,7 +2677,7 @@
     }
 
     const endpoint = format === 'word' ? '/api/resume/export/word' : '/api/resume/export/pdf';
-    const fileName = format === 'word' ? 'zhimian-resume.docx' : 'zhimian-resume.pdf';
+    const fileName = format === 'word' ? 'zhimian-resume-optimized.docx' : 'zhimian-resume-optimized.pdf';
 
     setResumeBusy(true);
     resumeMsg(`正在生成 ${format === 'word' ? 'Word' : 'PDF'} 文件，请稍候……`);
@@ -2653,7 +2685,7 @@
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, title: '个人简历',sourceId:resumeState.source?.id }),
+      body: JSON.stringify({ text, title: '个人简历',sourceId:resumeState.source?.id,requireChanges:true }),
       signal: AbortSignal.timeout(65000)
     })
     .then(async response => {
@@ -2670,7 +2702,7 @@
       a.download = fileName;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      resumeMsg(`${format === 'word' ? 'Word' : 'PDF'} 文件已生成。`);
+      resumeMsg(`${format === 'word' ? 'Word' : 'PDF'} 优化版已生成，内容为当前已采用的改写。`);
     })
     .catch(err => {
       resumeMsg((err.name === 'TimeoutError' ? '导出等待超时，请重试。' : err.message));

@@ -161,7 +161,7 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     assert.equal(saved.source.name, "two-column.docx");
     assert.equal(saved.versions[0].text, '旧版正文，已有优化内容保留。');
     assert.equal(await p.locator('#resumeTemplateRequired').isVisible(), false);
-    assert.equal(await p.locator('#resumeExportWord').isEnabled(), true);
+    assert.equal(await p.locator('#resumeExportWord').isEnabled(), false);
     assert.deepEqual(
       await (
         await p.request.get(
@@ -207,6 +207,21 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
       (await openWord(output)).text,
       /Project Beta\n\nValidated weekly reports/,
     );
+    // Reattaching the original must allow recovery of adopted edits, not export it as optimized.
+    await p.locator('#resumeFile').setInputFiles({name:'reattached.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:word});
+    await p.locator('#resumeImportApply').waitFor({state:'visible',timeout:60000});
+    await p.locator('#resumeImportApply').click();
+    assert.equal(await p.locator('#resumeExportWord').isEnabled(),false);
+    await p.locator('#resumeVersions .resume-version').first().locator('summary').first().click();
+    await p.locator('[data-restore-resume="0"]').click();
+    assert.equal(await p.locator('#resumeExportWord').isEnabled(),true);
+    await p.reload();
+    const restored=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
+    assert.equal(restored.sections[0].adopted,'Validated weekly reports.');
+    sourceId=restored.source.id;
+    if(!(await p.locator('#resumeExportWord').isVisible()))await p.locator('.export-menu summary').click();
+    download=p.waitForEvent('download');await p.locator('#resumeExportWord').click();
+    assert.equal((await openWord(fs.readFileSync(await(await download).path()))).text,saved.versions[0].text);
     const pdf = await styledPdf();
     await p.locator("#resumeFile").setInputFiles({
       name: "colored.pdf",
@@ -235,8 +250,12 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     assert.match(await p.locator("#resumeExportWord").innerText(), /页面图像/);
     if (!(await p.locator("#resumeExportPdf").isVisible()))
       await p.locator(".export-menu summary").click();
+    assert.equal(await p.locator('#resumeExportPdf').isEnabled(), false);
+    const rawState=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
+    const noChanges=await p.request.post(`http://127.0.0.1:${port}/api/resume/export/pdf`,{data:{sourceId:rawState.source.id,text:rawState.text}});
+    assert.equal(noChanges.status(),409);
     download = p.waitForEvent("download");
-    await p.locator("#resumeExportPdf").click();
+    await p.locator("#resumeDownloadOriginal").click();
     assert.deepEqual(fs.readFileSync(await (await download).path()), pdf);
     for (const width of [320, 390, 820]) {
       await p.setViewportSize({ width, height: 900 });

@@ -118,11 +118,12 @@ function createSourceStore(directory) {
         page,
       });
     },
-    async render(id, text, format) {
+    async render(id, text, format, requireChanges = false) {
       const m = load(id);
       if (typeof text !== "string" || !text.trim() || text.length > 30000)
         throw fail("请检查简历正文，最多 30000 字。", 400);
       if (!["pdf", "word"].includes(format)) throw fail("导出格式无效", 400);
+      if(requireChanges && text.replace(/\s/g, "") === m.text.replace(/\s/g, "")) throw fail("当前内容与原稿相同，尚未采用优化；请先采用改写，下载原稿请使用原件入口。", 409);
       const original = fs.readFileSync(path.join(m.dir, "original" + m.ext));
       if (
         text === m.text &&

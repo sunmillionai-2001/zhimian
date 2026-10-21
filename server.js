@@ -172,7 +172,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
-      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word');
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word',true);
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="zhimian-resume.docx"',
@@ -194,7 +194,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
-      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf');
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf',true);
       res.writeHead(200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="zhimian-resume.pdf"',

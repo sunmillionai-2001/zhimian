@@ -377,7 +377,26 @@ async function pdfBlocks(opened) {
       a.rect[2] = Math.max(a.rect[2], b.rect[2]);
     } else merged.push({ ...b });
   }
-  return { blocks: merged, text: sourceText(merged) };
+  // Join wrapped lines only when the preceding line fills its column and does
+  // not end a sentence. Preserve extracted separators for existing source IDs.
+  const paragraphs = [];
+  for (const b of merged) {
+    const a = paragraphs.at(-1), last = a?.lastLine || a;
+    const columnWidth = Math.max(...merged.filter(c=>c.page===b.page &&
+      Math.abs(c.rect[0]-b.rect[0])<2 && Math.abs((c.fontSize||0)-(b.fontSize||0))<0.1)
+      .map(c=>c.rect[2]-c.rect[0]));
+    if(a && a.positioned && b.positioned && a.page===b.page &&
+      Math.abs(last.rect[0]-b.rect[0])<2 &&
+      Math.abs(last.fontSize-b.fontSize)<0.1 && last.color===b.color &&
+      b.baseline[1]>last.baseline[1] && b.baseline[1]-last.baseline[1]<=b.fontSize*2 &&
+      last.rect[2]-last.rect[0]>=columnWidth*0.85 &&
+      !/[。！？!?；;.]$/.test(last.text.trim())) {
+      a.text+='\n\n'+b.text;a.ops.push(...b.ops);a.wrappedLines=true;
+      a.rect=[Math.min(a.rect[0],b.rect[0]),Math.min(a.rect[1],b.rect[1]),Math.max(a.rect[2],b.rect[2]),Math.max(a.rect[3],b.rect[3])];
+      a.lastLine=b;
+    } else paragraphs.push({...b});
+  }
+  return { blocks: paragraphs, text: sourceText(paragraphs) };
 }
 const {embedResumeFont}=require("./pdf-font");
 async function exportVisualPdf(opened, blocks, changes) {
@@ -443,7 +462,7 @@ async function exportVisualPdf(opened, blocks, changes) {
         availableHeight = y2 - y + 3;
       while (size >= 8) {
         lines = [""];
-        for (const c of text) {
+        for (const c of (b.wrappedLines ? text.replace(/\n\n/g, '\n') : text)) {
           if (c === "\n") {
             lines.push("");
             continue;
