@@ -1,18 +1,11 @@
 // 简历导出服务：生成格式化的 Word 和 PDF 文件
-const fs = require('fs');
-const path = require('path');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 const { PDFDocument, rgb } = require('pdf-lib');
-const fontkit = require('@pdf-lib/fontkit');
+const { embedResumeFont } = require('./pdf-font');
 
-// 中文字体（Noto Sans SC 子集，OFL 许可），覆盖 GB2312 全部汉字与常用符号
-const CJK_FONT_PATH = path.join(__dirname, 'assets', 'fonts', 'NotoSansSC-Regular.otf');
-let _fontBuffer = null;
-
-function loadFont() {
-  if (_fontBuffer) return _fontBuffer;
-  _fontBuffer = fs.readFileSync(CJK_FONT_PATH);
-  return _fontBuffer;
+function isSectionHeading(text) {
+  return /^(个人信息|教育背景|工作经历|项目经验|专业技能|自我评价|求职意向)[：:]?$/.test(text) ||
+    (text.length <= 24 && /^(?:[一二三四五六七八九十]+|\d{1,2})[、.\s]/.test(text));
 }
 
 /**
@@ -44,8 +37,7 @@ async function generateWordResume(resumeText, options = {}) {
     const trimmed = line.trim();
 
     // 识别章节标题（如：工作经历、教育背景等）
-    const isSectionTitle = /^[一二三四五六七八九十\d]+[、\.\s]/.test(trimmed) ||
-                          /^(个人信息|教育背景|工作经历|项目经验|专业技能|自我评价|求职意向)/.test(trimmed);
+    const isSectionTitle = isSectionHeading(trimmed);
 
     if (isSectionTitle) {
       children.push(
@@ -88,10 +80,9 @@ async function generatePdfResume(resumeText, options = {}) {
   const { title = '个人简历' } = options;
 
   const pdfDoc = await PDFDocument.create();
-  pdfDoc.registerFontkit(fontkit);
 
-  // 嵌入中文字体（子集化，只保留实际用到的字形）
-  const font = await pdfDoc.embedFont(loadFont(), { subset: true });
+  // 嵌入 TrueType 中文字体，避免 CFF 子集字形映射丢失
+  const font = await embedResumeFont(pdfDoc);
 
   let page = pdfDoc.addPage([595, 842]); // A4 尺寸
   const { width, height } = page.getSize();
@@ -130,61 +121,32 @@ async function generatePdfResume(resumeText, options = {}) {
     }
 
     // 识别章节标题
-    const isSectionTitle = /^[一二三四五六七八九十\d]+[、\.\s]/.test(trimmed) ||
-                          /^(个人信息|教育背景|工作经历|项目经验|专业技能|自我评价|求职意向)/.test(trimmed);
+    const isSectionTitle = isSectionHeading(trimmed);
 
-    if (isSectionTitle) {
-      yPosition -= 10;
-      page.drawText(trimmed, {
-        x: margin,
-        y: yPosition,
-        size: headingSize,
-        font,
-        color: rgb(0.76, 0.23, 0.12) // 朱砂红
-      });
-      yPosition -= lineHeight + 6;
-    } else {
-      // 处理长文本换行
-      const chars = Array.from(trimmed);
-      let currentLine = '';
-
-      for (const char of chars) {
-        const testLine = currentLine + char;
-        const testWidth = font.widthOfTextAtSize(testLine, textSize);
-
-        if (testWidth > maxWidth && currentLine) {
-          page.drawText(currentLine, {
-            x: margin,
-            y: yPosition,
-            size: textSize,
-            font,
-            color: rgb(0.13, 0.11, 0.08)
-          });
-          yPosition -= lineHeight;
-          currentLine = char;
-
-          // 检查是否需要新页面
-          if (yPosition < margin + 20) {
-            page = pdfDoc.addPage([595, 842]);
-            yPosition = height - margin;
-          }
-        } else {
-          currentLine = testLine;
-        }
+    const size = isSectionTitle ? headingSize : textSize;
+    if (isSectionTitle) yPosition -= 10;
+    const wrapped = [];
+    let current = '';
+    for (const char of Array.from(trimmed)) {
+      if (current && font.widthOfTextAtSize(current + char, size) > maxWidth) {
+        wrapped.push(current);
+        current = '';
       }
-
-      // 绘制最后一行
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: margin,
-          y: yPosition,
-          size: textSize,
-          font,
-          color: rgb(0.13, 0.11, 0.08)
-        });
-        yPosition -= lineHeight + 2;
-      }
+      current += char;
     }
+    if (current) wrapped.push(current);
+    for (const text of wrapped) {
+      if (yPosition < margin + 20) {
+        page = pdfDoc.addPage([595, 842]);
+        yPosition = height - margin;
+      }
+      page.drawText(text, {
+        x: margin, y: yPosition, size, font,
+        color: isSectionTitle ? rgb(0.76, 0.23, 0.12) : rgb(0.13, 0.11, 0.08)
+      });
+      yPosition -= Math.max(lineHeight, size + 3);
+    }
+    yPosition -= isSectionTitle ? 6 : 2;
   }
 
   // 生成 PDF buffer（pdf-lib 返回 Uint8Array，统一转为 Node Buffer）

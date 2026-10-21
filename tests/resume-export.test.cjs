@@ -70,3 +70,32 @@ test('PDF 导出 - 章节标题识别（工作经历等）', async () => {
   const buffer = await generatePdfResume(text);
   assert.equal(buffer.slice(0, 5).toString(), '%PDF-', '含章节标题应正常生成');
 });
+
+test('PDF 中文字形实际可渲染，长段落保持页内且文字完整', async () => {
+  const { openPdf } = require('../resume-layout-engine');
+  const { createCanvas } = require('@napi-rs/canvas');
+  const text = '工作经历' + '负责产品规划与用户研究，推动项目落地。'.repeat(15);
+  const buffer = await generatePdfResume(text, { title: '中文简历' });
+  const { doc, task } = await openPdf(buffer);
+  try {
+    let extracted = '';
+    for (let n = 1; n <= doc.numPages; n++) {
+      const page = await doc.getPage(n);
+      const content = await page.getTextContent();
+      for (const item of content.items.filter(i => i.str)) {
+        assert.ok(item.transform[4] >= 0 && item.transform[4] + item.width <= 546, '文字不得超出右边距');
+        extracted += item.str;
+      }
+      const canvas = createCanvas(595, 842), context = canvas.getContext('2d');
+      await page.render({ canvas, canvasContext: context, viewport: page.getViewport({ scale: 1 }) }).promise;
+      // This title contains Chinese only. A valid ToUnicode map alone cannot pass this check.
+      if (n === 1) {
+        const pixels = context.getImageData(245, 30, 105, 28).data;
+        let ink = 0;
+        for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 180) ink++;
+        assert.ok(ink > 150, '中文标题必须产生可见字形');
+      }
+    }
+    assert.equal(extracted.replace(/\s/g, ''), ('中文简历' + text).replace(/\s/g, ''));
+  } finally { await task.destroy(); }
+});

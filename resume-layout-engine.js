@@ -6,8 +6,7 @@ const fs = require("node:fs"),
 const JSZip = require("jszip"),
   { DOMParser, XMLSerializer } = require("@xmldom/xmldom"),
   { diffChars } = require("diff");
-const { PDFDocument, rgb } = require("pdf-lib"),
-  fontkit = require("@pdf-lib/fontkit");
+const { PDFDocument, rgb } = require("pdf-lib");
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const problem = (m) => Object.assign(new Error(m), { userMessage: m });
 function sourceText(blocks) {
@@ -370,13 +369,10 @@ async function pdfBlocks(opened) {
   }
   return { blocks: merged, text: sourceText(merged) };
 }
-const fontFile = path.join(__dirname, "assets/fonts/NotoSansSC-Regular.otf");
+const {embedResumeFont}=require("./pdf-font");
 async function exportVisualPdf(opened, blocks, changes) {
   const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
-  const font = await pdf.embedFont(fs.readFileSync(fontFile), {
-    subset: false,
-  });
+  const font = await embedResumeFont(pdf);
   for (let p = 1; p <= opened.doc.numPages; p++) {
     const edits = [...changes].filter(([b]) => b.page === p),
       hidden = new Set(edits.flatMap(([b]) => b.ops)),
