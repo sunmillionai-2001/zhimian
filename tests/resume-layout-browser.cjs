@@ -7,7 +7,7 @@ const { chromium } = require("playwright"),
   http = require("node:http"),
   { spawn } = require("node:child_process");
 const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
-  { openWord } = require("../resume-layout-engine");
+  { openWord, openPdf, pdfBlocks, processDocument } = require("../resume-layout-engine");
 (async () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), "zm-layout-browser-"));
   let app, browser;
@@ -53,6 +53,31 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
       } catch {}
     });
     await context.route("**/fonts.googleapis.com/**", (r) => r.abort());
+    // Chrome/Skia tagged PDFs can expose clip-group bounds for individual words.
+    // Use a synthetic browser-generated PDF, never a user's resume as a fixture.
+    const fixturePage = await context.newPage();
+    await fixturePage.setContent('<html><body style="margin:64px;font:12px Arial"><h1>Sample Resume</h1><section style="overflow:hidden;border-left:1px solid purple;padding:20px"><h2>Experience</h2><ul><li>Supported customer requests.</li><li>Retained original layout.</li></ul></section></body></html>');
+    const tagged = await fixturePage.pdf({format:'A4', tagged:true, printBackground:true});
+    await fixturePage.close();
+    const opened = await openPdf(tagged);
+    let taggedText;
+    try {
+      const result = await pdfBlocks(opened);
+      taggedText = result.text;
+      const block = result.blocks.find(b => b.text.includes('Supported customer requests.'));
+      assert.ok(block && block.positioned);
+      assert.ok(block.rect[0] > 50 && block.rect[3] - block.rect[1] < 25,
+        'Text bounds must not use the page clipping group');
+    } finally { await opened.task.destroy(); }
+    const patched = await processDocument({name:'tagged.pdf', ext:'.pdf', action:'export',format:'pdf',
+      base64:tagged.toString('base64'),text:taggedText.replace('Supported customer requests.','Handled customer requests.')});
+    const patchedDoc = await openPdf(Buffer.from(patched.base64,'base64'));
+    try {
+      const items = (await (await patchedDoc.doc.getPage(1)).getTextContent()).items;
+      const replacement = items.find(i=>i.str.includes('Handled customer requests.'));
+      assert.ok(replacement && replacement.transform[4] > 50, 'Replacement must stay in its original column');
+      assert.ok(!items.some(i=>i.str.includes('Supported customer requests.')));
+    } finally { await patchedDoc.task.destroy(); }
     const p = await context.newPage(),
       errors = [];
     p.on("pageerror", (e) => errors.push(e.message));

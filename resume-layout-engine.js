@@ -306,11 +306,12 @@ async function pdfBlocks(opened) {
     const page = await opened.doc.getPage(p),
       render = await renderPage(page, opened.api, new Set(), 1, true),
       boxes = page.recordedBBoxes,
-      items = (await page.getTextContent()).items.filter((i) => i.str);
+      content = await page.getTextContent(),
+      items = content.items.filter((i) => i.str);
     let itemIndex = 0;
     for (const op of render.ops) {
       if (!boxes || boxes.isEmpty(op.index)) continue;
-      const rect = [
+      let rect = [
         boxes.minX(op.index) * render.width,
         boxes.minY(op.index) * render.height,
         boxes.maxX(op.index) * render.width,
@@ -330,7 +331,21 @@ async function pdfBlocks(opened) {
             .getViewport({ scale: 1 })
             .convertToViewportPoint(item.transform[4], item.transform[5])
         : null;
+      const fontSize = item ? Math.hypot(item.transform[0], item.transform[1]) : null;
+      const rotated = item ? Math.abs(item.transform[1]) > 0.01 ||
+        Math.abs(item.transform[2]) > 0.01 || page.rotate !== 0 : false;
+      // Tagged Chromium/Skia PDFs can report a whole clipping group as a text
+      // operation's painted bounds. Anchor horizontal text to its actual text matrix.
+      const positioned = !!(baseline && fontSize > 0 && item.width > 0 && !rotated);
+      if (positioned) {
+        const style = content.styles[item.fontName] || {};
+        const ascent = Number.isFinite(style.ascent) ? style.ascent : 0.9;
+        const descent = Number.isFinite(style.descent) ? style.descent : -0.2;
+        rect = [baseline[0], baseline[1] - fontSize * ascent,
+          baseline[0] + item.width, baseline[1] - fontSize * descent];
+      }
       blocks.push({
+        positioned,
         text: op.text,
         page: p,
         ops: [op.index],
@@ -338,15 +353,9 @@ async function pdfBlocks(opened) {
         color: op.color,
         width: render.width,
         height: render.height,
-        fontSize: item
-          ? Math.hypot(item.transform[0], item.transform[1])
-          : null,
+        fontSize,
         baseline,
-        rotated: item
-          ? Math.abs(item.transform[1]) > 0.01 ||
-            Math.abs(item.transform[2]) > 0.01 ||
-            page.rotate !== 0
-          : false,
+        rotated,
       });
     }
   }
@@ -364,6 +373,7 @@ async function pdfBlocks(opened) {
     ) {
       a.text += (b.rect[0] - a.rect[2] > 3 ? " " : "") + b.text;
       a.ops.push(...b.ops);
+      a.positioned = a.positioned && b.positioned;
       a.rect[2] = Math.max(a.rect[2], b.rect[2]);
     } else merged.push({ ...b });
   }
@@ -423,6 +433,7 @@ async function exportVisualPdf(opened, blocks, changes) {
       });
     }
     for (const [b, text] of edits) {
+      if (!b.positioned && !b.rotated) throw problem("无法准确定位这段文字，请使用 Word 原稿，原文件已保留。");
       const [x, y, x2, y2] = b.rect;
       if (b.rotated)
         throw problem("旋转文字暂不支持原位改写，请使用 Word 原稿。");
