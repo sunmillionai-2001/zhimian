@@ -115,7 +115,12 @@ async function openWord(buffer) {
     }
     walk(p);
     const text = nodes.map((n) => n.text).join("");
-    if (text.trim()) blocks.push({ text, nodes });
+    if (text.trim()) {
+      let cell=p.parentNode;while(cell&&!(cell.namespaceURI===W&&cell.localName==='tc'))cell=cell.parentNode;
+      const cells=Array.from(doc.getElementsByTagNameNS(W,'tc'));
+      const style=p.getElementsByTagNameNS(W,'pStyle')[0]?.getAttributeNS(W,'val')||'';
+      blocks.push({text,nodes,lane:cell?'cell'+cells.indexOf(cell):'body',heading:/^(?:Heading|标题)[ _-]?[1-3]$/i.test(style)});
+    }
   }
   return { zip, doc, blocks, text: sourceText(blocks) };
 }
@@ -455,10 +460,14 @@ async function visualWord(buffer) {
     await opened.task.destroy();
   }
 }
+function navigationBlocks(blocks){
+  return blocks.map(({start,end,lane,heading,page,rect,fontSize,positioned})=>({start,end,lane,heading,page,rect,fontSize,positioned}));
+}
 async function processDocument(body) {
   const buffer = Buffer.from(body.base64, "base64");
   if (body.ext === ".docx") {
     const w = await openWord(buffer);
+    if(body.action==='outline')return {text:w.text,blocks:navigationBlocks(w.blocks)};
     if (body.action === "inspect") {
       let pdf = null,
         warnings = [],
@@ -476,6 +485,7 @@ async function processDocument(body) {
       }
       return {
         text: w.text,
+        blocks:navigationBlocks(w.blocks),
         pages,
         warnings,
         pdf: pdf?.toString("base64") || null,
@@ -523,9 +533,11 @@ async function processDocument(body) {
       };
     }
     const { blocks, text } = await pdfBlocks(opened);
+    if(body.action==='outline')return {text,blocks:navigationBlocks(blocks)};
     if (body.action === "inspect")
       return {
         text,
+        blocks:navigationBlocks(blocks),
         pages: opened.doc.numPages,
         warnings: [
           "PDF 沿用原模板，扩写会推动后续内容向下并按安全位置分页。导出 Word 为保留外观的页面图像，不是可逐字编辑的 Word 原稿。",

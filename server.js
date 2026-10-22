@@ -155,6 +155,8 @@ const server = http.createServer(async (req, res) => {
   if(pageMatch&&req.method==='GET'){
     const r=await require('./resume-layout').createSourceStore(userDirectory).page(pageMatch[1],Number(pageMatch[2]));res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(Buffer.from(r.base64,'base64'));
   }
+  const outlineMatch=/^\/api\/resume\/source\/([a-f0-9]{32})\/outline$/.exec(url);
+  if(outlineMatch&&req.method==='GET')return sendJson(res,200,await require('./resume-layout').createSourceStore(userDirectory).outline(outlineMatch[1]));
   const sourceMatch=/^\/api\/resume\/source\/([a-f0-9]{32})\/(preview|original)$/.exec(url);
   if(sourceMatch&&req.method==='GET'){
     const {buffer,ext}=require('./resume-layout').createSourceStore(userDirectory).read(sourceMatch[1],sourceMatch[2]==='original');

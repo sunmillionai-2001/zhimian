@@ -79,6 +79,7 @@ function createSourceStore(directory) {
             text: result.text,
             pages: result.pages,
             warnings: result.warnings,
+            blocks: result.blocks,
           }),
           { mode: 0o600 },
         );
@@ -92,6 +93,12 @@ function createSourceStore(directory) {
         warnings: result.warnings,
         source: { id, name: body.name, ext, pages: result.pages },
       };
+    },
+    async outline(id) {
+      const m=load(id);
+      // Old sources are parsed lazily. Do not rewrite private originals or existing metadata.
+      if(m.blocks)return {text:m.text,blocks:m.blocks};
+      return work({action:'outline',ext:m.ext,base64:fs.readFileSync(path.join(m.dir,'original'+m.ext)).toString('base64')});
     },
     read(id, original = false) {
       const m = load(id);

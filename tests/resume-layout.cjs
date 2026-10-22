@@ -60,6 +60,10 @@ test("source storage is account isolated, original download is byte exact, no si
       b = createSourceStore(path.join(dir, "b")),
       pdf = await styledPdf(),
       r = await a.import(upload("original.pdf", pdf));
+    const outline=await a.outline(r.source.id);assert.equal(outline.text,r.text);assert.ok(outline.blocks.length>0);
+    await assert.rejects(b.outline(r.source.id),e=>e.status===404);
+    const metaPath=path.join(dir,'a','resume-sources',r.source.id,'meta.json'),meta=JSON.parse(fs.readFileSync(metaPath));delete meta.blocks;fs.writeFileSync(metaPath,JSON.stringify(meta));
+    const legacyMeta=fs.readFileSync(metaPath);assert.deepEqual(await a.outline(r.source.id),outline);assert.deepEqual(fs.readFileSync(metaPath),legacyMeta,'legacy outline parsing must not rewrite metadata');
     assert.deepEqual(a.read(r.source.id, true).buffer, pdf);
     assert.deepEqual(await a.render(r.source.id, r.text, "pdf"), pdf);
     assert.throws(

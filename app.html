@@ -488,10 +488,11 @@
   @media(max-width:480px){.main{padding-left:16px;padding-right:16px}.topbar .search{display:none}.topbar{flex-wrap:wrap}.stage-bar{flex-wrap:wrap}.stage-actions{flex-wrap:wrap}.resume-section{padding:14px}}
   #resumeSetupDetails>summary{cursor:pointer;font-family:var(--serif);font-weight:700;line-height:1.7}#resumeSetupDetails>summary span{font:12px var(--sans);color:var(--ink-faint);margin-left:12px}#resumeSetupDetails[open]>summary{margin-bottom:18px}
   #resume.has-diagnosis>.hero{display:none}#resume.has-diagnosis .resume-layout{display:block}#resume.has-diagnosis .resume-work{margin-top:16px}
-  .resume-workspace{display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px;min-width:0;height:clamp(480px,calc(100dvh - 240px),800px)}
+  .resume-workspace{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;min-width:0;height:clamp(480px,calc(100dvh - 240px),800px)}
   .resume-directory{overflow:auto;border-right:1px solid var(--line);padding-right:14px}.resume-directory h4{margin:0 0 8px;font:700 15px var(--sans)}.resume-directory p{font-size:12px;color:var(--ink-faint)}
   .resume-directory button{display:block;text-align:left;width:100%;border:1px solid transparent;background:transparent;color:var(--ink-soft);border-radius:10px;padding:12px;margin-bottom:6px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
   .resume-directory button[aria-current="true"]{border-color:var(--line);background:var(--paper-2);color:var(--ink)}.resume-directory button strong{display:block;font-size:13px;line-height:1.6}.resume-directory button span{display:block;font-size:12px;color:var(--teal);margin-top:5px}
+  .resume-nav-module{border-bottom:1px solid var(--line);padding:8px 0}.resume-nav-module>summary{font:700 14px var(--sans);padding:9px 2px;cursor:pointer;overflow-wrap:anywhere}.resume-nav-module>summary small{font-weight:400;color:var(--ink-faint);font-size:11px;margin-left:5px}.resume-nav-entry{margin:6px 0 6px 8px;border-left:2px solid var(--line);padding-left:8px}.resume-nav-entry>summary{font:600 13px var(--sans);cursor:pointer;padding:8px 0;overflow-wrap:anywhere}.resume-directory .resume-nav-entry button{padding:9px 8px}.resume-directory .resume-nav-empty{margin:8px 0 8px 12px;font-size:12px;line-height:1.7}.resume-nav-state{font-size:11px;color:var(--ink-faint)}.resume-location{font:500 12px var(--sans);color:var(--ink-faint);margin:0 0 8px;overflow-wrap:anywhere}
   .resume-editor{display:flex;flex-direction:column;min-width:0;min-height:0}.resume-editor-scroll{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding-right:10px}.resume-work .resume-section{margin:0;border:0;background:transparent;padding:0}.resume-work .resume-section h4{font-size:18px;line-height:1.6}.resume-origin-summary{font-size:13px;color:var(--ink-soft);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0}
   .resume-editor-tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin:14px 0;padding-bottom:8px}.resume-editor-tabs button{border:0;padding:10px 14px;background:transparent;border-radius:8px;font:600 14px var(--sans);color:var(--ink-soft);cursor:pointer}.resume-editor-tabs button[aria-selected="true"]{background:var(--seal-soft);color:var(--seal-deep)}.resume-editor-tabs button:disabled{opacity:.5;cursor:default}
   .resume-workspace-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:12px;z-index:4;box-shadow:var(--shadow-soft)}.resume-workspace-actions .btn{font-size:13px;padding:9px 14px}.resume-workspace-actions span{font-size:12px;color:var(--ink-faint)}#resumeEditorSaveStatus{margin-left:auto}#resumeResults{scroll-margin-top:90px}.resume-mobile-directory{display:none}
@@ -2519,6 +2520,7 @@
   let resumeState={schemaVersion:1,text:'',jd:'',diagnosis:null,sections:[],versions:[]};
   let resumeBusy=false,resumeBlocked=false,resumeDraftReview=null;
   const resumeEditorUi={active:0,tabs:{},scroll:{},diagnosis:null};
+  const resumeOutlines=new Map();let resumeNavigation={modules:[],items:[],order:[]};
   function resumeMsg(t,status='info'){const el=document.getElementById('resumeMsg');el.textContent=t;el.dataset.status=status;const local=document.getElementById('resumeWorkspaceMessage');if(local){local.textContent=t;local.dataset.status=status;}}
   function validResumeEnvelope(envelope,kind){
     const str=(v,max=8000)=>typeof v==='string'&&v.length<=max;
@@ -2561,18 +2563,42 @@
       box.querySelector('[data-draft-include]').addEventListener('change',e=>{s.adopted=e.target.checked?s.candidateText:null;saveResume();});
     }
   }
+  function renderResumeDirectory(){
+    const source=resumeState.source,loaded=source&&resumeOutlines.get(source.id),blocks=loaded?.text===resumeState.text?loaded.blocks:null;
+    resumeNavigation=ZhiMianResumeNav.hierarchy(resumeState.text,resumeState.sections,blocks);
+    const loading=source&&['http:','https:'].includes(location.protocol)&&(!loaded||loaded.pending);
+    const active=resumeEditorUi.active,aside=document.querySelector('.resume-directory'),select=document.getElementById('resumeParagraphSelect');if(!aside||!select)return;
+    const opened=new Set([...aside.querySelectorAll('details[open]')].map(el=>el.dataset.navKey));
+    const button=(i,label,detail='')=>`<button type="button" data-resume-section="${i}" aria-controls="resumeSection${i}" title="${esc(resumeNavigation.items[i].label)}"><strong>${esc(label)}</strong>${detail?`<small class="resume-nav-state">${esc(detail)}</small>`:''}<span></span></button>`;
+    aside.innerHTML=`<h4>按简历模块修改</h4><p id="resumeDirectoryProgress"></p><p id="resumeDirectoryHint">仅列出原稿中识别到的模块</p>${resumeNavigation.modules.map(m=>{
+      const indices=m.entries.flatMap(e=>e.indices),isActive=indices.includes(active);
+      return `<details class="resume-nav-module" data-nav-key="${m.key}" ${isActive||opened.has(m.key)?'open':''}><summary>${esc(m.label)} <small data-module-progress="${m.key}"></small></summary>${m.entries.map(e=>!e.indices.length?`<p class="resume-nav-empty">${esc(e.label==='全部内容'?'暂无修改建议':e.label+(e.detail?'（'+e.detail+'）':''))}${e.label==='全部内容'?'':' · 暂无修改建议'}</p>`:e.indices.length===1?button(e.indices[0],e.label==='全部内容'?'查看修改建议':e.label,e.detail):`<details class="resume-nav-entry" data-nav-key="${e.key}" ${e.indices.includes(active)||opened.has(e.key)?'open':''}><summary>${esc(e.label)}${e.detail?`<small class="resume-nav-state"> · ${esc(e.detail)}</small>`:''} <span class="resume-nav-state">${e.indices.length} 处</span></summary>${e.indices.map((i,n)=>button(i,'建议 '+(n+1)+' · '+resumeNavigation.items[i].excerpt)).join('')}</details>`).join('')}</details>`;
+    }).join('')}`;
+    select.innerHTML=resumeNavigation.modules.map(m=>`<optgroup label="${esc(m.label)}">${m.entries.flatMap(e=>e.indices.map((i,n)=>`<option value="${i}">${esc((e.label==='全部内容'?'':e.label+(e.detail?'（'+e.detail+'）':'')+' · ')+(e.indices.length>1?'建议 '+(n+1)+' · ':'')+resumeNavigation.items[i].excerpt)}</option>`)).join('')||'<option disabled>暂无修改建议</option>'}</optgroup>`).join('');
+    aside.querySelectorAll('[data-resume-section]').forEach(button=>button.onclick=()=>switchResumeSection(Number(button.dataset.resumeSection)));
+    select.onchange=e=>switchResumeSection(Number(e.target.value));
+    resumeNavigation.items.forEach(n=>{const section=document.getElementById('resumeSection'+n.index);if(section){section.querySelector('h4').textContent=n.entity==='全部内容'?'修改建议 '+n.ordinal:n.entity;section.querySelector('.resume-location').textContent=n.category+' / 建议 '+n.ordinal;}});
+    if(loading){aside.innerHTML='<h4>按简历模块修改</h4><p>正在识别原文件中的模块和经历…</p>';select.innerHTML=`<option value="${active}">正在识别简历目录…</option>`;resumeState.sections.forEach((_,i)=>{const section=document.getElementById('resumeSection'+i);if(section){section.querySelector('h4').textContent='修改建议';section.querySelector('.resume-location').textContent='正在定位原文模块…';}});}
+    else if(loaded?.text&&loaded.text!==resumeState.text){const hint=document.getElementById('resumeDirectoryHint');if(hint)hint.textContent='正文已调整，当前按正文标题分组。';}
+    updateResumeNavigation();
+    if(source&&!resumeOutlines.has(source.id)&&['http:','https:'].includes(location.protocol)){
+      resumeOutlines.set(source.id,{pending:true});
+      fetch('/api/resume/source/'+source.id+'/outline',{cache:'no-store',signal:AbortSignal.timeout(65000)}).then(async r=>{if(!r.ok)throw Error();const data=await r.json();if(typeof data.text!=='string'||!Array.isArray(data.blocks))throw Error();resumeOutlines.set(source.id,data);if(resumeState.source?.id===source.id&&resumeState.diagnosis)renderResumeDirectory();}).catch(()=>{resumeOutlines.set(source.id,{failed:true});if(resumeState.source?.id===source.id&&resumeState.diagnosis){renderResumeDirectory();const hint=document.getElementById('resumeDirectoryHint');if(hint)hint.textContent='暂未读到原文件位置，当前按正文标题分组；刷新后可重新读取。';}});
+    }
+  }
   function updateResumeNavigation(){
-    const items=resumeState.sections,active=resumeEditorUi.active;
+    const items=resumeState.sections,active=resumeEditorUi.active,order=resumeNavigation.order.length&&resumeState.diagnosis?resumeNavigation.order.filter(i=>i<items.length):items.map((_,i)=>i),position=order.indexOf(active);
     document.querySelectorAll('[data-resume-section]').forEach(button=>{
       const i=Number(button.dataset.resumeSection),s=items[i];
       button.setAttribute('aria-current',String(i===active));button.disabled=resumeBusy||resumeBlocked;
       const state=button.querySelector('span');if(state&&s)state.textContent=s.candidate?(s.adopted!==null?'已有草稿':'保留原文'):s.confirmedFacts?'待改写':'待补充';
     });
     const select=document.getElementById('resumeParagraphSelect');if(select){select.value=String(active);select.disabled=resumeBusy||resumeBlocked;}
+    resumeNavigation.modules.forEach(m=>{const indices=m.entries.flatMap(e=>e.indices),label=document.querySelector(`[data-module-progress="${m.key}"]`);if(label)label.textContent=indices.length?indices.filter(i=>items[i]?.candidate).length+'/'+indices.length+' 已有草稿':'暂无修改建议';});
     const count=items.filter(s=>s.candidate).length,progress=document.getElementById('resumeDirectoryProgress');if(progress)progress.textContent=items.length+' 处建议 · '+count+' 处已有草稿';
-    document.getElementById('resumePreviousSection').disabled=resumeBusy||resumeBlocked||active<=0;
-    document.getElementById('resumeNextSection').disabled=resumeBusy||resumeBlocked||active>=items.length-1;
-    document.getElementById('resumeWorkspacePosition').textContent=items.length?(active+1)+' / '+items.length:'';
+    document.getElementById('resumePreviousSection').disabled=resumeBusy||resumeBlocked||position<=0;
+    document.getElementById('resumeNextSection').disabled=resumeBusy||resumeBlocked||position>=order.length-1;
+    document.getElementById('resumeWorkspacePosition').textContent=items.length?(position+1)+' / '+items.length:'';
     for(let i=0;i<items.length;i++){
       const section=document.getElementById('resumeSection'+i);if(!section)continue;section.hidden=i!==active;
       const tab=resumeEditorUi.tabs[i]||(items[i].candidate?'draft':'facts');
@@ -2581,10 +2607,11 @@
     }
   }
   function switchResumeSection(index){
-    if(resumeBusy||resumeBlocked||index<0||index>=resumeState.sections.length)return;
+    if(resumeBusy||resumeBlocked||!Number.isInteger(index)||index<0||index>=resumeState.sections.length)return;
     const scroll=document.getElementById('resumeEditorScroll'),old=resumeEditorUi.active,tab=resumeEditorUi.tabs[old]||(resumeState.sections[old]?.candidate?'draft':'facts');
     if(scroll)resumeEditorUi.scroll[old+'|'+tab]=scroll.scrollTop;
     resumeEditorUi.active=index;resumeState.activeSection=index;updateResumeNavigation();
+    const selected=document.querySelector(`[data-resume-section="${index}"]`);if(selected){let parent=selected.parentElement;while(parent&&!parent.classList.contains('resume-directory')){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}selected.scrollIntoView({block:'nearest'});}
     if(scroll)scroll.scrollTop=resumeEditorUi.scroll[index+'|'+(resumeEditorUi.tabs[index]||(resumeState.sections[index].candidate?'draft':'facts'))]||0;
     saveResume();
   }
@@ -2683,13 +2710,11 @@
   function renderResume(){
     renderResumeSource();renderDraftWorkflow();document.getElementById('resume').classList.toggle('has-diagnosis',!!resumeState.diagnosis);if(!resumeState.diagnosis)document.getElementById('resumeSetupDetails').open=true;
     const box=document.getElementById('resumeResults'),d=resumeState.diagnosis;
-    if(!d){box.innerHTML='<h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p>';}
+    if(!d){resumeNavigation={modules:[],items:[],order:[]};box.innerHTML='<h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p>';}
     else{
-      const names=ZhiMianResumeNav.build(resumeState.text,resumeState.sections);
       if(resumeEditorUi.diagnosis!==d){resumeEditorUi.diagnosis=d;resumeEditorUi.active=Math.min(resumeState.activeSection||0,resumeState.sections.length-1);resumeEditorUi.tabs={};resumeEditorUi.scroll={};document.getElementById('resumeSetupDetails').open=false;requestAnimationFrame(()=>{if(document.getElementById('resume').classList.contains('active'))document.getElementById('resumeResults').scrollIntoView({block:'start',behavior:'auto'});});}
-      box.innerHTML=`<h3>02 · 诊断与事实补全</h3><details class="feedback-disclosure"><summary>查看整体诊断建议</summary><p>${esc(d.result.overview)}</p><b>已有支撑</b><ul>${d.result.matched.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><b>待补充</b><ul>${d.result.missing.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details><div class="resume-workspace"><aside class="resume-directory" aria-label="简历段落目录"><h4>选择要修改的内容</h4><p id="resumeDirectoryProgress"></p>${names.map(n=>`<button type="button" data-resume-section="${n.index}" aria-controls="resumeSection${n.index}" title="${esc(n.label)}"><strong>${esc(n.label)}</strong><span></span></button>`).join('')}</aside><div class="resume-editor"><div class="resume-mobile-directory"><label for="resumeParagraphSelect">选择段落</label><select id="resumeParagraphSelect">${names.map(n=>`<option value="${n.index}">${esc(n.label)}</option>`).join('')}</select></div><div class="resume-editor-scroll" id="resumeEditorScroll">${resumeState.sections.map((s,i)=>`<section class="resume-section" id="resumeSection${i}" ${i===resumeEditorUi.active?'':'hidden'}><h4>${esc(names[i].label)}</h4><p class="resume-origin-summary">${esc(s.original)}</p><details><summary>查看这段原文</summary><blockquote>${esc(s.original)}</blockquote></details><div class="resume-editor-tabs" role="tablist" aria-label="段落 ${i+1} 编辑"><button role="tab" id="resumeFactsTab${i}" data-resume-tab="facts" data-tab-section="${i}" aria-controls="resumeFactsPane${i}">补充信息</button><button role="tab" id="resumeDraftTab${i}" data-resume-tab="draft" data-tab-section="${i}" aria-controls="resumeDraftPane${i}">编辑改写</button></div><div id="resumeFactsPane${i}" role="tabpanel" aria-labelledby="resumeFactsTab${i}" data-resume-pane="facts"><p>${esc(s.issue)}</p>${s.questions.map((q,j)=>`<div class="field"><label for="resumeFact${i}_${j}">${esc(q)}</label><textarea id="resumeFact${i}_${j}" rows="3" maxlength="6000" data-fact-i="${i}" data-fact-j="${j}" placeholder="填写真实经历；没有数据也可以说明交付结果。"></textarea></div>`).join('')}<label class="ai-confirm"><input type="checkbox" data-confirm="${i}" ${s.confirmedFacts?'checked':''}/>我确认补充内容来自真实经历，不让 AI 补造事实。</label><button class="btn btn-primary" data-rewrite="${i}">${s.candidate?'重新生成改写':'生成这段改写'}</button></div><div id="resumeDraftPane${i}" role="tabpanel" aria-labelledby="resumeDraftTab${i}" data-resume-pane="draft"><div data-candidate-panel="${i}"></div></div></section>`).join('')}</div></div></div>`;
-      box.querySelectorAll('[data-resume-section]').forEach(button=>button.onclick=()=>switchResumeSection(Number(button.dataset.resumeSection)));
-      document.getElementById('resumeParagraphSelect').onchange=e=>switchResumeSection(Number(e.target.value));
+      box.innerHTML=`<h3>02 · 诊断与事实补全</h3><details class="feedback-disclosure"><summary>查看整体诊断建议</summary><p>${esc(d.result.overview)}</p><b>已有支撑</b><ul>${d.result.matched.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><b>待补充</b><ul>${d.result.missing.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details><div class="resume-workspace"><aside class="resume-directory" aria-label="简历模块与经历目录"></aside><div class="resume-editor"><div class="resume-mobile-directory"><label for="resumeParagraphSelect">选择修改位置</label><select id="resumeParagraphSelect"></select></div><div class="resume-editor-scroll" id="resumeEditorScroll">${resumeState.sections.map((s,i)=>`<section class="resume-section" id="resumeSection${i}" ${i===resumeEditorUi.active?'':'hidden'}><p class="resume-location"></p><h4>修改建议</h4><p class="resume-origin-summary">${esc(s.original)}</p><details><summary>查看这段原文</summary><blockquote>${esc(s.original)}</blockquote></details><div class="resume-editor-tabs" role="tablist" aria-label="段落 ${i+1} 编辑"><button role="tab" id="resumeFactsTab${i}" data-resume-tab="facts" data-tab-section="${i}" aria-controls="resumeFactsPane${i}">补充信息</button><button role="tab" id="resumeDraftTab${i}" data-resume-tab="draft" data-tab-section="${i}" aria-controls="resumeDraftPane${i}">编辑改写</button></div><div id="resumeFactsPane${i}" role="tabpanel" aria-labelledby="resumeFactsTab${i}" data-resume-pane="facts"><p>${esc(s.issue)}</p>${s.questions.map((q,j)=>`<div class="field"><label for="resumeFact${i}_${j}">${esc(q)}</label><textarea id="resumeFact${i}_${j}" rows="3" maxlength="6000" data-fact-i="${i}" data-fact-j="${j}" placeholder="填写真实经历；没有数据也可以说明交付结果。"></textarea></div>`).join('')}<label class="ai-confirm"><input type="checkbox" data-confirm="${i}" ${s.confirmedFacts?'checked':''}/>我确认补充内容来自真实经历，不让 AI 补造事实。</label><button class="btn btn-primary" data-rewrite="${i}">${s.candidate?'重新生成改写':'生成这段改写'}</button></div><div id="resumeDraftPane${i}" role="tabpanel" aria-labelledby="resumeDraftTab${i}" data-resume-pane="draft"><div data-candidate-panel="${i}"></div></div></section>`).join('')}</div></div></div>`;
+      renderResumeDirectory();
       box.querySelectorAll('[data-resume-tab]').forEach(button=>{button.onclick=()=>switchResumeTab(Number(button.dataset.tabSection),button.dataset.resumeTab);button.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const i=Number(button.dataset.tabSection),tab=e.key==='Home'||e.key==='ArrowLeft'?'facts':'draft';switchResumeTab(i,tab);document.getElementById(tab==='facts'?'resumeFactsTab'+i:'resumeDraftTab'+i).focus();}};});
       box.querySelectorAll('[data-fact-i]').forEach(field=>{const i=Number(field.dataset.factI),j=Number(field.dataset.factJ),s=resumeState.sections[i];field.value=s.answers[j];field.addEventListener('input',()=>{s.answers[j]=field.value;s.confirmedFacts=false;s.candidate=null;s.candidateText='';s.adopted=null;box.querySelector(`[data-confirm="${i}"]`).checked=false;renderCandidate(i);saveResume();updateResumeNavigation();});});
       box.querySelectorAll('[data-confirm]').forEach(field=>field.addEventListener('change',()=>{resumeState.sections[Number(field.dataset.confirm)].confirmedFacts=field.checked;saveResume();}));
@@ -2837,8 +2862,8 @@
   ['resumeText','resumeJd'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{
     if(resumeBlocked)return;resumeState[id==='resumeText'?'text':'jd']=e.target.value;if(id==='resumeText'){resumeState.diagnosis=null;resumeState.sections=[];resumeState.accepted=null;}saveResume();renderResume();
   }));
-  document.getElementById('resumePreviousSection').onclick=()=>switchResumeSection(resumeEditorUi.active-1);
-  document.getElementById('resumeNextSection').onclick=()=>switchResumeSection(resumeEditorUi.active+1);
+  document.getElementById('resumePreviousSection').onclick=()=>switchResumeSection(resumeNavigation.order[resumeNavigation.order.indexOf(resumeEditorUi.active)-1]);
+  document.getElementById('resumeNextSection').onclick=()=>switchResumeSection(resumeNavigation.order[resumeNavigation.order.indexOf(resumeEditorUi.active)+1]);
   document.getElementById('resumeCloseDraft').onclick=()=>document.getElementById('resumeDraftDialog').close();
   document.getElementById('resumeRefreshDraft').onclick=previewResumeDraft;
   document.getElementById('resumePreviewDraft').addEventListener('click',previewResumeDraft);

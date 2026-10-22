@@ -10,7 +10,7 @@ before(async()=>{
 });
 after(()=>{child?.kill();store?.close();if(tmp)fs.rmSync(tmp,{recursive:true,force:true});});
 test('anonymous and unactivated users cannot access paid API or workbench',async()=>{
- assert.equal((await request('/app.html')).status,302);assert.equal((await request('/account.html')).status,200);for(const route of ['/api/reviews','/api/store','/api/config','/api/admin/codes'])assert.equal((await request(route)).status,401);
+ assert.equal((await request('/app.html')).status,302);assert.equal((await request('/account.html')).status,200);for(const route of ['/api/reviews','/api/store','/api/config','/api/admin/codes','/api/resume/source/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/outline'])assert.equal((await request(route)).status,401);
  alice=await request('/api/auth/register','POST',{username:'alice',password:'alice-test-password',role:'admin'});assert.equal(alice.status,200);assert.equal(alice.data.user.role,'user');assert.equal(alice.data.user.active,false);assert.match(alice.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
  assert.equal((await request('/api/reviews','GET',null,alice.cookie)).status,403);assert.equal((await request('/api/config','POST',{},alice.cookie)).status,403);assert.equal((await request('/api/admin/codes','GET',null,alice.cookie)).status,403);
  assert.equal((await request('/api/ai/interview','POST',{},alice.cookie)).status,403);
