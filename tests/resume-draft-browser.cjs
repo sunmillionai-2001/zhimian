@@ -19,8 +19,8 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   const meta={model:'controlled',promptVersion:'test',createdAt:new Date().toISOString()};
   await p.route('**/api/ai/resume-diagnose',r=>{const {resume}=r.request().postDataJSON(),original='Maintained weekly reports.';r.fulfill({json:{meta,result:{overview:'Two independent paragraphs',matched:[],missing:[],sections:[resume.indexOf(original),resume.lastIndexOf(original)].map(start=>({start,original,issue:'Clarify action',questions:['What did you do?']}))}}});});
   await p.route('**/api/ai/resume-rewrite',r=>{const text=r.request().postDataJSON().facts[0].answer;r.fulfill({json:{meta,result:{rewritten:text,evidence:[{claim:text,source:text}]}}});});
-  let failPreview=false;
-  await p.route('**/api/resume/preview',r=>failPreview?r.fulfill({status:422,json:{error:'Controlled layout failure'}}):r.continue());
+  let failPreview=false;const previewTexts=[];
+  await p.route('**/api/resume/preview',r=>{previewTexts.push(r.request().postDataJSON().text);return failPreview?r.fulfill({status:422,json:{error:'Controlled layout failure'}}):r.continue();});
   await p.goto(`http://127.0.0.1:${port}/app.html#resume`);
   const word=await styledWord();await p.locator('#resumeFile').setInputFiles({name:'draft.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:word});
   await p.locator('#resumeImportApply').waitFor({state:'visible',timeout:60000});await p.locator('#resumeImportApply').click();
@@ -38,7 +38,7 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   await p.locator('#resumePreviewDraft').click();await p.locator('#resumeConfirmVersion').waitFor({state:'visible'});
   await p.waitForFunction(()=>!document.getElementById('resumeConfirmVersion').disabled);
   assert.ok(await p.locator('#resumeDraftPages img').count()>=1);
-  const full=await p.locator('#resumeDraftFullText').innerText();assert.match(full,/Validated Alpha reports with source checks/);assert.match(full,/Validated Beta reports/);
+  assert.match(previewTexts.at(-1),/Validated Alpha reports with source checks/);assert.match(previewTexts.at(-1),/Validated Beta reports/);
   await p.locator('#resumeCandidate1').fill('Validated Beta reports and delivery.');
   assert.equal(await p.locator('#resumeConfirmVersion').isDisabled(),true);assert.equal(await p.locator('#resumeDraftPreview').isVisible(),false);
   await p.locator('#resumePreviewDraft').click();await p.waitForFunction(()=>!document.getElementById('resumeConfirmVersion').disabled);

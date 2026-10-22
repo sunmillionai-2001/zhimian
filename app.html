@@ -877,7 +877,7 @@
         </section>
         <section class="resume-work"><div id="resumeResults" class="record-form"><h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p></div></section>
       </div>
-      <section class="record-form" id="resumeDraftPanel" style="margin-top:20px"><h3>03 · 整份简历草稿</h3><p id="resumeDraftStatus" class="mock-note" role="status"></p><div class="paste-actions"><button class="btn btn-primary" id="resumePreviewDraft">预览整份草稿</button><button class="btn btn-ghost" id="resumeConfirmVersion" disabled>确认采用整份简历</button></div><p id="resumeDraftMessage" class="mock-note" role="status" aria-live="polite">段落改写只保存为草稿；预览后再统一确认采用。</p><div id="resumeDraftPreview" hidden><h4>整份草稿预览 · 尚未正式采用</h4><div id="resumeDraftPages"></div><details open><summary>查看完整草稿正文</summary><pre id="resumeDraftFullText" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details></div></section>
+      <section class="record-form" id="resumeDraftPanel" style="margin-top:20px"><h3>03 · 整份简历草稿</h3><p id="resumeDraftStatus" class="mock-note" role="status"></p><div class="paste-actions"><button class="btn btn-primary" id="resumePreviewDraft">预览整份草稿</button><button class="btn btn-ghost" id="resumeConfirmVersion" disabled>确认采用整份简历</button></div><p id="resumeDraftMessage" class="mock-note" role="status" aria-live="polite">段落改写只保存为草稿；预览后再统一确认采用。</p><div id="resumeDraftPreview" hidden><h4>整份草稿预览 · 尚未正式采用</h4><div id="resumeDraftPages"></div></div></section>
       <section class="record-form" style="margin-top:20px"><h3>04 · 已确认的完整简历版本</h3><p class="mock-note">以后仅在统一确认整份简历时新增版本。此前按段落生成的旧版记录仍保留。</p><div id="resumeVersions"><p class="rv-empty">统一确认整份简历后，这里生成一个正式版本。</p></div><details><summary>更换原稿和恢复历史前的草稿备份</summary><div id="resumeDraftBackups"></div></details></section>
     </section>
 
@@ -2563,7 +2563,7 @@
     document.getElementById('resumeConfirmVersion').disabled=resumeBusy||resumeBlocked||!needs||invalid||resumeDraftReview!==draftSignature();
     if(resumeDraftReview===draftSignature()){
       if(invalid)document.getElementById('resumeDraftMessage').textContent='整份草稿已预览。请核对纳入的段落：确认事实，且改写内容不能为空。';
-      else if(!needs)document.getElementById('resumeDraftMessage').textContent=accepted?'整份草稿已预览，与已确认版本一致，无需重复采用。':'整份正文已预览，目前保留原文；生成改写后再预览并确认。';
+      else if(!needs)document.getElementById('resumeDraftMessage').textContent=accepted?'整份草稿已预览，与已确认版本一致，无需重复采用。':'整份简历已预览，目前保留原文；生成改写后再预览并确认。';
     }
   }
   async function previewResumeDraft(){
@@ -2585,8 +2585,9 @@
         }
       }
       if(signature!==draftSignature())throw Error('草稿已变化，请重新预览。');
-      document.getElementById('resumeDraftFullText').textContent=text;document.getElementById('resumeDraftPreview').hidden=false;
-      resumeDraftReview=signature;status.textContent=sourceId?'已生成整份草稿的全部页面。确认内容与排版后，点击“确认采用整份简历”。':'已展示整份草稿正文。确认内容后可统一采用；按原模板导出需先导入原文件。';
+      if(!sourceId){const paper=document.createElement('div');paper.className='resume-document-frame';paper.style.cssText='padding:32px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8';paper.textContent=text;pages.append(paper);}
+      document.getElementById('resumeDraftPreview').hidden=false;
+      resumeDraftReview=signature;status.textContent=sourceId?'已生成整份草稿的全部页面。确认内容与排版后，点击“确认采用整份简历”。':'已展示整份简历的基础预览。按原模板预览和导出，需先导入原文件。';
     }catch(e){pages.replaceChildren();status.textContent=(e.name==='TimeoutError'?'草稿预览等待超时，请重试。':e.message)+' 草稿已保留，尚未生成正式版本。';}
     finally{setResumeBusy(false);}
   }
