@@ -28,7 +28,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   const original='维护报表。\n项目乙\n维护报表。';await p.locator('#resumeText').fill(original);await p.locator('#resumeJd').fill('运营岗位');
   await p.locator('#resumeDiagnose').click();await p.locator('#resumeFact0_1').waitFor();assert.equal(await p.locator('.resume-section').count(),1);assert.match(await p.locator('#resumeMsg').innerText(),/分析完成/);
   assert.match(await p.locator('.resume-section').innerText(),/补充行动；补充结果/);
-  await p.locator('#resumeFact0_0').fill('核对口径');await p.locator('#resumeFact0_1').fill('完成交付验证');await p.locator('[data-confirm="0"]').check();await p.locator('[data-rewrite="0"]').click();await p.locator('#resumeCandidate0').waitFor();await p.locator('[data-adopt="0"]').click();
+  await p.locator('#resumeFact0_0').fill('核对口径');await p.locator('#resumeFact0_1').fill('完成交付验证');await p.locator('[data-confirm="0"]').check();await p.locator('[data-rewrite="0"]').click();await p.locator('#resumeCandidate0').waitFor();assert.equal(await p.locator('.resume-version').count(),0);await p.locator('#resumePreviewDraft').click();await p.locator('#resumeConfirmVersion').click();
   const saved=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));assert.equal(saved.sections[0].start,10);assert.equal(saved.versions[0].text,'维护报表。\n项目乙\n维护报表，核对口径并完成交付验证。');
   await p.reload();assert.equal(await p.locator('.resume-version').count(),1);assert.equal(await p.locator('#resumeFact0_0').inputValue(),'核对口径');
   await p.locator('.export-menu summary').click();const download=p.waitForEvent('download');await p.locator('#resumeExportTxt').click();assert.equal(fs.readFileSync(await (await download).path(),'utf8'),saved.versions[0].text);
