@@ -486,6 +486,17 @@
   #resume .btn,#aiSettings .btn,#mockAiBox .btn{min-height:44px}
   @media(max-width:820px){.resume-layout,.ai-config-grid{grid-template-columns:1fr}.resume-work{min-width:0}.ai-settings{padding:14px}.resume-layout .record-form{padding:18px}}
   @media(max-width:480px){.main{padding-left:16px;padding-right:16px}.topbar .search{display:none}.topbar{flex-wrap:wrap}.stage-bar{flex-wrap:wrap}.stage-actions{flex-wrap:wrap}.resume-section{padding:14px}}
+  #resumeSetupDetails>summary{cursor:pointer;font-family:var(--serif);font-weight:700;line-height:1.7}#resumeSetupDetails>summary span{font:12px var(--sans);color:var(--ink-faint);margin-left:12px}#resumeSetupDetails[open]>summary{margin-bottom:18px}
+  #resume.has-diagnosis>.hero{display:none}#resume.has-diagnosis .resume-layout{display:block}#resume.has-diagnosis .resume-work{margin-top:16px}
+  .resume-workspace{display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px;min-width:0;height:clamp(480px,calc(100dvh - 240px),800px)}
+  .resume-directory{overflow:auto;border-right:1px solid var(--line);padding-right:14px}.resume-directory h4{margin:0 0 8px;font:700 15px var(--sans)}.resume-directory p{font-size:12px;color:var(--ink-faint)}
+  .resume-directory button{display:block;text-align:left;width:100%;border:1px solid transparent;background:transparent;color:var(--ink-soft);border-radius:10px;padding:12px;margin-bottom:6px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
+  .resume-directory button[aria-current="true"]{border-color:var(--line);background:var(--paper-2);color:var(--ink)}.resume-directory button strong{display:block;font-size:13px;line-height:1.6}.resume-directory button span{display:block;font-size:12px;color:var(--teal);margin-top:5px}
+  .resume-editor{display:flex;flex-direction:column;min-width:0;min-height:0}.resume-editor-scroll{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding-right:10px}.resume-work .resume-section{margin:0;border:0;background:transparent;padding:0}.resume-work .resume-section h4{font-size:18px;line-height:1.6}.resume-origin-summary{font-size:13px;color:var(--ink-soft);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0}
+  .resume-editor-tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin:14px 0;padding-bottom:8px}.resume-editor-tabs button{border:0;padding:10px 14px;background:transparent;border-radius:8px;font:600 14px var(--sans);color:var(--ink-soft);cursor:pointer}.resume-editor-tabs button[aria-selected="true"]{background:var(--seal-soft);color:var(--seal-deep)}.resume-editor-tabs button:disabled{opacity:.5;cursor:default}
+  .resume-workspace-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:12px;z-index:4;box-shadow:var(--shadow-soft)}.resume-workspace-actions .btn{font-size:13px;padding:9px 14px}.resume-workspace-actions span{font-size:12px;color:var(--ink-faint)}#resumeEditorSaveStatus{margin-left:auto}#resumeResults{scroll-margin-top:90px}.resume-mobile-directory{display:none}
+  .resume-draft-dialog{width:min(1100px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}.resume-draft-dialog::backdrop{background:rgba(33,28,20,.45)}.resume-draft-dialog-head{position:sticky;top:0;z-index:4;min-height:76px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}.resume-draft-dialog #resumeDraftPanel{border:0;margin:0;border-radius:0}.resume-draft-dialog .resume-document-frame{max-width:820px;max-height:none;overflow:visible;margin:16px auto}.resume-draft-actions{position:sticky;top:76px;background:var(--card);padding:12px 0;z-index:2}body:has(#resumeDraftDialog[open]){overflow:hidden}
+  @media(max-width:820px){.resume-workspace{grid-template-columns:1fr;height:clamp(420px,calc(100dvh - 240px),760px);gap:12px}.resume-directory{display:none}.resume-mobile-directory{display:block}.resume-mobile-directory select{width:100%;max-width:100%;font:inherit;padding:10px;border:1px solid var(--line);background:var(--card-hi);border-radius:10px;color:var(--ink)}.resume-editor-scroll{padding-right:4px}.resume-workspace-actions{gap:8px;padding:10px}.resume-workspace-actions #resumePreviewDraft{margin-left:auto}.resume-workspace-actions #resumeEditorSaveStatus{order:5;width:100%;margin:0}.resume-draft-dialog-head{padding:10px 14px}.resume-draft-dialog .record-form{padding:16px}}
   .comparison{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
   .comparison>div{min-width:0;padding:14px;background:var(--paper-2);border-radius:12px;border:1px solid var(--line)}
   .comparison h4,.answer-card h4{font-family:var(--serif);font-size:17px;font-weight:900;margin-bottom:8px}
@@ -851,9 +862,8 @@
     <!-- ===== 简历助手 ===== -->
     <section class="view" id="resume">
       <div class="hero"><span class="eyebrow">Resume Studio</span><h1>从事实开始，<br/>写好你的<em>简历</em>。</h1><p>先看岗位匹配和表达缺口，再补充真实经历，逐段编辑草稿，预览完整简历后统一确认采用。</p></div>
-      <div class="resume-layout">
-        <section class="record-form">
-          <h3>01 · 简历与目标岗位</h3>
+      <div class="resume-layout" id="resumeMainLayout">
+        <section class="record-form" id="resumeSetupCard"><details id="resumeSetupDetails" open><summary>01 · 简历与目标岗位 <span>修改原稿 / 岗位</span></summary>
           <button class="btn btn-ghost" id="resumeFileChoose">导入 PDF / Word .docx</button><input id="resumeFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden/>
           <p class="mock-note">最多 3 MB；PDF 最多 30 页。先查看原版，再确认导入；原文件和原有版本保留。</p>
           <div id="resumeImportPreview" hidden><h4>导入预览 · 保留原文件版式</h4><div class="resume-document-frame"><img id="resumeImportFrame" alt="导入文件原版第一页" hidden/></div><details><summary>核对用于诊断的文字</summary><div class="field"><label for="resumeImportText">识别的正文（请保留段落顺序）</label><textarea id="resumeImportText" rows="8" maxlength="30000"></textarea></div></details><p id="resumeImportWarning" class="mock-note"></p><div class="paste-actions"><button class="btn btn-primary" id="resumeImportApply">保留原版并使用</button><button class="btn btn-ghost" id="resumeImportCancel">取消导入</button></div></div>
@@ -861,7 +871,12 @@
           </details><div class="field"><label for="resumeJd">目标岗位 JD（可选）</label><textarea id="resumeJd" rows="6" maxlength="10000" placeholder="有 JD 时检查岗位匹配；没有时按通用标准诊断。"></textarea></div>
           <button class="btn btn-primary" id="resumeDiagnose">诊断简历 →</button>
           <p class="mock-note" id="resumeMsg" role="status" aria-live="polite">正文、补充和改写保存在当前浏览器。</p>
-          <p class="mock-note" id="resumeExportState" role="status"></p>
+          </details>
+        </section>
+        <section class="resume-work"><div id="resumeResults" class="record-form"><h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p></div><div class="resume-workspace-actions"><button class="btn btn-ghost" id="resumePreviousSection">上一段</button><span id="resumeWorkspacePosition"></span><button class="btn btn-ghost" id="resumeNextSection">下一段</button><span id="resumeEditorSaveStatus" role="status">草稿自动保存</span><button class="btn btn-primary" id="resumePreviewDraft">预览整份简历</button></div><p id="resumeWorkspaceMessage" class="mock-note" role="status" aria-live="polite"></p></section>
+      </div>
+      <dialog id="resumeDraftDialog" class="resume-draft-dialog" aria-labelledby="resumeDraftHeading"><div class="resume-draft-dialog-head"><strong id="resumeDraftHeading">整份简历预览</strong><button class="btn btn-ghost" id="resumeCloseDraft">返回段落编辑</button></div><section class="record-form" id="resumeDraftPanel"><h3>03 · 整份简历草稿</h3><p id="resumeDraftStatus" class="mock-note" role="status"></p><div class="paste-actions resume-draft-actions"><button class="btn btn-ghost" id="resumeRefreshDraft">重新生成预览</button><button class="btn btn-primary" id="resumeConfirmVersion" disabled>确认采用整份简历</button></div><p id="resumeDraftMessage" class="mock-note" role="status" aria-live="polite">段落改写只保存为草稿；预览后再统一确认采用。</p><div id="resumeDraftPreview" hidden><h4>整份草稿预览</h4><div id="resumeDraftPages"></div></div></section></dialog>
+      <section class="record-form" id="resumeDeliveryPanel" style="margin-top:20px"><h3>导出与使用</h3>          <p class="mock-note" id="resumeExportState" role="status"></p>
           <div id="resumeTemplateRequired" class="resume-template-required" role="note"><h4>补充原文件，才能保留你的简历模板</h4><p>当前只保留了正文，没有原模板的排版信息。可以继续诊断和保存改写；导出 PDF / Word 前，请导入最初的简历文件。已有正文和改写版本会保留。</p><button class="btn btn-ghost" id="resumeAttachOriginal">导入原简历文件</button><p class="mock-note">请使用优化前的原稿，不要重新导入已经丢失样式的导出文件。有 Word 原稿时优先使用 Word，增删内容可沿用原样式换行。</p></div>
           <div class="paste-actions">
             <details class="export-menu">
@@ -874,10 +889,7 @@
             </details>
             <button class="btn btn-ghost" id="resumePractice">用这份简历模拟面试 →</button>
           </div>
-        </section>
-        <section class="resume-work"><div id="resumeResults" class="record-form"><h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p></div></section>
-      </div>
-      <section class="record-form" id="resumeDraftPanel" style="margin-top:20px"><h3>03 · 整份简历草稿</h3><p id="resumeDraftStatus" class="mock-note" role="status"></p><div class="paste-actions"><button class="btn btn-primary" id="resumePreviewDraft">预览整份草稿</button><button class="btn btn-ghost" id="resumeConfirmVersion" disabled>确认采用整份简历</button></div><p id="resumeDraftMessage" class="mock-note" role="status" aria-live="polite">段落改写只保存为草稿；预览后再统一确认采用。</p><div id="resumeDraftPreview" hidden><h4>整份草稿预览 · 尚未正式采用</h4><div id="resumeDraftPages"></div></div></section>
+</section>
       <section class="record-form" style="margin-top:20px"><h3>04 · 已确认的完整简历版本</h3><p class="mock-note">以后仅在统一确认整份简历时新增版本。此前按段落生成的旧版记录仍保留。</p><div id="resumeVersions"><p class="rv-empty">统一确认整份简历后，这里生成一个正式版本。</p></div><details><summary>更换原稿和恢复历史前的草稿备份</summary><div id="resumeDraftBackups"></div></details></section>
     </section>
 
@@ -1023,6 +1035,7 @@
 <script src="skill-learning.js"></script>
 <script src="interview-policy.js"></script>
 <script src="formal-interview.js"></script>
+<script src="resume-navigation.js"></script>
 <script>
   const views = ['overview','target','resume','mock','review','method','skill','jobs','answers'];
   let assetsInitialized=false;
@@ -2505,7 +2518,8 @@
   const RESUME_KEY='zm_resume_store_v1';
   let resumeState={schemaVersion:1,text:'',jd:'',diagnosis:null,sections:[],versions:[]};
   let resumeBusy=false,resumeBlocked=false,resumeDraftReview=null;
-  function resumeMsg(t,status='info'){const el=document.getElementById('resumeMsg');el.textContent=t;el.dataset.status=status;}
+  const resumeEditorUi={active:0,tabs:{},scroll:{},diagnosis:null};
+  function resumeMsg(t,status='info'){const el=document.getElementById('resumeMsg');el.textContent=t;el.dataset.status=status;const local=document.getElementById('resumeWorkspaceMessage');if(local){local.textContent=t;local.dataset.status=status;}}
   function validResumeEnvelope(envelope,kind){
     const str=(v,max=8000)=>typeof v==='string'&&v.length<=max;
     const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>str(x,2000));
@@ -2522,29 +2536,63 @@
       (s.candidate===null||validResumeEnvelope(s.candidate,'rewrite'))&&str(s.candidateText,8000)&&(s.adopted===null||str(s.adopted,8000));
     const sections=(v,source)=>Array.isArray(v)&&v.length<=6&&v.every(s=>section(s)&&(s.start===undefined||source.slice(s.start,s.start+s.original.length)===s.original));
     const version=v=>!!v&&(!v.source||validResumeSource(v.source))&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections,v.sourceText);
-    return !!((state.workflowVersion===undefined||state.workflowVersion===2)&&(state.accepted===undefined||state.accepted===null||version(state.accepted))&&
+    return !!((state.activeSection===undefined||Number.isInteger(state.activeSection)&&state.activeSection>=0&&state.activeSection<6)&&(state.workflowVersion===undefined||state.workflowVersion===2)&&(state.accepted===undefined||state.accepted===null||version(state.accepted))&&
       (state.draftBackups===undefined||Array.isArray(state.draftBackups)&&state.draftBackups.length<=1000&&state.draftBackups.every(version))&&state?.schemaVersion===1&&(!state.source||validResumeSource(state.source))&&str(state.text,30000)&&str(state.jd,10000)&&
       (state.diagnosis===null||validResumeEnvelope(state.diagnosis,'diagnosis'))&&sections(state.sections,state.text)&&
       Array.isArray(state.versions)&&state.versions.length<=1000&&state.versions.every(v=>!!v&&str(v.id,100)&&str(v.text,100000)&&str(v.sourceText,30000)&&str(v.jd,10000)&&str(v.date,100)&&sections(v.sections,v.sourceText)));
   }
   function saveResume(){
     if(resumeBlocked){resumeMsg('简历存储异常，已停止覆盖原数据；请先导出备份检查。');return false;}
-    try{localStorage.setItem(RESUME_KEY,JSON.stringify(resumeState));renderResumeSource();renderDraftWorkflow();resumeMsg('已保存到当前浏览器。');return true;}
-    catch(e){renderDraftWorkflow();resumeMsg('保存失败：存储不可用或空间不足。请导出当前简历保留内容。');return false;}
+    try{localStorage.setItem(RESUME_KEY,JSON.stringify(resumeState));renderResumeSource();renderDraftWorkflow();updateResumeNavigation();document.getElementById('resumeEditorSaveStatus').textContent='草稿已保存';resumeMsg('已保存到当前浏览器。');return true;}
+    catch(e){renderDraftWorkflow();document.getElementById('resumeEditorSaveStatus').textContent='保存失败，请保留当前页面';resumeMsg('保存失败：存储不可用或空间不足。请导出当前简历保留内容。');return false;}
   }
   function setResumeBusy(busy){
     resumeBusy=busy;document.querySelectorAll('#resume input,#resume textarea,#resume button').forEach(el=>el.disabled=busy||resumeBlocked);
-    syncResumeExportAvailability();renderDraftWorkflow();
+    syncResumeExportAvailability();renderDraftWorkflow();updateResumeNavigation();
   }
   function composedResume(){let text=resumeState.text;resumeState.sections.filter(s=>s.adopted!==null).map(s=>({...s,start:s.start===undefined?resumeState.text.indexOf(s.original):s.start})).sort((a,b)=>b.start-a.start).forEach(s=>{if(s.start>=0)text=text.slice(0,s.start)+s.adopted+text.slice(s.start+s.original.length);});return text;}
   function renderCandidate(index){
     const s=resumeState.sections[index],box=document.querySelector(`[data-candidate-panel="${index}"]`);if(!box)return;
-    box.innerHTML=s.candidate?`<h4>段落改写草稿 · 可继续修改</h4><div class="comparison"><div><h4>改写前 · 原文</h4><pre>${esc(s.original)}</pre></div><div><h4>改写后 · 草稿</h4><div class="field"><label for="resumeCandidate${index}">可以直接修改这段文字</label><textarea id="resumeCandidate${index}" rows="6" maxlength="8000"></textarea></div></div></div><label class="ai-confirm"><input type="checkbox" data-draft-include="${index}" ${s.adopted!==null?'checked':''}/>整份草稿使用这段改写（取消后保留原文）</label><p class="mock-note">修改自动保存为草稿；预览整份简历并统一确认后，才生成正式版本。</p><details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details>`:'';
+    box.innerHTML=s.candidate?`<div class="field"><label for="resumeCandidate${index}">改写草稿 · 可以直接修改</label><textarea id="resumeCandidate${index}" rows="10" maxlength="8000"></textarea></div><label class="ai-confirm"><input type="checkbox" data-draft-include="${index}" ${s.adopted!==null?'checked':''}/>整份草稿使用这段改写（取消后保留原文）</label><p class="mock-note">修改自动保存为草稿；预览整份简历并统一确认后，才生成正式版本。</p><details><summary>查看改写的事实依据</summary>${s.candidate.result.evidence.map(e=>`<p><b>${esc(e.claim)}</b></p><blockquote>${esc(e.source)}</blockquote>`).join('')}</details>`:'';
+    if(!s.candidate)resumeEditorUi.tabs[index]='facts';
     if(s.candidate){
       const field=document.getElementById('resumeCandidate'+index);field.value=s.candidateText;
       field.addEventListener('input',()=>{s.candidateText=field.value;if(s.adopted!==null)s.adopted=field.value;saveResume();});
       box.querySelector('[data-draft-include]').addEventListener('change',e=>{s.adopted=e.target.checked?s.candidateText:null;saveResume();});
     }
+  }
+  function updateResumeNavigation(){
+    const items=resumeState.sections,active=resumeEditorUi.active;
+    document.querySelectorAll('[data-resume-section]').forEach(button=>{
+      const i=Number(button.dataset.resumeSection),s=items[i];
+      button.setAttribute('aria-current',String(i===active));button.disabled=resumeBusy||resumeBlocked;
+      const state=button.querySelector('span');if(state&&s)state.textContent=s.candidate?(s.adopted!==null?'已有草稿':'保留原文'):s.confirmedFacts?'待改写':'待补充';
+    });
+    const select=document.getElementById('resumeParagraphSelect');if(select){select.value=String(active);select.disabled=resumeBusy||resumeBlocked;}
+    const count=items.filter(s=>s.candidate).length,progress=document.getElementById('resumeDirectoryProgress');if(progress)progress.textContent=items.length+' 处建议 · '+count+' 处已有草稿';
+    document.getElementById('resumePreviousSection').disabled=resumeBusy||resumeBlocked||active<=0;
+    document.getElementById('resumeNextSection').disabled=resumeBusy||resumeBlocked||active>=items.length-1;
+    document.getElementById('resumeWorkspacePosition').textContent=items.length?(active+1)+' / '+items.length:'';
+    for(let i=0;i<items.length;i++){
+      const section=document.getElementById('resumeSection'+i);if(!section)continue;section.hidden=i!==active;
+      const tab=resumeEditorUi.tabs[i]||(items[i].candidate?'draft':'facts');
+      section.querySelectorAll('[data-resume-tab]').forEach(button=>{const selected=button.dataset.resumeTab===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;button.disabled=resumeBusy||resumeBlocked||(button.dataset.resumeTab==='draft'&&!items[i].candidate);});
+      section.querySelectorAll('[data-resume-pane]').forEach(pane=>pane.hidden=pane.dataset.resumePane!==tab);
+    }
+  }
+  function switchResumeSection(index){
+    if(resumeBusy||resumeBlocked||index<0||index>=resumeState.sections.length)return;
+    const scroll=document.getElementById('resumeEditorScroll'),old=resumeEditorUi.active,tab=resumeEditorUi.tabs[old]||(resumeState.sections[old]?.candidate?'draft':'facts');
+    if(scroll)resumeEditorUi.scroll[old+'|'+tab]=scroll.scrollTop;
+    resumeEditorUi.active=index;resumeState.activeSection=index;updateResumeNavigation();
+    if(scroll)scroll.scrollTop=resumeEditorUi.scroll[index+'|'+(resumeEditorUi.tabs[index]||(resumeState.sections[index].candidate?'draft':'facts'))]||0;
+    saveResume();
+  }
+  function switchResumeTab(index,tab){
+    if(resumeBusy||resumeBlocked||tab==='draft'&&!resumeState.sections[index]?.candidate)return;
+    const scroll=document.getElementById('resumeEditorScroll'),old=resumeEditorUi.tabs[index]||(resumeState.sections[index].candidate?'draft':'facts');
+    if(scroll)resumeEditorUi.scroll[index+'|'+old]=scroll.scrollTop;
+    resumeEditorUi.tabs[index]=tab;updateResumeNavigation();if(scroll)scroll.scrollTop=resumeEditorUi.scroll[index+'|'+tab]||0;
   }
   function resumeSnapshot(){return {source:resumeState.source||null,id:crypto.randomUUID(),date:new Date().toISOString(),text:composedResume(),sourceText:resumeState.text,jd:resumeState.jd,sections:JSON.parse(JSON.stringify(resumeState.sections))};}
   function currentAcceptedResume(){const v=resumeState.accepted;return v&&v.sourceText===resumeState.text&&(v.source?.id||null)===(resumeState.source?.id||null)?v:null;}
@@ -2559,6 +2607,7 @@
     const count=resumeState.sections.filter(s=>s.adopted!==null&&s.adopted!==s.original).length;
     document.getElementById('resumeDraftStatus').textContent=`草稿已包含 ${count} 段改写。`+(needs?'尚未确认整份版本；可以继续编辑，也可保留其他段落原文。':accepted?'当前草稿与已确认版本一致。':'生成改写后，可在这里预览整份简历。');
     document.getElementById('resumePreviewDraft').disabled=resumeBusy||resumeBlocked||!draft.trim();
+    document.getElementById('resumeRefreshDraft').disabled=resumeBusy||resumeBlocked||!draft.trim();document.getElementById('resumeCloseDraft').disabled=false;
     const invalid=resumeState.sections.some(s=>s.adopted!==null&&(!s.confirmedFacts||!s.adopted.trim()));
     document.getElementById('resumeConfirmVersion').disabled=resumeBusy||resumeBlocked||!needs||invalid||resumeDraftReview!==draftSignature();
     if(resumeDraftReview===draftSignature()){
@@ -2570,6 +2619,7 @@
     if(resumeBusy||resumeBlocked)return;
     const text=composedResume(),signature=draftSignature(),sourceId=resumeState.source?.id;
     if(!text.trim())return;if(text.length>30000){resumeMsg('整份草稿超过 30000 字，请精简后预览。');return;}
+    const dialog=document.getElementById('resumeDraftDialog');if(!dialog.open)dialog.showModal();
     resumeDraftReview=null;setResumeBusy(true);
     const status=document.getElementById('resumeDraftMessage'),pages=document.getElementById('resumeDraftPages');
     pages.replaceChildren();document.getElementById('resumeDraftPreview').hidden=true;status.textContent='正在生成整份草稿预览，请稍候……';
@@ -2597,8 +2647,8 @@
     if(resumeState.sections.some(s=>s.adopted!==null&&(!s.confirmedFacts||!s.adopted.trim()))){resumeMsg('请核对纳入草稿的段落：确认事实且改写内容不能为空。');return;}
     if(resumeState.versions.length>=1000){resumeMsg('版本已达上限，请先备份整理。');return;}
     const previous=resumeState.accepted,version={...resumeSnapshot(),kind:'confirmed-resume'};resumeState.accepted=version;resumeState.versions.unshift(version);
-    if(!saveResume()){resumeState.versions.shift();resumeState.accepted=previous;renderDraftWorkflow();return;}
-    renderResume();resumeMsg('已统一采用整份简历，保存为一个正式版本。可导出或带入模拟面试。','success');
+    if(!saveResume()){resumeState.versions.shift();resumeState.accepted=previous;renderDraftWorkflow();document.getElementById('resumeDraftMessage').textContent='保存失败，未生成正式版本。草稿仍在当前页面，请备份后重试。';return;}
+    document.getElementById('resumeDraftDialog').close();renderResume();resumeMsg('已统一采用整份简历，保存为一个正式版本。可导出或带入模拟面试。','success');
   }
   var resumeSourceDisplayed=null,resumePreviewUrl=null,resumePreviewText=null,resumePreviewPage=1,resumePreviewPages=1;
   function hasResumeOptimization(){const v=currentAcceptedResume();return !!v&&v.text!==v.sourceText;}
@@ -2631,19 +2681,25 @@
     try{const r=await fetch('/api/resume/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAcceptedResume().text,sourceId:resumeState.source.id,page}),signal:AbortSignal.timeout(65000)});const data=await r.json();if(!r.ok)throw Error(data.error||'预览生成失败');if(typeof data.base64!=='string'||!Number.isInteger(data.pages))throw Error('预览生成失败');resumePreviewText=currentAcceptedResume().text;resumePreviewUrl='data:image/png;base64,'+data.base64;resumePreviewPage=page;resumePreviewPages=data.pages;document.getElementById('resumeSourceFrame').src=resumePreviewUrl;document.getElementById('resumePageLabel').textContent='第 '+page+' / '+data.pages+' 页';status.textContent='已展示当前已确认的整份版本。正在编辑的草稿请到第 03 步预览。';}catch(e){status.textContent=e.name==='TimeoutError'?'预览等待超时，原文件保留，请稍后重试。':e.message;}finally{setResumeBusy(false);}
   }
   function renderResume(){
-    renderResumeSource();renderDraftWorkflow();
+    renderResumeSource();renderDraftWorkflow();document.getElementById('resume').classList.toggle('has-diagnosis',!!resumeState.diagnosis);if(!resumeState.diagnosis)document.getElementById('resumeSetupDetails').open=true;
     const box=document.getElementById('resumeResults'),d=resumeState.diagnosis;
     if(!d){box.innerHTML='<h3>02 · 诊断与事实补全</h3><p class="rv-empty">粘贴简历，开始诊断。这里会显示问题、补充提问和候选改写。</p>';}
     else{
-      box.innerHTML=`<h3>02 · 诊断与事实补全</h3><p>${esc(d.result.overview)}</p><div><b>已有支撑</b><ul>${d.result.matched.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><b>待补充</b><ul>${d.result.missing.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div><p class="mock-note">${esc(d.meta.model)} · 标准 ${esc(d.meta.promptVersion)}</p>`+resumeState.sections.map((s,i)=>`<section class="resume-section"><h4>段落 ${i+1} · 先补事实</h4><details open><summary>保留的简历原文</summary><blockquote>${esc(s.original)}</blockquote></details><p>${esc(s.issue)}</p>${s.questions.map((q,j)=>`<div class="field"><label for="resumeFact${i}_${j}">${esc(q)}</label><textarea id="resumeFact${i}_${j}" rows="3" maxlength="6000" data-fact-i="${i}" data-fact-j="${j}" placeholder="只填写真实经历；没有数据也可以说明交付结果。"></textarea></div>`).join('')}<label class="ai-confirm"><input type="checkbox" data-confirm="${i}" ${s.confirmedFacts?'checked':''}/>我确认补充内容来自真实经历，不让 AI 补造事实。</label><button class="btn btn-ghost" data-rewrite="${i}">${s.candidate?'重新生成候选':'根据确认的事实生成改写'}</button><div data-candidate-panel="${i}"></div></section>`).join('');
-      box.querySelectorAll('[data-fact-i]').forEach(field=>{const i=Number(field.dataset.factI),j=Number(field.dataset.factJ),s=resumeState.sections[i];field.value=s.answers[j];field.addEventListener('input',()=>{s.answers[j]=field.value;s.confirmedFacts=false;s.candidate=null;s.candidateText='';s.adopted=null;box.querySelector(`[data-confirm="${i}"]`).checked=false;renderCandidate(i);saveResume();});});
+      const names=ZhiMianResumeNav.build(resumeState.text,resumeState.sections);
+      if(resumeEditorUi.diagnosis!==d){resumeEditorUi.diagnosis=d;resumeEditorUi.active=Math.min(resumeState.activeSection||0,resumeState.sections.length-1);resumeEditorUi.tabs={};resumeEditorUi.scroll={};document.getElementById('resumeSetupDetails').open=false;}
+      box.innerHTML=`<h3>02 · 诊断与事实补全</h3><details class="feedback-disclosure"><summary>查看整体诊断建议</summary><p>${esc(d.result.overview)}</p><b>已有支撑</b><ul>${d.result.matched.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><b>待补充</b><ul>${d.result.missing.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details><div class="resume-workspace"><aside class="resume-directory" aria-label="简历段落目录"><h4>选择要修改的内容</h4><p id="resumeDirectoryProgress"></p>${names.map(n=>`<button type="button" data-resume-section="${n.index}" aria-controls="resumeSection${n.index}" title="${esc(n.label)}"><strong>${esc(n.label)}</strong><span></span></button>`).join('')}</aside><div class="resume-editor"><div class="resume-mobile-directory"><label for="resumeParagraphSelect">选择段落</label><select id="resumeParagraphSelect">${names.map(n=>`<option value="${n.index}">${esc(n.label)}</option>`).join('')}</select></div><div class="resume-editor-scroll" id="resumeEditorScroll">${resumeState.sections.map((s,i)=>`<section class="resume-section" id="resumeSection${i}" ${i===resumeEditorUi.active?'':'hidden'}><h4>${esc(names[i].label)}</h4><p class="resume-origin-summary">${esc(s.original)}</p><details><summary>查看这段原文</summary><blockquote>${esc(s.original)}</blockquote></details><div class="resume-editor-tabs" role="tablist" aria-label="段落 ${i+1} 编辑"><button role="tab" id="resumeFactsTab${i}" data-resume-tab="facts" data-tab-section="${i}" aria-controls="resumeFactsPane${i}">补充信息</button><button role="tab" id="resumeDraftTab${i}" data-resume-tab="draft" data-tab-section="${i}" aria-controls="resumeDraftPane${i}">编辑改写</button></div><div id="resumeFactsPane${i}" role="tabpanel" aria-labelledby="resumeFactsTab${i}" data-resume-pane="facts"><p>${esc(s.issue)}</p>${s.questions.map((q,j)=>`<div class="field"><label for="resumeFact${i}_${j}">${esc(q)}</label><textarea id="resumeFact${i}_${j}" rows="3" maxlength="6000" data-fact-i="${i}" data-fact-j="${j}" placeholder="填写真实经历；没有数据也可以说明交付结果。"></textarea></div>`).join('')}<label class="ai-confirm"><input type="checkbox" data-confirm="${i}" ${s.confirmedFacts?'checked':''}/>我确认补充内容来自真实经历，不让 AI 补造事实。</label><button class="btn btn-primary" data-rewrite="${i}">${s.candidate?'重新生成改写':'生成这段改写'}</button></div><div id="resumeDraftPane${i}" role="tabpanel" aria-labelledby="resumeDraftTab${i}" data-resume-pane="draft"><div data-candidate-panel="${i}"></div></div></section>`).join('')}</div></div></div>`;
+      box.querySelectorAll('[data-resume-section]').forEach(button=>button.onclick=()=>switchResumeSection(Number(button.dataset.resumeSection)));
+      document.getElementById('resumeParagraphSelect').onchange=e=>switchResumeSection(Number(e.target.value));
+      box.querySelectorAll('[data-resume-tab]').forEach(button=>{button.onclick=()=>switchResumeTab(Number(button.dataset.tabSection),button.dataset.resumeTab);button.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const i=Number(button.dataset.tabSection),tab=e.key==='Home'||e.key==='ArrowLeft'?'facts':'draft';switchResumeTab(i,tab);document.getElementById(tab==='facts'?'resumeFactsTab'+i:'resumeDraftTab'+i).focus();}};});
+      box.querySelectorAll('[data-fact-i]').forEach(field=>{const i=Number(field.dataset.factI),j=Number(field.dataset.factJ),s=resumeState.sections[i];field.value=s.answers[j];field.addEventListener('input',()=>{s.answers[j]=field.value;s.confirmedFacts=false;s.candidate=null;s.candidateText='';s.adopted=null;box.querySelector(`[data-confirm="${i}"]`).checked=false;renderCandidate(i);saveResume();updateResumeNavigation();});});
       box.querySelectorAll('[data-confirm]').forEach(field=>field.addEventListener('change',()=>{resumeState.sections[Number(field.dataset.confirm)].confirmedFacts=field.checked;saveResume();}));
       box.querySelectorAll('[data-rewrite]').forEach(b=>b.addEventListener('click',()=>rewriteResume(Number(b.dataset.rewrite))));
-      resumeState.sections.forEach((s,i)=>renderCandidate(i));
+      resumeState.sections.forEach((s,i)=>renderCandidate(i));updateResumeNavigation();
     }
     const versions=document.getElementById('resumeVersions');
     versions.innerHTML=resumeState.versions.length?resumeState.versions.map((v,i)=>`<details class="resume-version"><summary>${v.kind==='confirmed-resume'?'整份版本':'旧版记录'} ${resumeState.versions.length-i} · ${esc(displayMockDate(v.date))}</summary><div class="comparison"><div><h4>采用前 · 原始简历</h4><pre>${esc(v.sourceText)}</pre></div><div><h4>采用后 · 此版简历</h4><pre>${esc(v.text)}</pre></div></div><details><summary>当时的原文与确认事实</summary><pre>${esc(v.sourceText)}</pre>${v.sections.map(s=>`<blockquote>${esc(s.original||'')}</blockquote>${(s.answers||[]).map(a=>`<p>${esc(a)}</p>`).join('')}`).join('')}</details><button class="btn btn-ghost" data-restore-resume="${i}">载入这版作为草稿</button><button class="btn btn-ghost" data-copy-version="${i}">复制此版本</button></details>`).join(''):'<p class="rv-empty">确认采用改写后，这里保留完整简历快照。</p>';
     document.getElementById('resumeDraftBackups').innerHTML=(resumeState.draftBackups||[]).map(v=>`<details><summary>${esc(displayMockDate(v.date))} · 草稿备份</summary><pre style="white-space:pre-wrap">${esc(v.text)}</pre></details>`).join('')||'<p class="mock-note">暂无草稿备份。</p>';
+    updateResumeNavigation();
     versions.querySelectorAll('[data-restore-resume]').forEach(b=>b.addEventListener('click',()=>restoreResumeOptimization(Number(b.dataset.restoreResume))));
     versions.querySelectorAll('[data-copy-version]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(resumeState.versions[Number(b.dataset.copyVersion)].text);resumeMsg('已复制此版本。');}catch(e){resumeMsg('复制失败，请展开版本手动选择文字。');}}));
   }
@@ -2657,7 +2713,7 @@
       const ranges=data.result.sections.map(s=>{const start=s.start===undefined?resumeState.text.indexOf(s.original):s.start;return {start,end:start+s.original.length,original:s.original};});
       if(ranges.some((r,i)=>r.start<0||resumeState.text.slice(r.start,r.end)!==r.original||ranges.some((other,j)=>i!==j&&r.start<other.end&&other.start<r.end)))throw new Error('诊断结果异常');
       resumeState.diagnosis=data;resumeState.sections=data.result.sections.map(s=>({...s,answers:s.questions.map(()=>''),confirmedFacts:false,candidate:null,candidateText:'',adopted:null}));
-      const saved=saveResume();renderResume();if(saved)resumeMsg('分析完成，找到 '+resumeState.sections.length+' 处可改进内容。请查看下方建议，按实际经历补充后再生成改写。','success');
+      resumeState.activeSection=0;const saved=saveResume();renderResume();document.getElementById('resumeResults').scrollIntoView({block:'start',behavior:'smooth'});if(saved)resumeMsg('分析完成，找到 '+resumeState.sections.length+' 处可改进内容。请查看下方建议，按实际经历补充后再生成改写。','success');
     }catch(e){
       const message=/诊断|分析未能|模型输出格式|原文引用/.test(e.message)?'这次简历分析没有完成，暂时无法给出可用建议。原文和上次结果已保留，你无需修改简历，可以稍后点击「重新诊断」。':e.message+' 原文和上次结果已保留。';
       resumeMsg(message,'error');
@@ -2671,7 +2727,7 @@
     try{
       const data=await requestAi('resume-rewrite',{original:s.original,jd:resumeState.jd,confirmedFacts:true,facts:s.questions.map((q,j)=>({question:q,answer:s.answers[j]}))});
       if(!validResumeEnvelope(data,'rewrite'))throw new Error('改写格式异常，请重试。');
-      s.candidate=data;s.candidateText=data.result.rewritten;s.adopted=s.candidateText;const saved=saveResume();renderCandidate(index);if(saved)resumeMsg('本段改写已自动保存到草稿。可以继续修改，全部核对后预览整份简历。');
+      s.candidate=data;s.candidateText=data.result.rewritten;s.adopted=s.candidateText;resumeEditorUi.tabs[index]='draft';const saved=saveResume();renderCandidate(index);updateResumeNavigation();const editor=document.getElementById('resumeEditorScroll');if(editor)editor.scrollTop=0;if(saved)resumeMsg('本段改写已自动保存到草稿。可以继续修改，全部核对后预览整份简历。');
     }catch(e){resumeMsg(e.message+' 原文、补充事实和已有版本已保留。');}
     finally{setResumeBusy(false);}
   }
@@ -2781,6 +2837,10 @@
   ['resumeText','resumeJd'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{
     if(resumeBlocked)return;resumeState[id==='resumeText'?'text':'jd']=e.target.value;if(id==='resumeText'){resumeState.diagnosis=null;resumeState.sections=[];resumeState.accepted=null;}saveResume();renderResume();
   }));
+  document.getElementById('resumePreviousSection').onclick=()=>switchResumeSection(resumeEditorUi.active-1);
+  document.getElementById('resumeNextSection').onclick=()=>switchResumeSection(resumeEditorUi.active+1);
+  document.getElementById('resumeCloseDraft').onclick=()=>document.getElementById('resumeDraftDialog').close();
+  document.getElementById('resumeRefreshDraft').onclick=previewResumeDraft;
   document.getElementById('resumePreviewDraft').addEventListener('click',previewResumeDraft);
   document.getElementById('resumeConfirmVersion').addEventListener('click',confirmResumeVersion);
   document.getElementById('resumePreviewUpdated').addEventListener('click',()=>previewResumeLayout(1));
@@ -2799,7 +2859,7 @@
   document.getElementById('resumeFile').onchange=async e=>{
     const file=e.target.files[0];if(!file||resumeBusy||resumeBlocked)return;
     if(!['http:','https:'].includes(location.protocol)){resumeMsg('文件导入需要启动本地服务。');e.target.value='';return;}
-    resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;document.getElementById('resumeImportText').value='';
+    document.getElementById('resumeSetupDetails').open=true;resumeImported=null;document.getElementById('resumeImportPreview').hidden=true;document.getElementById('resumeImportText').value='';
     setResumeBusy(true);resumeMsg('正在保留原文件并生成版式预览，请稍候……');
     try{
       if(file.size>3*1024*1024)throw Error('文件超过 3 MB，请精简文件');

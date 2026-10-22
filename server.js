@@ -296,7 +296,7 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;

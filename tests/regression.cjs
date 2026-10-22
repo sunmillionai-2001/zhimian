@@ -81,7 +81,7 @@ function request(url, method='GET', body, headers={}) {
 }
 before(async()=>{
   temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-test-'));
-  for(const f of ['skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
+  for(const f of ['skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(root,f),path.join(temp,f));
   for(const f of ['app.html','index.html','index-sidebar.html'])fs.writeFileSync(path.join(temp,f),'test page');
   fs.writeFileSync(path.join(temp,'server.config.json'),JSON.stringify({apiKey:'fake-regression-secret'}));
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));port=reserve.address().port;await new Promise(r=>reserve.close(r));
@@ -90,7 +90,7 @@ before(async()=>{
 });
 after(()=>{child?.kill();if(temp)fs.rmSync(temp,{recursive:true,force:true});});
 test('only public pages are served; private configuration, data, Git and source stay private',async()=>{
-  for(const url of ['/','/app.html','/index.html','/index-sidebar.html','/skill-learning.js'])assert.equal((await request(url)).status,200);
+  for(const url of ['/','/app.html','/index.html','/index-sidebar.html','/skill-learning.js','/resume-navigation.js'])assert.equal((await request(url)).status,200);
   for(const url of ['/server.config.json','/data/store-x.json','/.git/config','/server.js','/README.md'])assert.equal((await request(url)).status,404);
   const config=await request('/api/config');assert.equal(config.status,200);assert.ok(!config.data.includes('fake-regression-secret'));
 });

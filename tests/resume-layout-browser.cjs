@@ -183,6 +183,7 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     );
     assert.equal(saved.source.id, sourceId);
     assert.equal(saved.versions[0].source.id, sourceId);
+    await p.locator("#resumeSetupDetails>summary").click();
     await p.locator("#resumePreviewUpdated").click();
     await p.waitForFunction(
       () =>
