@@ -45,3 +45,8 @@ test('practice tasks preserve baseline evidence and only verify a matching crite
  const uncertain=JSON.parse(JSON.stringify(evaluation));uncertain.result.criteria[0]={...uncertain.result.criteria[0],status:'unknown',quote:''};assert.equal(p.verifyTask(task,uncertain,answer).outcome,'unknown');
  const missing=JSON.parse(JSON.stringify(evaluation));missing.result.criteria[0]={...missing.result.criteria[0],status:'missing',quote:''};assert.equal(p.verifyTask(task,missing,answer).outcome,'needs_more');
 });
+test('resume document references are optional for legacy materials and validated in goal/run snapshots',()=>{
+ const {validSetup,validPreparation}=require('../interview-policy'),setup={jd:'产品经理',resume:'已确认的新简历',interviewer:'hr',mode:'formal',roleSelection:'auto',resumeSource:'resume-version',resumeVersionId:'v1',resumeLabel:'已确认版本'},doc={id:'a'.repeat(32),name:'resume.pdf',ext:'.pdf',pages:2};
+ assert.ok(validSetup(setup));assert.ok(validSetup({...setup,resumeDocument:doc}));assert.equal(validSetup({...setup,resumeDocument:{...doc,id:'../other'}}),false);assert.equal(validSetup({...setup,resumeDocument:{...doc,pages:31}}),false);
+ const run={goalId:'g',preparation:{goalId:'g',goalName:'目标',origin:'session',resumeSource:setup.resumeSource,resumeVersionId:'v1',resumeLabel:setup.resumeLabel,confirmed:true,resumeDocument:doc}};assert.ok(validPreparation(run));assert.equal(validPreparation({...run,preparation:{...run.preparation,resumeDocument:{...doc,ext:'.html'}}}),false);
+});
