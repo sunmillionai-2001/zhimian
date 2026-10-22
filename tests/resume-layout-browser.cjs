@@ -214,8 +214,11 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     await p.locator('#resumeImportApply').waitFor({state:'visible',timeout:60000});
     await p.locator('#resumeImportApply').click();
     assert.equal(await p.locator('#resumeExportWord').isEnabled(),false);
+    await p.locator('#resumeOpenHistory').click();
     await p.locator('#resumeVersions .resume-version').first().locator('summary').first().click();
     await p.locator('[data-restore-resume="0"]').click();
+    assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),false);
+    assert.equal(await p.locator('#resumeDiagnosisDetails').evaluate(el=>el.open),true);
     assert.equal(await p.locator('#resumeExportWord').isEnabled(),false);
     await p.locator('#resumePreviewDraft').click();await p.locator('#resumeConfirmVersion').click();
     await p.reload();

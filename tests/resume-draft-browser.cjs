@@ -34,6 +34,11 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
    assert.equal(await p.locator('.resume-version').count(),0,'Generating each paragraph must not create a version');
   }
   await edit(0);await p.locator('#resumeCandidate0').fill('Validated Alpha reports with source checks.');
+  await p.locator('#resumeDiagnosisDetails>summary').click();
+  assert.equal(await p.locator('#resumeCandidate0').isVisible(),false);assert.equal(await p.locator('#resumePreviewDraft').isVisible(),false);
+  await p.locator('#resumeOpenHistory').click();assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),true);assert.match(await p.locator('#resumeHistorySummary').innerText(),/0 条简历版本/);
+  await p.keyboard.press('Escape');assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),false);assert.equal(await p.locator('#resumeDiagnosisDetails').evaluate(el=>el.open),false);
+  await p.locator('#resumeDiagnosisDetails>summary').click();assert.equal(await p.locator('#resumeCandidate0').inputValue(),'Validated Alpha reports with source checks.');
   await p.reload();
   assert.equal(await p.locator('#resumeCandidate0').inputValue(),'Validated Alpha reports with source checks.');
   assert.equal(await p.locator('#resumeCandidate1').inputValue(),'Validated Beta reports.');
@@ -81,7 +86,7 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   const outlineText='教育经历\n北辰大学\n2016-2020\n工作经历\n云杉科技有限公司\n2020-2022\n负责客户交付。\n推动验收闭环。\n云杉科技有限公司\n2023-至今\n带领支持团队。\n项目经历\n星河培训管理平台\n2024-至今\n协调实施上线。\n晨光数据分析系统\n2025-至今\n完善数据流程。\n个人总结\n善于沟通协作。';
   const originals=['完善数据流程。','负责客户交付。','推动验收闭环。','协调实施上线。'];
   const outlineSections=originals.map(original=>({original,start:outlineText.indexOf(original),issue:'请补充交付结果',questions:['实际完成了什么？'],answers:[''],confirmedFacts:false,candidate:null,candidateText:'',adopted:null}));
-  const treeState={schemaVersion:1,workflowVersion:2,text:outlineText,jd:'技术支持',sections:outlineSections,diagnosis:{meta,result:{overview:'按经历核对事实',matched:[],missing:[],sections:outlineSections.map(({original,start,issue,questions})=>({original,start,issue,questions}))}},versions:[],accepted:null,draftBackups:[],activeSection:1};
+  const treeState={schemaVersion:1,workflowVersion:2,text:outlineText,jd:'技术支持',sections:outlineSections,diagnosis:{meta,result:{overview:'按经历核对事实',matched:[],missing:[],sections:outlineSections.map(({original,start,issue,questions})=>({original,start,issue,questions}))}},versions:Array.from({length:80},(_,i)=>({...confirmed.versions[0],id:'history-'+i})),accepted:null,draftBackups:[],activeSection:1};
   const treeContext=await browser.newContext({viewport:{width:1280,height:950},reducedMotion:'reduce'});
   await treeContext.route('**/fonts.googleapis.com/**',r=>r.abort());await treeContext.addInitScript(state=>{localStorage.setItem('zm_resume_store_v1',JSON.stringify(state));localStorage.setItem('zm_guide_seen_v1','1');},treeState);
   const tree=await treeContext.newPage();tree.on('pageerror',e=>errors.push(e.message));await tree.goto(`http://127.0.0.1:${port}/app.html#resume`);
@@ -96,6 +101,16 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   for(const width of [320,390,820]){await tree.setViewportSize({width,height:950});await tree.locator('#resumeParagraphSelect').selectOption('0');assert.equal(await tree.locator('#resumeSection0').isVisible(),true);assert.equal(await tree.locator('#resumeParagraphSelect optgroup').count(),4);assert.ok(await tree.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
   await tree.setViewportSize({width:1280,height:950});if(!await tree.locator('.resume-nav-module').filter({hasText:'工作经历'}).evaluate(el=>el.open))await tree.locator('.resume-nav-module').filter({hasText:'工作经历'}).locator('summary').first().click();
   await tree.locator('#resumeResults').scrollIntoViewIfNeeded();if(process.env.RESUME_NAV_SCREENSHOT)await tree.screenshot({path:process.env.RESUME_NAV_SCREENSHOT});
+  // Records stay out of page flow even with a long history; only the modal scrolls.
+  await tree.locator('#resumeDiagnosisDetails>summary').click();assert.equal(await tree.locator('#resumeResults').isVisible(),false);
+  assert.equal(await tree.locator('#resumeHistoryDialog').isVisible(),false);assert.equal(await tree.locator('.resume-version:visible').count(),0);
+  const compactHeight=await tree.evaluate(()=>document.documentElement.scrollHeight);assert.ok(compactHeight<1800,'Closed history must not lengthen the main page');
+  await tree.locator('#resumeOpenHistory').click();assert.equal(await tree.locator('.resume-version').count(),80);assert.match(await tree.locator('#resumeHistorySummary').innerText(),/80 条简历版本/);
+  await tree.locator('.resume-version').first().locator('summary').first().click();assert.match(await tree.locator('.resume-version').first().innerText(),/采用前/);
+  assert.ok(await tree.locator('#resumeHistoryDialog').evaluate(el=>el.scrollHeight>el.clientHeight));
+  await tree.locator('#resumeCloseHistory').click();assert.equal(await tree.locator('#resumeHistoryDialog').isVisible(),false);assert.equal(await tree.evaluate(()=>document.documentElement.scrollHeight),compactHeight);
+  for(const width of [320,390]){await tree.setViewportSize({width,height:800});await tree.locator('#resumeOpenHistory').click();assert.ok(await tree.locator('#resumeHistoryDialog').evaluate(el=>el.getBoundingClientRect().width<=innerWidth&&el.getBoundingClientRect().height<=innerHeight));await tree.locator('#resumeCloseHistory').click();}
+  await tree.setViewportSize({width:1280,height:950});await tree.locator('#resumeOpenHistory').scrollIntoViewIfNeeded();if(process.env.RESUME_COMPACT_SCREENSHOT)await tree.screenshot({path:process.env.RESUME_COMPACT_SCREENSHOT});
   assert.deepEqual(errors,[]);
   console.log('PASS: multiple paragraph drafts, refresh, complete preview, invalidation, single final version, immutable accepted export, failed preview/storage, legacy migration, hierarchical modules/experiences, source-order navigation and mobile layout');
  }finally{await browser?.close();app?.kill();fs.rmSync(temp,{recursive:true,force:true});}
