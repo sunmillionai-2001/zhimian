@@ -19,7 +19,7 @@ const { spawn } = require('node:child_process');
     await context.route('**/fonts.googleapis.com/**',r=>r.abort());
     await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{const mode=document.getElementById('mockMode');if(mode){mode.value='coaching';mode.dispatchEvent(new Event('change'));}const advanced=document.getElementById('mockAdvanced');if(advanced)advanced.open=true;}));const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(`http://127.0.0.1:${port}/app.html#mock`);
-    await page.locator('#mockJd').fill('产品经理\n用户需求分析、PRD、团队协作');
+    await page.locator('.nav-item[data-view="target"]').click();await page.locator('#targetJd').fill('产品经理\n用户需求分析、PRD、团队协作');await page.locator('#targetMock').click();
     await page.locator('#mockCount [data-n="5"]').click();await page.locator('#mockStart').click();
     assert.match(await page.locator('#mockKeywords').innerText(),/产品/);
     await page.locator('#mockA').fill('第一题回答\n<script>alert(1)</script>');
@@ -51,7 +51,7 @@ const { spawn } = require('node:child_process');
     await p2.waitForFunction(()=>document.getElementById('mockStorageMsg').textContent.includes('导入失败'));
     assert.equal(await p2.evaluate(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).records.length),1);
     // Switching JD after an earlier parse must change actual questions.
-    await p2.locator('#mockMode').selectOption('coaching');await p2.locator('#mockJd').fill('后端开发\nRedis Java MySQL');await p2.locator('#mockParse').click();await p2.locator('#mockJd').fill('产品经理\nPRD 用户需求分析');await p2.locator('#mockStart').click();
+    await p2.locator('.nav-item[data-view="target"]').click();await p2.locator('#targetJd').fill('后端开发\nRedis Java MySQL');await p2.locator('#targetJd').fill('产品经理\nPRD 用户需求分析');await p2.locator('#targetMock').click();await p2.locator('#mockMode').selectOption('coaching');await p2.locator('#mockStart').click();
     const topics=await p2.evaluate(()=>JSON.parse(localStorage.getItem('zm_mock_store_v2')).draft.questions.map(q=>q.topic));
     assert.ok(!topics.some(t=>['Redis','MySQL','Java / JVM'].includes(t)));
     // A new start must not silently erase a pending draft.

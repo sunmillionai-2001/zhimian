@@ -858,7 +858,7 @@
           <div class="target-library-head"><h3>我的目标</h3><button class="btn btn-ghost" id="targetNew" type="button">＋ 新建目标</button></div>
           <div id="targetList" class="target-list"></div>
           <p class="mock-note">从这里切换本次准备的目标。</p>
-          <details class="target-backup"><summary>目标备份</summary><div class="paste-actions"><button class="btn btn-ghost" id="targetExport" type="button">导出目标准备</button><button class="btn btn-ghost" id="targetImport" type="button">导入目标准备</button></div></details>
+          <details class="target-backup"><summary>准备配置与备份</summary><p class="mock-note">每个目标自动保存当前准备。可将当前 JD、简历与面试设置保存为配置，之后恢复使用；恢复会替换临时调整。</p><div class="paste-actions"><button class="btn btn-ghost" id="targetDefault" type="button">保存准备配置</button><button class="btn btn-ghost" id="targetReset" type="button">恢复已保存配置</button></div><div class="paste-actions"><button class="btn btn-ghost" id="targetExport" type="button">导出目标准备</button><button class="btn btn-ghost" id="targetImport" type="button">导入目标准备</button><input id="targetGoalFile" type="file" accept=".json,application/json" hidden></div><p class="mock-note">导出 JSON 备份，包含全部目标准备材料；同目标导入时保留现有材料。</p></details>
         </aside>
       </div>
     </section>
@@ -908,17 +908,11 @@
       <section class="mock-wrap is-preparing">
         <div class="mock-setup">
           <section class="ai-feedback" id="mockGoalCard" aria-label="当前目标准备"></section>
-          <div class="flow-steps" aria-label="准备流程"><span>01 目标岗位</span><span>02 简历确认</span><span>03 开始面试</span></div><h3>准备你的这一场面试</h3><p class="mock-note">从目标岗位开始；已有草稿可继续，开始新场前会保留确认。</p>
+          <div class="flow-steps" aria-label="准备流程"><span>01 目标岗位</span><span>02 简历确认</span><span>03 开始面试</span></div><h3>准备你的这一场面试</h3><p class="mock-note">选好目标岗位，核对简历并选择面试方式，即可开始练习。</p>
           <div class="prepare-materials"><div class="prepare-block">
           <div>
-            <div class="field"><label for="mockJob">关联岗位（可选）</label><select id="mockJob"><option value="">不关联岗位</option></select></div><div class="mock-step-label">目标岗位要求 / JD</div>
-            <div class="paste-box">
-              <textarea id="mockJd" placeholder="把 BOSS直聘 / 官网看到的岗位 JD 粘贴到这里……（也可点下方「填入示例 JD」）"></textarea>
-              <div class="paste-actions">
-                <button class="btn btn-ghost" id="mockSample">填入示例 JD</button>
-                <button class="btn btn-ghost" id="mockParse">解析关键词</button>
-              </div>
-            </div>
+            <!-- Internal fields preserve existing snapshots and recruitment handoff; edit JD in Target Role. -->
+            <div hidden aria-hidden="true"><select id="mockJob"><option value="">不关联岗位</option></select><textarea id="mockJd" readonly></textarea></div>
           </div>
           <div>
             <div class="mock-step-label">岗位准备范围</div>
@@ -1236,6 +1230,7 @@
   function startMock(prepared=null,context=null){
     if(mockAiBusy||mockPlanBusy){storageMsg('AI 正在点评，请稍候。');return;}
     if(mockStorageBlocked){storageMsg('原数据异常，请先导出备份检查。');return;}
+    if(!document.getElementById('mockJd').value.trim()){storageMsg('请先选择目标岗位；还没有目标时，请到「目标岗位」创建。');return;}
     if(mockStore.draft && !confirm('开始新面试会替换当前草稿。建议先导出备份。继续吗？'))return;
     stopMockVoice();stopTimer();parseJd();mockQuestions=prepared?.result.questions||buildQuestions();mockAnswers=new Array(mockQuestions.length).fill('');mockIdx=0;mockSec=0;mockSelfRate='';
     mockSession={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),jd:document.getElementById('mockJd').value.trim(),role:mockRole,roleSelection:document.getElementById('mockRole').value,resume:document.getElementById('mockProfile').value.trim(),...selectedJobAssociation('mockJob'),...(FormalInterview.context?.()||{}),mode:'coaching',interviewer:document.getElementById('mockInterviewer').value,...(prepared?{questionPlan:prepared.meta}:{}),ai:Array(mockQuestions.length).fill(null),count:mockQuestions.length,keywords:mockFound.slice(),durations:new Array(mockQuestions.length).fill(0),status:'active'};
@@ -1243,6 +1238,7 @@
     persistDraft();renderQuestion();renderMockHistory();return true;
   }
   async function startPersonalMock(){
+    if(!document.getElementById('mockJd').value.trim()){storageMsg('请先选择目标岗位；还没有目标时，请到「目标岗位」创建。');return;}
     if(mockAiBusy||mockPlanBusy||mockStorageBlocked)return;
     parseJd();const context={jd:document.getElementById('mockJd').value.trim(),resume:document.getElementById('mockProfile').value.trim(),interviewer:document.getElementById('mockInterviewer').value,mode:'coaching',role:mockRole,roleSelection:document.getElementById('mockRole').value,...selectedJobAssociation('mockJob')};
     const message=document.getElementById('mockPlanMsg');
