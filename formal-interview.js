@@ -5,8 +5,47 @@ window.FormalInterview=(()=>{
  let resumeMeta={resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'};
  const label=r=>r.jobSnapshot?[r.jobSnapshot.company,r.jobSnapshot.role].filter(Boolean).join(' · '):(r.jd||'尚未设置目标岗位').split('\n')[0].slice(0,100);
  const profile=r=>InterviewPolicy.profile(r.interviewer||'business');
- function setStageMode(formal){const wrap=document.querySelector('#mock .mock-wrap');wrap?.classList.toggle('is-formal',formal);wrap?.classList.remove('is-preparing');}
- function showSetup(){if(ready&&mockSession?.mode==='formal'&&mockSession.status==='active')pause(true);else if(ready&&mockSession&&mockSession.status!=='saved'){stopMockVoice();stopTimer();persistDraft();}setStageMode(false);document.querySelector('#mock .mock-wrap')?.classList.add('is-preparing');if(ready)renderGoalCard();$('mockGoalSelect')?.focus({preventScroll:true});}
+ let roomPhase='prepare',roomSerial=0,roomAnimation=null,roomEntry='',roomQuestion='',modelHomes=[];
+ const roomWrap=()=>document.querySelector('#mock .mock-wrap');
+ const roomVisible=()=>$('mock')?.classList.contains('active');
+ const reducedMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+ function roomScroll(){if(roomVisible()){$('mock').style.scrollMarginTop=(Math.max(0,document.querySelector('.topbar').getBoundingClientRect().bottom)+16)+'px';$('mock').scrollIntoView({block:'start',behavior:'instant'});}}
+ function roomPhaseTo(phase){
+  roomPhase=phase;const wrap=roomWrap();if(!wrap)return;wrap.dataset.phase=phase;wrap.classList.toggle('is-preparing',phase==='prepare'||phase==='leaving');wrap.classList.remove('is-formal');
+  document.querySelector('#mock .mock-setup').inert=phase!=='prepare';wrap.setAttribute('aria-busy',String(phase==='loading'||phase==='leaving'));
+  $('mockRoomBack').hidden=phase==='prepare'||phase==='leaving'||phase==='loading';
+  $('mockRoomContinue').hidden=phase!=='prepare'||!mockStore.draft;$('mockRoomContinue').textContent=mockStore.draft?.status==='report'?'查看上场复盘':'继续上场练习';
+ }
+ function roomAnimate(el,keyframes,duration){if(!el||reducedMotion()||!roomVisible())return Promise.resolve();const animation=el.animate(keyframes,{duration,easing:'cubic-bezier(.22,1,.36,1)'});return animation.finished.catch(()=>{});}
+ async function leavePreparation(){
+  const serial=++roomSerial;roomPhaseTo('leaving');roomScroll();
+  roomAnimation=document.querySelector('#mock .mock-setup').animate(reducedMotion()?[]:[{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-40px)'}],{duration:reducedMotion()?0:650,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+  await roomAnimation.finished.catch(()=>{});if(serial!==roomSerial)return false;roomAnimation.cancel();roomAnimation=null;return true;
+ }
+ async function beginRoom(){
+  if(!await leavePreparation())return false;roomPhaseTo('loading');
+  const interviewer=InterviewPolicy.profile($('mockInterviewer').value);$('mockLoadingRole').textContent=interviewer.name+' · '+($('mockJd').value.trim().split('\n')[0]||'本场面试');
+  $('mockLoadingHeading').focus({preventScroll:true});roomAnimate($('mockLoading'),[{opacity:0},{opacity:1}],350);return true;
+ }
+ function setStageMode(formal,screen){
+  const phase=screen||(mockSession&&['report','saved'].includes(mockSession.status)?'report':'session'),stamp=(mockSession?.id||'history')+':'+phase;
+  const enter=()=>{const animate=roomPhase!==phase||roomEntry!==stamp;roomPhaseTo(phase);roomEntry=stamp;if(animate){roomScroll();roomAnimate($('mockStage'),[{opacity:0,transform:'translateY(22px)'},{opacity:1,transform:'translateY(0)'}],800);requestAnimationFrame(()=>{if(roomPhase!==phase||!roomVisible())return;const focus=$('mockA')||$('mockStage').querySelector('h3');if(focus){if(focus.tagName==='H3')focus.tabIndex=-1;focus.focus({preventScroll:true});}});}};
+  if(ready&&roomPhase==='prepare'&&roomVisible()){const serial=roomSerial+1;leavePreparation().then(ok=>{if(ok&&serial===roomSerial)enter();});}else enter();
+ }
+ function roomQuestionMotion(){
+  const key=mockSession?.id+':'+mockIdx+':'+(mockSession?.formal?.pending?.question||'main');if(key===roomQuestion)return;roomQuestion=key;
+  const el=$('mockStage').querySelector('.formal-question,.q-card');roomAnimate(el,[{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],220);
+ }
+ function showSetup(){
+  if(mockAiBusy||mockPlanBusy)return;
+  if(ready&&mockSession?.mode==='formal'&&mockSession.status==='active')pause(true);else if(ready&&mockSession&&mockSession.status!=='saved'){stopMockVoice();stopTimer();persistDraft();}
+  ++roomSerial;roomAnimation?.cancel();roomAnimation=null;const changed=roomPhase!=='prepare';roomPhaseTo('prepare');
+  if(ready)renderGoalCard();if(changed){roomScroll();roomAnimate(document.querySelector('#mock .mock-setup'),[{opacity:0,transform:'translateY(-12px)'},{opacity:1,transform:'translateY(0)'}],450);}$('mockGoalSelect')?.focus({preventScroll:true});
+ }
+ function positionRoomTools(){const main=document.querySelector('.main').getBoundingClientRect(),top=document.querySelector('.topbar').getBoundingClientRect().bottom,left=Math.max(0,main.left),right=Math.min(innerWidth,main.right),bottom=innerHeight;const d=$('mockToolsDialog');d.style.setProperty('--room-dialog-x',(left+right)/2+'px');d.style.setProperty('--room-dialog-y',(Math.max(0,top)+bottom)/2+'px');d.style.setProperty('--room-dialog-width',Math.max(200,right-left-24)+'px');d.style.setProperty('--room-dialog-height',Math.max(160,bottom-Math.max(0,top)-24)+'px');}
+ function openRoomTools(force=false){if(!force&&(mockAiBusy||mockPlanBusy))return;const dialog=$('mockToolsDialog');for(const id of ['aiSettings','modelSettings']){const panel=$(id);if(panel&&!modelHomes.some(x=>x.panel===panel)){const anchor=document.createComment(id+' home');panel.before(anchor);modelHomes.push({panel,anchor});$('mockModelSettingsHost').append(panel);}}positionRoomTools();if(!dialog.open)dialog.showModal();}
+ function restoreModelHomes(){for(const {panel,anchor}of modelHomes)if(anchor.parentNode)anchor.replaceWith(panel);modelHomes=[];}
+ function closeRoomTools(){if($('mockToolsDialog').open)$('mockToolsDialog').close();restoreModelHomes();}
  const emptySetup=()=>({jd:'',resume:'',interviewer:'business',mode:'formal',roleSelection:'auto',resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'});
  const activeGoal=()=>goalState.goals.find(g=>g.id===goalState.activeId);
  const fromRecord=r=>({...emptySetup(),jd:r.jd||'',resume:r.resume||'',interviewer:r.interviewer||'business',mode:r.mode||'coaching',roleSelection:r.roleSelection||'auto',...(r.preparation?resumeMetadata(r.preparation):{})});
@@ -34,7 +73,7 @@ window.FormalInterview=(()=>{
   if(mockAiBusy||mockPlanBusy||goalsBlocked)return;const g=goalState.goals.find(g=>g.id===id);if(!g||!writeGoals({...goalState,activeId:id}))return;
   stopMockVoice();stopTimer();if(mockSession&&mockSession.status!=='saved')persistDraft();
   if(g.jobId&&!Array.from($('mockJob').options).some(o=>o.value===g.jobId))$('mockJob').add(new Option('原关联岗位（已删除）',g.jobId));$('mockJob').value=g.jobId||'';applySetup(g.working);showSetup();
-  $('mockStage').innerHTML='<div class="stage-empty"><h3>准备你的这一场面试</h3><p>确认左侧材料与面试方式后开始。已有草稿可通过「恢复草稿」继续。</p></div>';refreshHome();
+  $('mockStage').innerHTML='<div class="stage-empty"><h3>准备你的这一场面试</h3><p>核对目标材料与面试方式后开始，也可继续上场练习。</p></div>';refreshHome();
  }
  function selectJob(id){
   if(!ready||mockAiBusy||mockPlanBusy||goalsBlocked)return;saveSetup();const existing=goalState.goals.find(g=>id&&g.jobId===id);if(existing){activateGoal(existing.id);return;}
@@ -225,7 +264,7 @@ window.FormalInterview=(()=>{
   $('homeLastReport')?.addEventListener('click',()=>{go('mock');viewHistory(mockStore.records.indexOf(last));});
  }
  function init(){
-  ready=true;bindResumePreview();
+  ready=true;bindResumePreview();$('mockRoomBack').onclick=showSetup;$('mockRoomContinue').onclick=()=>{if(!mockAiBusy&&!mockPlanBusy)resumeDraft();};$('mockRoomTools').onclick=()=>openRoomTools();$('mockToolsClose').onclick=closeRoomTools;$('mockToolsDialog').addEventListener('close',()=>{if(!$('mockToolsDialog').open)restoreModelHomes();});window.addEventListener('resize',()=>{if($('mockToolsDialog').open)positionRoomTools();});
   try{const raw=localStorage.getItem(goalsKey);if(raw){const data=JSON.parse(raw);if(!InterviewPolicy.validGoals(data))throw Error();goalState=data;}else{const legacy=JSON.parse(localStorage.getItem(key)||'null');if(legacy&&InterviewPolicy.validSetup({...emptySetup(),...legacy}))createGoal({...emptySetup(),...legacy},legacy);else if(mockStore.draft)createGoal(fromRecord(mockStore.draft),mockStore.draft);}}catch{goalsBlocked=true;storageMsg('目标准备存储异常，原数据保留，请导出检查；已保存的面试仍可查看和导出。');}
   const g=activeGoal();if(mockStore.draft&&g&&InterviewPolicy.sameGoal({goalId:g.id,jobId:g.jobId,jd:g.working.jd},mockStore.draft))restoreControls(mockStore.draft);else if(g)activateGoal(g.id);
   for(const id of ['mockMode','mockInterviewer','mockRole'])$(id).addEventListener('change',saveSetup);
@@ -250,7 +289,7 @@ window.FormalInterview=(()=>{
   $('targetExport').onclick=()=>downloadAsset(goalsBlocked?{recovery:true,raw:localStorage.getItem(goalsKey)}:goalState,'zhimian-goal-preparation.json');
   $('targetImport').onclick=()=>{if(!mockAiBusy)$('targetGoalFile').click();};$('targetGoalFile').onchange=async e=>{try{if(goalsBlocked)throw Error('原目标准备存储异常，请先导出检查');const file=e.target.files[0];if(!file)return;if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!InterviewPolicy.validGoals(data))throw Error('目标备份格式错误');const added=data.goals.filter(x=>!goalState.goals.some(g=>g.id===x.id||g.jobId&&g.jobId===x.jobId));const wasEmpty=!activeGoal();if(writeGoals({...goalState,activeId:goalState.activeId||data.activeId,goals:[...goalState.goals,...added]})){if(wasEmpty&&activeGoal())activateGoal(goalState.activeId);renderGoalCard();storageMsg('已合并目标准备，同目标保留现有材料。');$('targetMsg').textContent='已合并目标准备，同目标保留现有材料。';}else{$('targetMsg').textContent='目标导入未能保存，原数据保留。';}}catch(err){storageMsg(err.message+'，原数据保留。');$('targetMsg').textContent=err.message+'，原数据保留。';}finally{e.target.value='';}};
   $('formalStart').onclick=start;$('overviewPrepareTarget').onclick=()=>go('target');updateControls();renderGoalCard();refreshHome();
-  document.addEventListener('zm-leave-mock',()=>{if(mockSession?.mode==='formal'&&mockSession.status==='active'){stopMockVoice();stopTimer();ensureControl(mockSession).paused=true;persistDraft();if(!mockAiBusy)renderQuestion();}});
+  document.addEventListener('zm-leave-mock',()=>{closeRoomTools();if(roomPhase==='leaving'){++roomSerial;roomAnimation?.cancel();roomAnimation=null;roomPhaseTo('prepare');}if(mockSession?.status==='active'){stopMockVoice();stopTimer();if(mockSession.mode==='formal')ensureControl(mockSession).paused=true;persistDraft();if(mockSession.mode==='formal'&&!mockAiBusy)renderQuestion();}});
  }
  async function start(){
   if(mockAiBusy||mockPlanBusy||mockStorageBlocked)return;
@@ -263,19 +302,19 @@ window.FormalInterview=(()=>{
   if(mockStore.draft&&!confirm('开始新的正式模拟会替换当前草稿，已保存记录保留。继续吗？'))return;
   stopMockVoice();stopTimer();if(mockSession?.status==='active'&&!persistDraft()){message.textContent='草稿保存失败，请先导出备份。';return;}
   parseJd();if(!saveSetup())return;const runContext={...context(),jd,resume,role:mockRole,roleSelection:$('mockRole').value,interviewer:$('mockInterviewer').value,...selectedJobAssociation('mockJob')};
-  const controls=[...document.querySelectorAll('#mock .mock-setup input,#mock .mock-setup textarea,#mock .mock-setup select,#mock .mock-setup button')],disabled=controls.map(el=>el.disabled);
+  let roomStarted=false;const controls=[...document.querySelectorAll('#mock .mock-setup input,#mock .mock-setup textarea,#mock .mock-setup select,#mock .mock-setup button')],disabled=controls.map(el=>el.disabled);
   controls.forEach(el=>el.disabled=true);mockPlanBusy=true;setMockAiBusy(true);message.textContent='面试官正在根据岗位与经历准备问题，原材料和草稿会保留…';
   try{
-   runContext.selectedFocus=focusSnapshot();const frozenBlueprint=InterviewPolicy.blueprint(runContext.interviewer,runContext.role);
+   if(!await beginRoom())return;runContext.selectedFocus=focusSnapshot();const frozenBlueprint=InterviewPolicy.blueprint(runContext.interviewer,runContext.role);
    const plan=await requestAi('interview-plan',{...runContext,count:5,blueprintVersion:frozenBlueprint.version,focus:toAiFocus(runContext.selectedFocus)});
    if(plan.result?.questions?.length!==5||!plan.result.questions.every(q=>q&&typeof q.q==='string'&&typeof q.topic==='string'&&Array.isArray(q.points)&&q.points.length>0&&q.points.every(x=>typeof x==='string')&&q.source&&['resume','jd'].includes(q.source.kind)&&typeof q.source.quote==='string'&&q.source.quote.trim()&&(q.source.kind==='resume'?resume:jd).includes(q.source.quote)))throw Error('题目或材料依据异常，请重试。');
    const questions=[{kind:'intro',topic:'开场介绍',q:'请用两分钟介绍与你目标岗位最相关的经历，以及这次求职的方向。',points:['相关经历','个人职责','求职方向']},...plan.result.questions.map(q=>({...q,kind:'main'})),{kind:'closing',topic:'候选人反问',q:'面试接近结束，你有什么想向面试官了解的问题？也可以直接结束。',points:[]}];
    const session={schemaVersion:2,id:crypto.randomUUID(),date:new Date().toISOString(),...runContext,blueprint:frozenBlueprint,mode:'formal',questionPlan:plan.meta,questions,answers:Array(7).fill(''),durations:Array(7).fill(0),ai:Array(7).fill(null),count:7,index:0,rate:'未评',keywords:mockFound.slice(),status:'active',formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(7).fill(null),control:{paused:false,clarifications:[],skipped:[]}}};
    if(!validRecord(session,true))throw Error('本场材料或考察标准异常，请重新准备');
    if(!writeMockStore({...mockStore,draft:session})){message.textContent='新场次保存失败，原草稿仍保留，请先导出备份。';return;}
-   mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';message.textContent='已准备好，正式模拟开始。';renderQuestion();renderMockHistory();
+   mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';message.textContent='已准备好，正式模拟开始。';roomStarted=true;renderQuestion();renderMockHistory();
   }catch(e){message.textContent=e.message+' 材料和原草稿已保留，可重试或切换专项练习。';}
-  finally{mockPlanBusy=false;setMockAiBusy(false);controls.forEach((el,i)=>el.disabled=disabled[i]);renderMockHistory();if(mockSession?.status==='active')startTimer();}
+  finally{mockPlanBusy=false;setMockAiBusy(false);controls.forEach((el,i)=>el.disabled=disabled[i]);renderMockHistory();if(!roomStarted)showSetup();else if(mockSession?.status==='active')startTimer();}
  }
  function ensureControl(r){return r.formal.control||(r.formal.control={paused:false,clarifications:[],skipped:[]});}
  function questionKey(){return mockIdx+':'+(mockSession.formal.pending?'followup':'main')+':'+mockSession.formal.turns.filter(t=>t.index===mockIdx).length;}
@@ -294,12 +333,12 @@ window.FormalInterview=(()=>{
  }
  function renderQuestion(){
   const r=mockSession,f=r.formal,p=profile(r),q=f.pending?.question||mockQuestions[mockIdx].q,closing=mockIdx===6,control=ensureControl(r),paused=control.paused,clarification=control.clarifications.find(c=>c.key===questionKey());
-  setStageMode(true);$('mockStage').innerHTML=`<div class="formal-stage"><div class="stage-bar"><div class="who">${r.interviewer==='hr'?'HR':'面'}</div><div><div class="who-name">${esc(p.name)} · 正式模拟</div><div class="who-sub">${esc(label(r))}</div></div><div class="stage-timer"><span class="step">${mockIdx===0?'开场':closing?'候选人反问':'岗位问题 '+mockIdx+'/5'}</span><span class="t" id="mockClock"></span></div></div><div class="stage-body"><div class="formal-toolbar"><span class="formal-status" id="formalStatus">${paused?'已暂停，回答已保存':f.decisionPending?'回答已保存，等待面试官判断下一步':'轮到你回答'}</span><button class="btn btn-ghost" id="formalEnd">提前结束并复盘</button><button class="btn btn-ghost" id="formalSetup">查看准备材料</button><button class="btn btn-ghost" id="formalPause">${paused?'继续面试':'暂停'}</button><button class="btn btn-ghost" id="formalClarify">澄清题意</button><button class="btn btn-ghost" id="formalUnknown">不会，换下一题</button></div><div class="formal-progress"><span style="width:${Math.round(mockIdx/7*100)}%"></span></div>${mockIdx===0?`<p>你好，我是本场的${esc(p.name)}。我们重点聊${esc(p.focus)}。预计约 15 分钟，结束后会统一整理复盘。</p>`:''}<div class="q-topic">${f.pending?'针对刚才回答的追问':esc(mockQuestions[mockIdx].topic)}</div><div class="formal-question">${esc(q)}</div>${clarification?'<div class="ai-feedback"><b>题意说明</b><p>'+esc(clarification.explanation)+'</p></div>':''}<p class="mock-note">${closing?'你的反问会保留在报告中。模拟面试官不代表真实企业，不会编造公司政策。':'正式模拟中不展示评分与参考答案，回答后根据内容继续追问或进入下一题。'}</p></div><div class="stage-foot"><div id="mockVoiceTools"></div><label for="mockA">${closing?'你想了解的问题':'本次回答'}</label><textarea id="mockA" maxlength="12000" ${f.decisionPending||paused?'readonly':''} aria-label="本题回答"></textarea><div class="formal-toolbar"><button class="btn btn-primary" id="formalNext">${f.decisionPending?'重试面试官回应':closing?'结束面试，查看复盘':'我答完了 →'}</button><button class="btn btn-ghost" id="formalSkip">${f.decisionPending?'先进入下一题':closing?'没有问题，结束面试':'跳过本题'}</button></div><p id="formalMessage" class="mock-note" role="status" aria-live="polite"></p></div><details class="formal-transcript"><summary>已记录的回答（${mockAnswers.filter(a=>a.trim()).length} 道主问题，含开场）</summary>${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`<p><b>${esc(q.topic)}</b> · ${esc(q.q)}</p><blockquote>${esc(mockAnswers[i]||'尚未作答')}</blockquote>`+f.turns.filter(t=>t.index===i).map(t=>`<p>追问：${esc(t.question)}</p><blockquote>${esc(t.answer||'跳过追问')}</blockquote>`).join('')).join('')}</details></div>`;
+  setStageMode(true);$('mockStage').innerHTML=`<div class="formal-stage"><div class="stage-bar"><div class="who">${r.interviewer==='hr'?'HR':'面'}</div><div><div class="who-name">${esc(p.name)} · 正式模拟</div><div class="who-sub">${esc(label(r))}</div></div><div class="stage-timer"><span class="step">${mockIdx===0?'开场':closing?'候选人反问':'岗位问题 '+mockIdx+'/5'}</span><span class="t" id="mockClock"></span></div></div><div class="stage-body"><div class="formal-toolbar"><span class="formal-status" id="formalStatus">${paused?'已暂停，回答已保存':f.decisionPending?'回答已保存，等待面试官判断下一步':'轮到你回答'}</span><button class="btn btn-ghost" id="formalEnd">提前结束并复盘</button><button class="btn btn-ghost" id="formalPause">${paused?'继续面试':'暂停'}</button><button class="btn btn-ghost" id="formalClarify">澄清题意</button><button class="btn btn-ghost" id="formalUnknown">不会，换下一题</button></div><div class="formal-progress"><span style="width:${Math.round(mockIdx/7*100)}%"></span></div>${mockIdx===0?`<p>你好，我是本场的${esc(p.name)}。我们重点聊${esc(p.focus)}。预计约 15 分钟，结束后会统一整理复盘。</p>`:''}<div class="q-topic">${f.pending?'针对刚才回答的追问':esc(mockQuestions[mockIdx].topic)}</div><div class="formal-question">${esc(q)}</div>${clarification?'<div class="ai-feedback"><b>题意说明</b><p>'+esc(clarification.explanation)+'</p></div>':''}<p class="mock-note">${closing?'你的反问会保留在报告中。模拟面试官不代表真实企业，不会编造公司政策。':'正式模拟中不展示评分与参考答案，回答后根据内容继续追问或进入下一题。'}</p></div><div class="stage-foot"><div id="mockVoiceTools"></div><label for="mockA">${closing?'你想了解的问题':'本次回答'}</label><textarea id="mockA" maxlength="12000" ${f.decisionPending||paused?'readonly':''} aria-label="本题回答"></textarea><div class="formal-toolbar"><button class="btn btn-primary" id="formalNext">${f.decisionPending?'重试面试官回应':closing?'结束面试，查看复盘':'我答完了 →'}</button><button class="btn btn-ghost" id="formalSkip">${f.decisionPending?'先进入下一题':closing?'没有问题，结束面试':'跳过本题'}</button></div><p id="formalMessage" class="mock-note" role="status" aria-live="polite"></p></div><details class="formal-transcript"><summary>已记录的回答（${mockAnswers.filter(a=>a.trim()).length} 道主问题，含开场）</summary>${mockQuestions.slice(0,mockIdx+1).map((q,i)=>`<p><b>${esc(q.topic)}</b> · ${esc(q.q)}</p><blockquote>${esc(mockAnswers[i]||'尚未作答')}</blockquote>`+f.turns.filter(t=>t.index===i).map(t=>`<p>追问：${esc(t.question)}</p><blockquote>${esc(t.answer||'跳过追问')}</blockquote>`).join('')).join('')}</details></div>`;
   const input=$('mockA');input.value=f.pending?f.draft:mockAnswers[mockIdx];input.oninput=()=>{if(f.pending)f.draft=input.value;else mockAnswers[mockIdx]=input.value;persistDraft();};
   $('formalNext').onclick=submit;$('formalSkip').onclick=()=>skip();$('formalPause').onclick=()=>pause(!paused);$('formalUnknown').onclick=()=>skip(true);$('formalClarify').onclick=clarify;
   for(const id of ['formalNext','formalSkip','formalUnknown','formalClarify'])$(id).disabled=paused;$('formalClarify').disabled=paused||f.decisionPending||!!clarification;
   $('formalEnd').onclick=()=>{if(mockAiBusy)return;if(confirm('提前结束这场面试？已填写的回答会进入复盘，未答题不会计为零分。'))finish();};
-  $('formalSetup').onclick=showSetup;if(!f.decisionPending&&!paused)mountMockVoice('mockA','mockVoiceTools');if(!paused)startTimer();else stopTimer();
+  roomQuestionMotion();if(!f.decisionPending&&!paused)mountMockVoice('mockA','mockVoiceTools');if(!paused)startTimer();else stopTimer();
  }
  function elapsed(){return mockSession.durations.reduce((sum,n,i)=>sum+(i===mockIdx?mockSec:n),0);}
  function clock(){const el=$('mockClock');if(!el||mockSession?.mode!=='formal'||mockSession.status!=='active')return;const n=Math.max(0,900-elapsed());el.textContent=n?String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'):'建议时间已到';}
@@ -340,7 +379,7 @@ window.FormalInterview=(()=>{
   document.querySelectorAll('[data-formal-setup]').forEach(b=>b.onclick=()=>{showSetup();$('mockMode').value='formal';updateControls();});
   if($('formalEvaluate'))$('formalEvaluate').onclick=()=>evaluateReport(r);
  }
- function renderReport(){setStageMode(true);const r=snapshot(),saved=mockSession.status==='saved';$('mockStage').innerHTML=`<div class="report formal-stage">${reportHtml(r)}<div class="report-actions"><button class="btn btn-primary" id="mockSave" ${saved||mockAiBusy?'disabled':''}>${saved?'已保存 ✓':'保存正式模拟记录'}</button><button class="btn btn-ghost" id="formalExport">导出面试备份</button></div></div>`;bindReport(r);$('mockSave').onclick=saveMock;$('formalExport').onclick=exportMock;if($('formalEvaluate'))$('formalEvaluate').disabled=mockAiBusy;}
+ function renderReport(){setStageMode(true,'report');const r=snapshot(),saved=mockSession.status==='saved';$('mockStage').innerHTML=`<div class="report formal-stage">${reportHtml(r)}<div class="report-actions"><button class="btn btn-primary" id="mockSave" ${saved||mockAiBusy?'disabled':''}>${saved?'已保存 ✓':'保存正式模拟记录'}</button><button class="btn btn-ghost" id="formalExport">导出面试备份</button></div></div>`;bindReport(r);$('mockSave').onclick=saveMock;$('formalExport').onclick=exportMock;if($('formalEvaluate'))$('formalEvaluate').disabled=mockAiBusy;}
  async function evaluateReport(record=mockSession){
   if(reviewBusy||mockAiBusy||!record||record.mode!=='formal'||record.status==='active')return;const isCurrent=record.id===mockSession?.id;
   // History reports may be completed without replacing the current draft.
@@ -371,5 +410,5 @@ window.FormalInterview=(()=>{
   if(task){session.origin.taskId=task.id;session.practiceTask={id:task.id,recordId:original.id,index,competencyId:task.competencyId,criterionId:task.criterionId,title:task.title,reason:task.reason,sourceQuote:task.sourceQuote};records=records.map(r=>r.id===original.id?{...r,formal:{...r.formal,tasks:r.formal.tasks.map(t=>t.id===task.id?{...t,status:'practicing'}:t)}}:r);}
   const next={...mockStore,records,draft:session};if(!validStore(next)||!writeMockStore(next))return;mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';restoreControls(session);window.renderQuestion();renderMockHistory();$('mockRetryAnswer')?.focus();
  }
- return {init,showSetup,restoreControls,saveSetup,selectJob,useResume,context,homeState,renderTarget,rubricContext,criteriaHtml,syncControls,practiceHtml,bindPractice,completePractice,cancelPractice,refreshPreparation:()=>{if(ready){renderGoalCard();renderFocus();}},refreshHome,setStageMode,renderQuestion,renderReport,reportHtml,bindReport,clock};
+ return {init,showSetup,restoreControls,saveSetup,selectJob,useResume,context,homeState,renderTarget,rubricContext,criteriaHtml,syncControls,practiceHtml,bindPractice,completePractice,cancelPractice,refreshPreparation:()=>{if(ready){if(!mockAiBusy&&!mockPlanBusy)showSetup();renderGoalCard();renderFocus();}},refreshHome,setStageMode,beginRoom,roomQuestionMotion,openRoomTools,closeRoomTools,renderQuestion,renderReport,reportHtml,bindReport,clock};
 })();
