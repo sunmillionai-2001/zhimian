@@ -53,12 +53,12 @@ function readConfig() {
 function writeConfig(cfg) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
 }
-function readBody(req) {
+function readBody(req,limit=5e6) {
   return new Promise((resolve, reject) => {
     let raw = '', size = 0, tooLarge = false;
     req.on('data', c => {
       size += c.length;
-      if (size > 5e6) { tooLarge = true; raw = ''; }
+      if (size > limit) { tooLarge = true; raw = ''; }
       else if (!tooLarge) raw += c;
     });
     req.on('end', () => {
@@ -82,6 +82,8 @@ function storeFileName(key) {
 }
 
 const modelService=localMode?null:createModelService(DATA_DIR,readConfig());
+let voiceService;
+const voice=()=>voiceService||(voiceService=require('./voice-service').createVoiceService(process.env.ZM_VOICE_MODEL_DIR||path.join(DATA_DIR,'voice-model')));
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -130,6 +132,11 @@ const server = http.createServer(async (req, res) => {
   const userDirectory=localMode?DATA_DIR:path.join(DATA_DIR,'users',account?.id||'none');
   const reviewStore=localMode?localReviews:createReviewStore(userDirectory);
   if(!localMode&&['/','/app.html','/index.html','/index-sidebar.html'].includes(url)&&!account?.active){res.writeHead(302,{Location:'/account.html','Cache-Control':'no-store'});return res.end();}
+  if(url==='/api/voice/status'&&req.method==='GET')return sendJson(res,200,voice().status());
+  if(url==='/api/voice/transcribe'&&req.method==='POST'){
+    const body=await readBody(req,8e6),controller=new AbortController(),aborted=()=>{if(!res.writableEnded)controller.abort();};res.once('close',aborted);
+    try{return sendJson(res,200,await voice().transcribe(body,account?.id||req.socket.remoteAddress,controller.signal));}finally{res.removeListener('close',aborted);}
+  }
   // ---------- 面试复盘：记录与首页统计使用同一份服务端数据 ----------
   if (url === '/api/reviews' && req.method === 'GET') return sendJson(res, 200, reviewStore.list());
   if (url === '/api/reviews' && req.method === 'POST') {
@@ -298,7 +305,7 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js', '/mock-voice.js', '/voice-recorder-worklet.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;

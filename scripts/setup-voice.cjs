@@ -1,0 +1,9 @@
+// Pinned public SenseVoice weights. Audio and user data are never part of setup.
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto'),{execFileSync}=require('node:child_process');
+const archiveHash='7d1efa2138a65b0b488df37f8b89e3d91a60676e416f515b952358d83dfd347e';
+const hashes={'model.int8.onnx':'c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51','tokens.txt':'f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc'};
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const destination=process.env.ZM_VOICE_MODEL_DIR||path.join(__dirname,'..','data','voice-model');
+if(Object.entries(hashes).every(([file,want])=>fs.existsSync(path.join(destination,file))&&hash(path.join(destination,file))===want)){console.log('本地语音模型已安装并校验通过。');process.exit(0);}
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-voice-setup-'));
+try{const archive=path.join(tmp,'model.tar.bz2');console.log('正在下载中文语音模型（约 163 MB，仅首次需要）…');execFileSync('curl',['--fail','--location','--retry','2','--max-time','600','--output',archive,'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2'],{stdio:'inherit'});if(hash(archive)!==archiveHash)throw Error('模型包校验失败，请重新运行安装。');execFileSync('tar',['-xjf',archive,'-C',tmp]);const source=path.join(tmp,'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17');for(const [file,want]of Object.entries(hashes))if(hash(path.join(source,file))!==want)throw Error('模型文件校验失败。');fs.mkdirSync(destination,{recursive:true});for(const file of [...Object.keys(hashes),'LICENSE'])fs.copyFileSync(path.join(source,file),path.join(destination,file));console.log('本地语音识别已准备完成。');}catch(e){console.error('语音模型安装失败：'+e.message);process.exitCode=1;}finally{fs.rmSync(tmp,{recursive:true,force:true});}

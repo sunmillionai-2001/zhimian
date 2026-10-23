@@ -589,6 +589,7 @@
   #resumeMsg[data-status="success"]{color:var(--teal);font-size:14px}
 
   /* Interview room: one visible phase across the full content area. */
+  #mock [data-voice-cancel][hidden]{display:none}#mock [data-voice],#mock [data-voice-cancel]{min-height:44px}#mock [data-voice-status]{overflow-wrap:anywhere}
   .interview-repeat{margin-top:24px;padding:20px 0;border-top:1px solid var(--line)}.interview-repeat .paste-actions{flex-wrap:wrap}.interview-repeat .btn{min-height:44px}.interview-repeat p{overflow-wrap:anywhere}.interview-repeat [role=status]:not(:empty){color:var(--seal-deep)}
   .main:has(#mock.active)>#aiSettings,.main:has(#mock.active)>#modelSettings{display:none}
   #mock .mock-room-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}#mock .mock-room-actions .btn{min-height:44px}#mock .mock-room-actions [hidden]{display:none}
@@ -1058,6 +1059,7 @@
 <script src="skill-learning.js"></script>
 <script src="interview-policy.js"></script>
 <script src="formal-interview.js"></script>
+<script src="mock-voice.js"></script>
 <script src="resume-navigation.js"></script>
 <script>
   const views = ['overview','target','resume','mock','review','method','skill','jobs','answers'];
@@ -1484,29 +1486,11 @@
     const evaluated=(r.ai||[]).filter(Boolean),retries=evaluated.filter(e=>e.retry?.evaluation),gaps=[...new Set(evaluated.flatMap(e=>(e.retry?.evaluation||e.final||e.initial).result.gaps))].slice(0,3);
     return `<div class="ai-feedback"><h4>这次练习的收获</h4><p>${r.answers.filter(a=>a.trim()).length}/${r.count} 题已作答 · ${evaluated.length} 题有 AI 点评 · ${retries.length} 题完成重答对比</p>${gaps.length?'<b>下一次优先练</b><ul>'+gaps.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul>':'<p class="mock-note">完成回答与点评后，这里会整理具体练习方向。</p>'}</div>`;
   }
-  let mockVoice=null;
-  function stopMockVoice(){if(mockVoice){const current=mockVoice;mockVoice=null;try{current.abort();}catch{}}if(window.speechSynthesis)window.speechSynthesis.cancel();}
+  function stopMockVoice(){window.MockVoice?.stop();}
   function mountMockVoice(targetId,hostId){
     const host=document.getElementById(hostId),target=document.getElementById(targetId);if(!host||!target||target.readOnly)return;
-    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    host.innerHTML='<div class="paste-actions"><button type="button" class="btn btn-ghost" data-voice>语音作答</button>'+(targetId==='mockA'?'<button type="button" class="btn btn-ghost" data-read>'+(mockSession?.mode==='formal'?'重复问题':'朗读本题')+'</button>':'')+'</div><p class="mock-note" role="status" data-voice-status></p>';
-    const button=host.querySelector('[data-voice]'),notice=host.querySelector('[data-voice-status]');
-    notice.textContent=Recognition?'语音转写由浏览器提供，可能需要联网。请核对文字后再提交。':'当前浏览器不支持语音转写，可用系统听写或键盘作答。';button.disabled=!Recognition;
-    button.onclick=()=>{
-      if(mockAiBusy||mockPlanBusy||target.disabled)return;
-      if(mockVoice){const active=mockVoice;mockVoice=null;try{active.stop();}catch{}return;}
-      const recognition=new Recognition(),sessionId=mockSession.id,index=mockIdx;recognition.lang='zh-CN';recognition.continuous=true;recognition.interimResults=false;mockVoice=recognition;
-      button.textContent='停止语音';target.readOnly=true;notice.textContent='正在聆听，请说出你的回答…';
-      recognition.onresult=e=>{
-        if(!target.isConnected||mockSession?.id!==sessionId||mockIdx!==index||mockAiBusy)return;
-        let words='';for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)words+=e.results[i][0].transcript;
-        if(words){const next=target.value+(target.value?'\n':'')+words;if(next.length>12000){notice.textContent='回答达到长度上限，请精简文字。';recognition.stop();return;}target.value=next;target.dispatchEvent(new Event('input',{bubbles:true}));notice.textContent='已转写并保存，请继续或停止后核对文字。';}
-      };
-      recognition.onerror=e=>{notice.textContent=({'not-allowed':'麦克风权限未允许，请在浏览器设置中开启，或直接输入文字。',network:'浏览器语音服务连接失败，请使用系统听写或文字输入。','no-speech':'没有听到语音，可重新开始。','audio-capture':'没有可用麦克风，请检查设备。',aborted:'已停止语音。'})[e.error]||'语音转写未完成，已识别的文字会保留。';};
-      recognition.onend=()=>{if(mockVoice===recognition)mockVoice=null;if(target.isConnected)target.readOnly=false;if(button.isConnected)button.textContent='语音作答';};
-      try{recognition.start();}catch{recognition.onend();notice.textContent='语音无法启动，请检查浏览器权限或使用文字输入。';}
-    };
-    const read=host.querySelector('[data-read]');if(read){read.disabled=!window.speechSynthesis;read.onclick=()=>{if(mockAiBusy)return;stopMockVoice();const utterance=new SpeechSynthesisUtterance(mockSession?.mode==='formal'&&mockSession.formal.pending?mockSession.formal.pending.question:mockQuestions[mockIdx].q);utterance.lang='zh-CN';window.speechSynthesis.speak(utterance);};}
+    if(!window.MockVoice){host.innerHTML='<p class="mock-note">语音组件未加载，请刷新页面后重试。</p>';return;}
+    MockVoice.mount(target,host,{context:()=>({id:mockSession?.id,index:mockIdx,pending:mockSession?.formal?.pending?.question||''}),blocked:()=>mockAiBusy||mockPlanBusy});
   }
 
   document.getElementById('mockSample')?.addEventListener('click',()=>{document.getElementById('mockJd').value=SAMPLE_JD;parseJd();});
