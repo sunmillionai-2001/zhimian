@@ -5,6 +5,7 @@
   business:Object.freeze({id:'business',name:'业务面试',focus:'项目贡献、专业能力、决策取舍、结果验证',instruction:'你是业务主管，围绕 JD 对应的项目贡献、专业能力、决策取舍和结果验证提问。根据用户真实经历追问，不强行要求材料中没有的数据，不把 JD 当作已掌握的经历。'})
  });
  function profile(id){if(!Object.hasOwn(profiles,id))throw Object.assign(Error('请选择 HR 初面或业务面试'),{status:400});return profiles[id];}
+ const questionFingerprint=q=>q.normalize('NFKC').toLowerCase().replace(/[\p{P}\p{Z}\s]/gu,'');
  function combined(record,index){return [record.answers[index],...(record.formal?.turns||[]).filter(t=>t.index===index).map(t=>t.answer)].filter(Boolean).join('\n');}
  function sameGoal(a,b){
   if(!a||!b)return false;
@@ -129,5 +130,5 @@
   if(f.pending!==null){const t=f.pending;if(!t||record.index<1||record.index>5||f.turns.filter(x=>x.index===record.index).length>=2||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||!combined(record,record.index).includes(t.quote)||f.decisionPending)return false;}
   return f.phase==='active'?record.status==='active':record.status!=='active'&&f.pending===null&&!f.decisionPending;
  }
- return {validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
+ return {questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
 });

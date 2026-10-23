@@ -3,6 +3,13 @@ const assert=require('node:assert/strict');
 const {runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan,resumeParagraphs}=require('../ai-service');
 const cfg={baseUrl:'http://controlled.local/v1',model:'test-model',apiKey:'fake-key'};
 const evaluation={scores:{relevance:4,structure:3,evidence:3,depth:2},strengths:['行动清楚'],gaps:['补验证方法'],suggestions:['描述对比'],evidenceQuotes:['优化缓存'],followUp:'你如何验证？'};
+test('fresh plans receive bounded previous questions and reject punctuation-only repeats without extra calls',async()=>{
+ let calls=0,duplicate=false;const c={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.deepEqual(u.previousQuestions,['请说明方案取舍？']);assert.match(p.messages[0].content,/换一个具体场景/);return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'取舍',q:duplicate&&i===0?'请说明 方案取舍?':'请说明新的判断角度'+i,points:['个人判断'],source:{kind:'jd',quote:'产品经理'}}))})}}]};}};
+ const body={jd:'产品经理',count:5,previousQuestions:['请说明方案取舍？']};const out=await runAi('interview-plan',body,c);assert.equal(out.result.questions.length,5);assert.match(out.meta.promptVersion,/fresh-questions/);
+ duplicate=true;await assert.rejects(runAi('interview-plan',body,c),/已练题目重复/);assert.equal(calls,2,'Duplicate rejection does not create an unbounded repair loop');
+ for(const previousQuestions of ['bad',[null],['x'.repeat(1001)],Array(41).fill('问题')])await assert.rejects(runAi('interview-plan',{...body,previousQuestions},c),/已练题目/);assert.equal(calls,2);
+ const questions=out.result.questions.map(q=>({...q}));questions[1].q=questions[0].q+'？';assert.throws(()=>validateQuestionPlan({questions},'','产品经理',5),/题目重复/);
+});
 test('interview scores and quotes must be grounded in the actual answer',()=>{
   assert.equal(validateInterview(evaluation,'我优化缓存').followUp,'你如何验证？');
   assert.throws(()=>validateInterview({...evaluation,evidenceQuotes:['没有说过']},'我优化缓存'),/原回答不符/);
@@ -109,7 +116,7 @@ test('HR and business plans repair missing material coverage once with the origi
    return {model:'fixture-model',usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30},choices:[{message:{content:JSON.stringify({questions:u.blueprint.map((a,i)=>({competencyId:a.id,topic:a.name,q:'第'+i+'题请说明具体做法',points:['本人行动'],source:calls===2&&i===0?{kind:'jd',quote:jd}:{kind:'resume',quote:resume}}))})}}]};
   }};
   const out=await runAi('interview-plan',{interviewer,role:'产品',resume,jd,count:5,blueprintVersion:competencyVersion},configuration);
-  assert.equal(calls,2);assert.equal(out.meta.planRepairAttempts,1);assert.equal(out.meta.promptVersion,'2026-10-23.source-coverage.v2');assert.equal(out.meta.usage.total_tokens,60);
+  assert.equal(calls,2);assert.equal(out.meta.planRepairAttempts,1);assert.equal(out.meta.promptVersion,'2026-10-23.fresh-questions.v3');assert.equal(out.meta.usage.total_tokens,60);
   assert.deepEqual(out.result.questions.map(q=>q.competencyId),b.competencies.map(a=>a.id));assert.deepEqual(new Set(out.result.questions.map(q=>q.source.kind)),new Set(['resume','jd']));
  }
 });

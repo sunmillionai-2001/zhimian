@@ -12,19 +12,21 @@ window.FormalInterview=(()=>{
  function roomScroll(){if(roomVisible()){$('mock').style.scrollMarginTop=(Math.max(0,document.querySelector('.topbar').getBoundingClientRect().bottom)+16)+'px';$('mock').scrollIntoView({block:'start',behavior:'instant'});}}
  function roomPhaseTo(phase){
   roomPhase=phase;const wrap=roomWrap();if(!wrap)return;wrap.dataset.phase=phase;wrap.classList.toggle('is-preparing',phase==='prepare'||phase==='leaving');wrap.classList.remove('is-formal');
-  document.querySelector('#mock .mock-setup').inert=phase!=='prepare';wrap.setAttribute('aria-busy',String(phase==='loading'||phase==='leaving'));
-  $('mockRoomBack').hidden=phase==='prepare'||phase==='leaving'||phase==='loading';
+  document.querySelector('#mock .mock-setup').inert=phase!=='prepare';wrap.setAttribute('aria-busy',String(phase==='loading'||phase.startsWith('leaving')));
+  $('mockStage').inert=phase==='loading'||phase.startsWith('leaving');
+  $('mockRoomBack').hidden=phase==='prepare'||phase.startsWith('leaving')||phase==='loading';
   $('mockRoomContinue').hidden=phase!=='prepare'||!mockStore.draft;$('mockRoomContinue').textContent=mockStore.draft?.status==='report'?'查看上场复盘':'继续上场练习';
  }
  function roomAnimate(el,keyframes,duration){if(!el||reducedMotion()||!roomVisible())return Promise.resolve();const animation=el.animate(keyframes,{duration,easing:'cubic-bezier(.22,1,.36,1)'});return animation.finished.catch(()=>{});}
  async function leavePreparation(){
-  const serial=++roomSerial;roomPhaseTo('leaving');roomScroll();
-  roomAnimation=document.querySelector('#mock .mock-setup').animate(reducedMotion()?[]:[{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-40px)'}],{duration:reducedMotion()?0:650,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+  const fromSetup=roomPhase==='prepare'||roomPhase==='leaving',element=fromSetup?document.querySelector('#mock .mock-setup'):$('mockStage');
+  const serial=++roomSerial;roomPhaseTo(fromSetup?'leaving':'leaving-room');roomScroll();
+  roomAnimation=element.animate(reducedMotion()?[]:[{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-40px)'}],{duration:reducedMotion()?0:650,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
   await roomAnimation.finished.catch(()=>{});if(serial!==roomSerial)return false;roomAnimation.cancel();roomAnimation=null;return true;
  }
- async function beginRoom(){
+ async function beginRoom(material){
   if(!await leavePreparation())return false;roomPhaseTo('loading');
-  const interviewer=InterviewPolicy.profile($('mockInterviewer').value);$('mockLoadingRole').textContent=interviewer.name+' · '+($('mockJd').value.trim().split('\n')[0]||'本场面试');
+  const interviewer=InterviewPolicy.profile(material?.interviewer||$('mockInterviewer').value);$('mockLoadingRole').textContent=interviewer.name+' · '+((material?.jd??$('mockJd').value).trim().split('\n')[0]||'本场面试');
   $('mockLoadingHeading').focus({preventScroll:true});roomAnimate($('mockLoading'),[{opacity:0},{opacity:1}],350);return true;
  }
  function setStageMode(formal,screen){
@@ -289,7 +291,7 @@ window.FormalInterview=(()=>{
   $('targetExport').onclick=()=>downloadAsset(goalsBlocked?{recovery:true,raw:localStorage.getItem(goalsKey)}:goalState,'zhimian-goal-preparation.json');
   $('targetImport').onclick=()=>{if(!mockAiBusy)$('targetGoalFile').click();};$('targetGoalFile').onchange=async e=>{try{if(goalsBlocked)throw Error('原目标准备存储异常，请先导出检查');const file=e.target.files[0];if(!file)return;if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!InterviewPolicy.validGoals(data))throw Error('目标备份格式错误');const added=data.goals.filter(x=>!goalState.goals.some(g=>g.id===x.id||g.jobId&&g.jobId===x.jobId));const wasEmpty=!activeGoal();if(writeGoals({...goalState,activeId:goalState.activeId||data.activeId,goals:[...goalState.goals,...added]})){if(wasEmpty&&activeGoal())activateGoal(goalState.activeId);renderGoalCard();storageMsg('已合并目标准备，同目标保留现有材料。');$('targetMsg').textContent='已合并目标准备，同目标保留现有材料。';}else{$('targetMsg').textContent='目标导入未能保存，原数据保留。';}}catch(err){storageMsg(err.message+'，原数据保留。');$('targetMsg').textContent=err.message+'，原数据保留。';}finally{e.target.value='';}};
   $('formalStart').onclick=start;$('overviewPrepareTarget').onclick=()=>go('target');updateControls();renderGoalCard();refreshHome();
-  document.addEventListener('zm-leave-mock',()=>{closeRoomTools();if(roomPhase==='leaving'){++roomSerial;roomAnimation?.cancel();roomAnimation=null;roomPhaseTo('prepare');}if(mockSession?.status==='active'){stopMockVoice();stopTimer();if(mockSession.mode==='formal')ensureControl(mockSession).paused=true;persistDraft();if(mockSession.mode==='formal'&&!mockAiBusy)renderQuestion();}});
+  document.addEventListener('zm-leave-mock',()=>{closeRoomTools();if(roomPhase.startsWith('leaving')){++roomSerial;roomAnimation?.cancel();roomAnimation=null;roomPhaseTo('prepare');}if(mockSession?.status==='active'){stopMockVoice();stopTimer();if(mockSession.mode==='formal')ensureControl(mockSession).paused=true;persistDraft();if(mockSession.mode==='formal'&&!mockAiBusy)renderQuestion();}});
  }
  async function start(){
   if(mockAiBusy||mockPlanBusy||mockStorageBlocked)return;
@@ -366,11 +368,13 @@ window.FormalInterview=(()=>{
   stopMockVoice();stopTimer();const f=mockSession.formal;ensureControl(mockSession).paused=false;if(f.pending){f.turns.push({index:mockIdx,...f.pending,answer:f.draft});}f.pending=null;f.draft='';f.decisionPending=false;f.phase='report';mockSession.status='report';persistDraft();renderReport();renderMockHistory();evaluateReport();
  }
  function reviewable(r){return r.questions.map((q,i)=>i).filter(i=>i<6&&InterviewPolicy.combined(r,i).trim());}
- function reportHtml(r){
+ function baseReportHtml(r){
   const f=r.formal,entries=reviewable(r),done=entries.filter(i=>f.evaluations[i]),strengths=[...new Set(done.flatMap(i=>f.evaluations[i].result.strengths))].slice(0,3),seen=new Set(),gaps=[...done.filter(i=>i>0),...done.filter(i=>i===0)].flatMap(i=>f.evaluations[i].result.gaps.map(text=>({text,index:i}))).filter(g=>{if(seen.has(g.text))return false;seen.add(g.text);return true;}).slice(0,3);
   return `<h3>正式模拟复盘 · ${esc(profile(r).name)}</h3><p>${esc(label(r))} · ${esc(displayMockDate(r.date))}</p><p class="mock-note">${entries.length} 道回答有内容 · ${done.length} 道完成 AI 复盘 · 候选人反问单独记录、不评分。分数仅供练习参考。</p><div class="formal-review-grid"><div><h4>哪里讲清楚了</h4>${strengths.length?'<ul>'+strengths.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'<p>完成复盘后，根据你的原话展示具体优点。</p>'}</div><div><h4>下一次优先练什么</h4>${r.blueprint?taskSection(r):(gaps.length?gaps.map(g=>`<p>${esc(g.text)}</p><button class="btn btn-ghost" data-formal-locate="${g.index}">查看回答依据</button><button class="btn btn-ghost" data-formal-practice="${g.index}">专项重练第 ${g.index+1} 题 →</button>`).join(''):'<p>有内容的回答会逐项复盘；未回答的题目不填零分。</p>')}</div></div><p id="formalReviewStatus" role="status" class="mock-note"></p>${done.length<entries.length?'<button class="btn btn-primary" id="formalEvaluate">'+(done.length?'继续生成剩余复盘':'生成统一复盘')+'</button>':''}<div class="paste-actions"><button class="btn btn-ghost" data-formal-resume>去简历助手补充事实</button><button class="btn btn-ghost" data-formal-setup>准备下一场正式模拟</button></div><h4>回答与评价依据</h4>${r.questions.map((q,i)=>`<details class="report-item" id="formalAnswer${i}"><summary>${i+1}. ${esc(q.topic)} · ${i===6?'候选人反问':!r.answers[i].trim()?'跳过 / 未回答':f.evaluations[i]?'已复盘':'尚未复盘'}</summary><p>${esc(q.q)}</p>${questionSource(q)}<blockquote style="white-space:pre-wrap">${esc(r.answers[i]||'未回答，不评分')}</blockquote>${f.turns.filter(t=>t.index===i).map(t=>`<p><b>追问</b> ${esc(t.question)}</p><blockquote style="white-space:pre-wrap">${esc(t.answer||'未回答追问')}</blockquote>`).join('')}${f.evaluations[i]?aiFeedbackHtml(f.evaluations[i],'依据本题全部回答的点评')+`<button class="btn btn-primary" data-formal-practice="${i}">把这道题再练一次 →</button>`:''}</details>`).join('')}`;
  }
+ function reportHtml(r){return baseReportHtml(r)+interviewRepeatHtml(r);}
  function bindReport(r){
+  bindInterviewRepeats(r);
   document.querySelectorAll('[data-formal-locate]').forEach(b=>b.onclick=()=>{const item=$('formalAnswer'+b.dataset.formalLocate);item.open=true;item.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});});
   document.querySelectorAll('[data-formal-practice]').forEach(b=>b.onclick=()=>practice(r,Number(b.dataset.formalPractice),b.dataset.taskId||null));
   document.querySelectorAll('[data-resume-task]').forEach(b=>b.onclick=()=>openResumeTask(r,r.formal.tasks.find(t=>t.id===b.dataset.resumeTask)));
