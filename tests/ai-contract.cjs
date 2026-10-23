@@ -99,6 +99,35 @@ test('personal interview plan requires exact count, unique questions and literal
  assert.throws(()=>validateQuestionPlan({questions:questions.map(q=>({...q,source:{kind:'resume',quote:'虚构项目'}}))},resume,jd,5),/依据/);
  assert.throws(()=>validateQuestionPlan({questions:questions.map(q=>({...q,source:{kind:'resume',quote:'维护运营报表'}}))},resume,jd,5),/同时覆盖/);
 });
+test('HR and business plans repair missing material coverage once with the original blueprint and literal evidence',async()=>{
+ const {blueprint,competencyVersion}=require('../interview-policy');
+ for(const interviewer of ['hr','business']){
+  const resume='整理需求文档并核对交付',jd='产品经理',b=blueprint(interviewer,'产品');let calls=0,firstBudget;
+  const configuration={...cfg,timeoutMs:30000,transport:async(c,p)=>{
+   calls++;const u=JSON.parse(p.messages[1].content);assert.deepEqual(u.sourceCoverage,{resume:1,jd:1});assert.deepEqual(u.blueprint,b.competencies);assert.equal(u.resume,resume);assert.equal(u.jd,jd);
+   if(calls===1)firstBudget=c.timeoutMs;else assert.ok(c.timeoutMs<=firstBudget&&c.timeoutMs>0);
+   return {model:'fixture-model',usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30},choices:[{message:{content:JSON.stringify({questions:u.blueprint.map((a,i)=>({competencyId:a.id,topic:a.name,q:'第'+i+'题请说明具体做法',points:['本人行动'],source:calls===2&&i===0?{kind:'jd',quote:jd}:{kind:'resume',quote:resume}}))})}}]};
+  }};
+  const out=await runAi('interview-plan',{interviewer,role:'产品',resume,jd,count:5,blueprintVersion:competencyVersion},configuration);
+  assert.equal(calls,2);assert.equal(out.meta.planRepairAttempts,1);assert.equal(out.meta.promptVersion,'2026-10-23.source-coverage.v2');assert.equal(out.meta.usage.total_tokens,60);
+  assert.deepEqual(out.result.questions.map(q=>q.competencyId),b.competencies.map(a=>a.id));assert.deepEqual(new Set(out.result.questions.map(q=>q.source.kind)),new Set(['resume','jd']));
+ }
+});
+test('plan repair is bounded and never fixes forged evidence by relabeling it',async()=>{
+ const resume='整理需求文档',jd='产品经理';let calls=0,forged=false;
+ const configuration={...cfg,transport:async()=>{calls++;return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'职责',q:'问题'+i,points:['行动'],source:{kind:'resume',quote:forged?'不存在的经历':resume}}))})}}]};}};
+ await assert.rejects(runAi('interview-plan',{resume,jd,count:5},configuration),/暂未准备完整/);assert.equal(calls,2);
+ calls=0;forged=true;await assert.rejects(runAi('interview-plan',{resume,jd,count:5},configuration),/依据/);assert.equal(calls,1);
+});
+test('single-source plans need no repair; an exhausted deadline cannot start a repair request',async()=>{
+ for(const kind of ['resume','jd']){
+  let calls=0;const body={resume:'',jd:'',count:5,[kind]:'唯一提供的材料'};
+  const configuration={...cfg,transport:async()=>{calls++;return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'职责',q:'问题'+i,points:['行动'],source:{kind,quote:body[kind]}}))})}}]};}};
+  const out=await runAi('interview-plan',body,configuration);assert.equal(calls,1);assert.equal(out.meta.planRepairAttempts,undefined);
+ }
+ let calls=0;const slow={...cfg,timeoutMs:1,transport:async()=>{calls++;await new Promise(r=>setTimeout(r,5));return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'职责',q:'问题'+i,points:['行动'],source:{kind:'resume',quote:'原经历'}}))})}}]};}};
+ await assert.rejects(runAi('interview-plan',{resume:'原经历',jd:'产品经理',count:5},slow),/暂未准备完整/);assert.equal(calls,1);
+});
 test('plan validates inputs before transport and retry evaluates only the new answer without another follow-up',async()=>{
  let calls=0;const configuration={...cfg,transport:async(c,p)=>{calls++;const user=JSON.parse(p.messages[1].content);assert.equal(user.retry,true);return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:[user.answer]})}}]};}};
  await assert.rejects(runAi('interview-plan',{resume:'',jd:'',count:5},configuration),/先填写/);
