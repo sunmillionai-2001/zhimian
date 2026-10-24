@@ -25,6 +25,10 @@ test('unsupported JSON, hallucinated evidence and invalid provider output cannot
  const calls=[],s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c)=>{calls.push(c.name);return c.name==='bad'?result({...evaluation,evidenceQuotes:['编造的引用']}):result();}});
  s.store.save(BUILTIN,{...profile('bad'),priority:0});s.store.save(BUILTIN,{...profile('good'),priority:1});assert.equal((await s.execute('alice','interview',body)).meta.connectionName,'good');assert.deepEqual(calls,['bad','good']);return s;
 }));
+test('exhausted detailed-review validation remains identifiable instead of masquerading as a service outage',sandbox(async dir=>{
+ let calls=0;const s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async()=>{calls++;return result(evaluation);}});s.store.save(BUILTIN,profile('only'));
+ await assert.rejects(s.execute('alice','interview',{...body,detailedReview:true}),e=>e.code==='ANSWER_REVIEW_INCOMPLETE'&&e.status===502&&e.reviewIssues.includes('review.required'));assert.equal(calls,2);return s;
+}));
 test('personal failures never send material to builtins; deleting selected profile returns to default',sandbox(async dir=>{
  const calls=[],s=createModelService(dir,{}, {checkEndpoint:async()=>{},transport:async(c)=>{calls.push(c.name);throw Object.assign(Error('private upstream unavailable'),{status:502});}});
  s.store.save(BUILTIN,profile('builtin'));const p=s.store.save('alice',profile('personal'));s.store.select('alice',p.id);await assert.rejects(s.execute('alice','interview',body),/unavailable/);assert.deepEqual(calls,['personal']);assert.equal(s.list('bob').selectedId,null);assert.equal(s.list('bob').profiles.length,0);assert.equal(JSON.stringify(s.list('bob')).includes('private-test-key'),false);s.store.remove('alice',p.id);assert.equal(s.store.selected('alice'),null);return s;

@@ -25,6 +25,7 @@ function createModelService(directory,legacy={},options={}){
     try{const result=await runAi(task,body,{...c,transport,timeoutMs:Math.min(source==='personal'?90000:30000,Math.max(100,deadline-Date.now()-2000)),maxTokens:['resume-diagnose','interview-plan'].includes(task)?8192:4096,connectionJson:true});return {...result,meta:{...result.meta,model:result.meta?.model||c.model,requestedModel:c.model,connectionName:c.name,source,fallback:i>0,attempts:i+1}};}
     catch(e){last=e;if(e.status!==502||pinned||Date.now()>=deadline)throw e;}
    }
+   if(last?.code==='ANSWER_REVIEW_INCOMPLETE')throw last;
    throw fail('内置 AI 暂时不可用，请稍后重试；填写内容已保留',last?.status||503);
   }finally{end();}
  }

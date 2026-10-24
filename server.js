@@ -317,7 +317,8 @@ const server = http.createServer(async (req, res) => {
     'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
   res.end(req.method === 'HEAD' ? undefined : data);
   } catch (e) {
-    if (!res.headersSent && !res.destroyed) sendJson(res, e.status || 500, { error: e.status ? e.message : '服务处理失败' });
+    if(e.code==='ANSWER_REVIEW_INCOMPLETE')console.warn('AI review validation failed:',(e.reviewIssues||[]).join(', '));
+    if (!res.headersSent && !res.destroyed) sendJson(res, e.status || 500, { error: e.status ? e.message : '服务处理失败',...(e.code==='ANSWER_REVIEW_INCOMPLETE'?{code:e.code}:{}) });
   }
 });
 

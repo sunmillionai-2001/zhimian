@@ -19,20 +19,31 @@
   return {context,draft:sameGoal(context,store.draft)?store.draft:null,last:store.records.find(r=>r.mode==='formal'&&sameGoal(context,r))||null};
  }
  const bounded=(v,n)=>typeof v==='string'&&v.length<=n;
- const answerReviewVersion='2026-10-24.answer-review.v1';
+ const answerReviewVersion='2026-10-25.answer-review.v2';
+ const legacyAnswerReviewVersion='2026-10-24.answer-review.v1';
  // Optional for old backups. New detailed reviews must quote the actual answer;
  // resume facts may support a reference answer, but never a higher answer score.
- function validAnswerReview(v,source,facts,required=false){
-  if(v===undefined)return !required;
+ function answerReviewIssues(v,source,facts,required=false){
+  if(v===undefined)return required?['review.required']:[];
   const str=(s,n)=>bounded(s,n)&&!!s.trim(),arr=(a,n)=>Array.isArray(a)&&a.length<=n;
-  if(!v||v.version!==answerReviewVersion||!str(v.summary,1200)||!arr(v.annotations,5)||!arr(v.missingFacts,4)||!str(v.referenceAnswer,5000)||!arr(v.referenceEvidence,12))return false;
-  if(!v.annotations.every(a=>a&&str(a.quote,600)&&str(a.reason,1200)&&str(a.rewrite,1500)&&(source===undefined||source.includes(a.quote))))return false;
-  if(new Set(v.annotations.map(a=>a.quote)).size!==v.annotations.length||!v.missingFacts.every(f=>f&&str(f.question,600)&&str(f.reason,600)))return false;
-  if(!v.referenceEvidence.every(e=>e&&str(e.claim,1500)&&str(e.quote,2000)&&v.referenceAnswer.includes(e.claim)&&(facts===undefined||facts.includes(e.quote))))return false;
-  if(!v.referenceEvidence.length&&!/【待补充[：:]/.test(v.referenceAnswer))return false;
-  if(facts!==undefined){const numbers=s=>s.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[],known=new Set(numbers(facts));if(numbers(v.referenceAnswer+'\n'+v.annotations.map(a=>a.rewrite).join('\n')).some(n=>!known.has(n)))return false;}
-  return true;
+  if(!v||![answerReviewVersion,legacyAnswerReviewVersion].includes(v.version))return ['review.version'];
+  const issues=[];
+  if(!str(v.summary,1200))issues.push('review.summary');
+  if(!arr(v.annotations,5))issues.push('review.annotations');
+  else{if(!v.annotations.every(a=>a&&str(a.quote,600)&&str(a.reason,1200)&&str(a.rewrite,1500)))issues.push('review.annotations.schema');else if(source!==undefined&&!v.annotations.every(a=>source.includes(a.quote)))issues.push('review.annotations.quote');if(new Set(v.annotations.map(a=>a?.quote)).size!==v.annotations.length)issues.push('review.annotations.duplicate');}
+  if(!arr(v.missingFacts,4)||!v.missingFacts.every(f=>f&&str(f.question,600)&&str(f.reason,600)))issues.push('review.missingFacts');
+  if(!str(v.referenceAnswer,5000))issues.push('review.referenceAnswer');
+  if(!arr(v.referenceEvidence,12))issues.push('review.referenceEvidence');
+  else{
+   const legacy=v.version===legacyAnswerReviewVersion;
+   if(!v.referenceEvidence.every(e=>e&&str(e.quote,2000)&&(legacy?str(e.claim,1500)&&typeof v.referenceAnswer==='string'&&v.referenceAnswer.includes(e.claim):e.claim===undefined)))issues.push('review.referenceEvidence.schema');
+   if(facts!==undefined&&!v.referenceEvidence.every(e=>typeof e?.quote==='string'&&facts.includes(e.quote)))issues.push('review.referenceEvidence.quote');
+   if(!v.referenceEvidence.length&&typeof v.referenceAnswer==='string'&&!/【待补充[：:]/.test(v.referenceAnswer))issues.push('review.referenceEvidence.required');
+  }
+  if(facts!==undefined&&typeof v.referenceAnswer==='string'&&Array.isArray(v.annotations)){const numbers=s=>s.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[],known=new Set(numbers(facts));if(numbers(v.referenceAnswer+'\n'+v.annotations.map(a=>a?.rewrite||'').join('\n')).some(n=>!known.has(n)))issues.push('review.unsupportedNumbers');}
+  return issues;
  }
+ function validAnswerReview(v,source,facts,required=false){return answerReviewIssues(v,source,facts,required).length===0;}
  const competencyVersion='2026-10-15.competencies.v1';
  const competencyDefinitions={
   hr:[
@@ -144,5 +155,5 @@
   if(f.pending!==null){const t=f.pending;if(!t||record.index<1||record.index>5||f.turns.filter(x=>x.index===record.index).length>=2||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||!combined(record,record.index).includes(t.quote)||f.decisionPending)return false;}
   return f.phase==='active'?record.status==='active':record.status!=='active'&&f.pending===null&&!f.decisionPending;
  }
- return {answerReviewVersion,validAnswerReview,questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
+ return {answerReviewVersion,answerReviewIssues,validAnswerReview,questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
 });

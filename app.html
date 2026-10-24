@@ -1355,7 +1355,7 @@
   function coachingReviewIndices(r){return r.questions.map((_,i)=>i).filter(i=>r.answers[i]?.trim());}
   function coachingReviewOverview(r){
     const indices=coachingReviewIndices(r),done=indices.filter(i=>coachingEvaluation(r.ai?.[i])?.result.review),pending=indices.length-done.length;
-    return `<div class="answer-review-overview" data-coaching-report="${esc(r.id)}"><h4>逐题 AI 复盘</h4><p>看原话、改表达、补事实，再用同一道题检验改进。</p><progress max="${indices.length||1}" value="${done.length}" aria-label="逐题点评完成进度"></progress><p>${done.length} / ${indices.length} 道已作答题目有完整点评 · 未作答不评分</p><p id="coachingReviewStatus" role="status" aria-live="polite">${pending?'原回答已保留，生成后可逐题查看具体建议与参考回答。':indices.length?'点评已整理。参考回答中的待补充事实，请核实后再重答。':'本场没有可评价的回答，题目与记录已保留。'}</p>${pending?`<button class="btn btn-primary" id="coachingEvaluate" ${mockAiBusy?'disabled':''}>${done.length?'继续生成剩余点评':'生成完整 AI 点评'}</button>`:''}</div>`;
+    return `<div class="answer-review-overview" data-coaching-report="${esc(r.id)}" aria-busy="${mockAiBusy}"><h4>逐题 AI 复盘</h4><p>看原话、改表达、补事实，再用同一道题检验改进。</p><progress max="${indices.length||1}" value="${done.length}" aria-label="逐题点评完成进度"></progress><p>${done.length} / ${indices.length} 道已作答题目有完整点评 · 未作答不评分</p><p id="coachingReviewStatus" role="status" aria-live="polite">${pending?'原回答已保留，生成后可逐题查看具体建议与参考回答。':indices.length?'点评已整理。参考回答中的待补充事实，请核实后再重答。':'本场没有可评价的回答，题目与记录已保留。'}</p>${pending?`<button class="btn btn-primary" id="coachingEvaluate" ${mockAiBusy?'disabled':''}>${mockAiBusy?'正在生成点评…':done.length?'继续生成剩余点评':'生成完整 AI 点评'}</button>`:''}</div>`;
   }
   function reviewRecord(id){return mockSession?.id===id?snapshot():mockStore.records.find(r=>r.id===id);}
   function commitReview(id,update){
@@ -1384,16 +1384,16 @@
     if(mockAiBusy||!record||record.mode==='formal'||record.status==='active')return;
     const id=record.id,target=reviewRecord(id);if(!target)return;
     const todo=coachingReviewIndices(target).filter(i=>!coachingEvaluation(target.ai?.[i])?.result.review);if(!todo.length)return;
-    stopMockVoice();setMockAiBusy(true);let failure='';
-    try{for(const index of todo){
+    stopMockVoice();setMockAiBusy(true);const failures=[];
+    try{for(const index of todo){try{
       const current=reviewRecord(id),entry=current.ai?.[index],source=coachingSource(current,index);
       paintCoachingReview(id,`正在点评第 ${index+1} 题，逐题保存中。你可以先查看已完成的反馈……`);
       const body={...(FormalInterview.rubricContext?.(current,index)||{}),question:current.questions[index].q,answer:current.answers[index],jd:current.jd,resume:current.resume||'',role:current.role,interviewer:current.interviewer||'business',reviewOnly:true,detailedReview:true};
       if(entry?.followUpAnswer.trim())body.followUp={question:entry.initial.result.followUp,answer:entry.followUpAnswer};
       const out=await requestAi('interview',body,{openSettings:false});validateDetailedEvaluation(out,current,index,source);
       commitReview(id,r=>{r.ai??=Array(r.count).fill(null);if(r.ai[index])r.ai[index].report=out;else r.ai[index]={sourceAnswer:r.answers[index],initial:out,followUpAnswer:'',final:null};});
-    }}catch(e){failure=e.message;}
-    finally{setMockAiBusy(false);paintCoachingReview(id,failure?failure+'。已完成的点评和全部回答已保留，可继续生成剩余点评。':'逐题点评已完成。先补充缺少的事实，再在对应题目下重答并查看对比。');renderMockHistory();FormalInterview.refreshHome();}
+    }catch(e){failures.push({index,message:e.message.replace(/[。.\s]+$/,'')});if(e.code!=='ANSWER_REVIEW_INCOMPLETE')break;}}}
+    finally{setMockAiBusy(false);paintCoachingReview(id,failures.length?'第 '+failures.map(f=>f.index+1).join('、')+' 题：'+failures.at(-1).message+'。已完成的点评和全部回答已保留，可继续生成剩余点评。':'逐题点评已完成。先补充缺少的事实，再在对应题目下重答并查看对比。');renderMockHistory();FormalInterview.refreshHome();}
   }
   function bindCoachingReview(record){
     if(record.mode==='formal')return;
@@ -1491,7 +1491,7 @@
   }
   function detailedReviewHtml(review,source){
     const reference=esc(review.referenceAnswer).replace(/【待补充[：:][^】]*】/g,t=>'<span class="fact-placeholder">'+t+'</span>');
-    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>参考回答的事实来源</summary>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p>${esc(e.claim)}</p><blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
+    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>参考回答的事实来源</summary>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
   }
   function aiFeedbackHtml(envelope,title='AI 点评',source=''){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
@@ -2655,7 +2655,7 @@
     let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(105000)});}
     catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
     let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
-    if(!response.ok){if(openSettings&&(data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings){if(document.getElementById('mock').classList.contains('active'))FormalInterview.openRoomTools(true);settings.open=true;}}throw new Error(data.error||'AI 请求失败。');}
+    if(!response.ok){if(openSettings&&(data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings){if(document.getElementById('mock').classList.contains('active'))FormalInterview.openRoomTools(true);settings.open=true;}}throw Object.assign(new Error(data.error||'AI 请求失败。'),{status:response.status,...(data.code==='ANSWER_REVIEW_INCOMPLETE'?{code:data.code}:{})});}
     if(window.ZM_ACCOUNT&&data.meta){const notice=document.getElementById('modelUsageMessage');if(notice)notice.textContent='本次使用：'+data.meta.connectionName+' · '+data.meta.model+(data.meta.fallback?'（已自动切换备用连接）':'');}
     return data;
   }
