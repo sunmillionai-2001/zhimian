@@ -3,6 +3,17 @@ const assert=require('node:assert/strict');
 const {runAi,validateInterview,validateDiagnosis,validateRewrite,validateQuestionPlan,resumeParagraphs}=require('../ai-service');
 const cfg={baseUrl:'http://controlled.local/v1',model:'test-model',apiKey:'fake-key'};
 const evaluation={scores:{relevance:4,structure:3,evidence:3,depth:2},strengths:['行动清楚'],gaps:['补验证方法'],suggestions:['描述对比'],evidenceQuotes:['优化缓存'],followUp:'你如何验证？'};
+test('detailed reviews mark real answer quotes and retain a grounded reference answer with explicit missing facts',async()=>{
+ const makeReview=require('./review-fixture.cjs'),answer='我优化缓存，但还没核对结果。';let calls=0;
+ const model={...cfg,transport:async(_c,p)=>{calls++;assert.match(p.messages[0].content,/不得编造项目/);assert.equal(JSON.parse(p.messages[1].content).detailedReview,true);return {choices:[{message:{content:JSON.stringify({...evaluation,review:makeReview(answer)})}}]};}};
+ const out=await runAi('interview',{question:'如何验证？',answer,jd:'产品经理',reviewOnly:true,detailedReview:true},model);
+ assert.equal(calls,1);assert.equal(out.result.followUp,'');assert.match(out.result.review.referenceAnswer,/【待补充：/);assert.equal(out.result.review.annotations[0].quote,answer);
+ const policy=require('../interview-policy'),review=out.result.review;
+ assert.ok(policy.validAnswerReview(review,answer,answer,true));
+ for(const change of [{annotations:[{...review.annotations[0],quote:'用户没说过'}]},{referenceEvidence:[{claim:'材料外的陈述',quote:answer}]},{referenceEvidence:[{claim:answer,quote:'材料中没有'}]},{referenceAnswer:review.referenceAnswer+'我提升了999%。'},{referenceAnswer:'未经支持的完整答案',referenceEvidence:[]},{version:'future'}])assert.equal(policy.validAnswerReview({...review,...change},answer,answer,true),false);
+ assert.equal(policy.validAnswerReview(undefined,answer,answer),true,'Old backups remain readable');assert.equal(policy.validAnswerReview(undefined,answer,answer,true),false);
+ await assert.rejects(runAi('interview',{question:'如何验证？',answer,detailedReview:true},{...cfg,transport:async()=>({choices:[{message:{content:JSON.stringify(evaluation)}}]})}),/详细点评未整理完整/);
+});
 test('fresh plans receive bounded previous questions and reject punctuation-only repeats without extra calls',async()=>{
  let calls=0,duplicate=false;const c={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.deepEqual(u.previousQuestions,['请说明方案取舍？']);assert.match(p.messages[0].content,/换一个具体场景/);return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'取舍',q:duplicate&&i===0?'请说明 方案取舍?':'请说明新的判断角度'+i,points:['个人判断'],source:{kind:'jd',quote:'产品经理'}}))})}}]};}};
  const body={jd:'产品经理',count:5,previousQuestions:['请说明方案取舍？']};const out=await runAi('interview-plan',body,c);assert.equal(out.result.questions.length,5);assert.match(out.meta.promptVersion,/fresh-questions/);

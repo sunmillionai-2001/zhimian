@@ -1,3 +1,4 @@
+const reviewFixture=require('./review-fixture.cjs');
 // Isolated fictional practice and controlled AI responses. No personal files or provider calls.
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),{spawn}=require('node:child_process');
 (async()=>{const root=path.join(__dirname,'..'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'zm-practice-library-'));let browser,server;try{
@@ -7,7 +8,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  server=spawn(process.execPath,['server.js'],{cwd:tmp,env:{...process.env,PORT:String(port),ZM_LOCAL_MODE:'1'},stdio:['ignore','pipe','pipe']});await new Promise((r,j)=>{const t=setTimeout(()=>j(Error('startup')),5000);server.stdout.once('data',()=>{clearTimeout(t);r();});});
  browser=await chromium.launch(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{});const c=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});await c.route('**/fonts.googleapis.com/**',r=>r.abort());await c.addInitScript(()=>localStorage.setItem('zm_guide_seen_v1','1'));
  const p=await c.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.route('**/api/ai/interview',async route=>{const b=route.request().postDataJSON();await route.fulfill({json:{meta:{model:'fixture',promptVersion:'fixture-v1',createdAt:new Date().toISOString()},result:{scores:{relevance:4,structure:3,evidence:3,depth:3},strengths:['行动清楚'],gaps:['补充验证'],suggestions:['说明核对方法'],evidenceQuotes:[b.answer.slice(0,8)],followUp:b.retry?'':'你负责了哪部分？'}}});});
+ await p.route('**/api/ai/interview',async route=>{const b=route.request().postDataJSON();await route.fulfill({json:{meta:{model:'fixture',promptVersion:'fixture-v1',createdAt:new Date().toISOString()},result:{review:reviewFixture(b.answer),scores:{relevance:4,structure:3,evidence:3,depth:3},strengths:['行动清楚'],gaps:['补充验证'],suggestions:['说明核对方法'],evidenceQuotes:[b.answer.slice(0,8)],followUp:b.retry?'':'你负责了哪部分？'}}});});
  const library=()=>p.evaluate(()=>JSON.parse(localStorage.getItem('zm_answers_store_v1')||'{"records":[]}'));
  await p.goto(base+'/app.html#target');await p.locator('#targetJd').fill('产品经理\n需求整理与验收');await p.locator('#targetMock').click();await p.locator('#mockMode').selectOption('coaching');await p.locator('#mockStart').click();
  assert.equal(await p.locator('#mockStoryPicker').isVisible(),false);assert.equal(await p.locator('#mockStory').count(),0);

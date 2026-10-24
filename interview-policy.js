@@ -19,6 +19,20 @@
   return {context,draft:sameGoal(context,store.draft)?store.draft:null,last:store.records.find(r=>r.mode==='formal'&&sameGoal(context,r))||null};
  }
  const bounded=(v,n)=>typeof v==='string'&&v.length<=n;
+ const answerReviewVersion='2026-10-24.answer-review.v1';
+ // Optional for old backups. New detailed reviews must quote the actual answer;
+ // resume facts may support a reference answer, but never a higher answer score.
+ function validAnswerReview(v,source,facts,required=false){
+  if(v===undefined)return !required;
+  const str=(s,n)=>bounded(s,n)&&!!s.trim(),arr=(a,n)=>Array.isArray(a)&&a.length<=n;
+  if(!v||v.version!==answerReviewVersion||!str(v.summary,1200)||!arr(v.annotations,5)||!arr(v.missingFacts,4)||!str(v.referenceAnswer,5000)||!arr(v.referenceEvidence,12))return false;
+  if(!v.annotations.every(a=>a&&str(a.quote,600)&&str(a.reason,1200)&&str(a.rewrite,1500)&&(source===undefined||source.includes(a.quote))))return false;
+  if(new Set(v.annotations.map(a=>a.quote)).size!==v.annotations.length||!v.missingFacts.every(f=>f&&str(f.question,600)&&str(f.reason,600)))return false;
+  if(!v.referenceEvidence.every(e=>e&&str(e.claim,1500)&&str(e.quote,2000)&&v.referenceAnswer.includes(e.claim)&&(facts===undefined||facts.includes(e.quote))))return false;
+  if(!v.referenceEvidence.length&&!/【待补充[：:]/.test(v.referenceAnswer))return false;
+  if(facts!==undefined){const numbers=s=>s.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[],known=new Set(numbers(facts));if(numbers(v.referenceAnswer+'\n'+v.annotations.map(a=>a.rewrite).join('\n')).some(n=>!known.has(n)))return false;}
+  return true;
+ }
  const competencyVersion='2026-10-15.competencies.v1';
  const competencyDefinitions={
   hr:[
@@ -123,12 +137,12 @@
   for(let i=0;i<record.count;i++){
    const turns=f.turns.filter(t=>t.index===i);
    if(turns.length>2||turns.some((t,j)=>!Number.isInteger(t.index)||i<1||i>5||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||![record.answers[i],...turns.slice(0,j).map(x=>x.answer)].join('\n').includes(t.quote)||!str(t.answer,12000)))return false;
-   const e=f.evaluations[i];if(e!==null&&(!envelope(e)||!e.result.evidenceQuotes.length||!e.result.evidenceQuotes.every(q=>combined(record,i).includes(q))||!validCriteriaEnvelope(e,combined(record,i))||record.blueprint&&i>0&&i<6&&(e.meta.competencyId!==record.questions[i].competencyId||e.meta.competencyVersion!==record.blueprint.version)))return false;
+   const e=f.evaluations[i];if(e!==null&&(!envelope(e)||!e.result.evidenceQuotes.length||!e.result.evidenceQuotes.every(q=>combined(record,i).includes(q))||!validAnswerReview(e.result.review,combined(record,i),combined(record,i)+'\n'+(record.resume||''))||!validCriteriaEnvelope(e,combined(record,i))||record.blueprint&&i>0&&i<6&&(e.meta.competencyId!==record.questions[i].competencyId||e.meta.competencyVersion!==record.blueprint.version)))return false;
   }
   if(f.evaluations[6]!==null)return false;
   if(f.turns.some(t=>!Number.isInteger(t.index)||t.index<1||t.index>5))return false;
   if(f.pending!==null){const t=f.pending;if(!t||record.index<1||record.index>5||f.turns.filter(x=>x.index===record.index).length>=2||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||!combined(record,record.index).includes(t.quote)||f.decisionPending)return false;}
   return f.phase==='active'?record.status==='active':record.status!=='active'&&f.pending===null&&!f.decisionPending;
  }
- return {questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
+ return {answerReviewVersion,validAnswerReview,questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
 });

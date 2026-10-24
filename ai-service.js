@@ -1,4 +1,4 @@
-const {profile,blueprint,ability,validCriteria,competencyVersion,questionFingerprint,version:INTERVIEW_VERSION}=require('./interview-policy');
+const {profile,blueprint,ability,validCriteria,competencyVersion,questionFingerprint,answerReviewVersion,validAnswerReview,version:INTERVIEW_VERSION}=require('./interview-policy');
 // 共用模型传输，分别定义面试评价与简历事实补全的契约。
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const text=(value,name,max=20000,empty=false)=>{if(typeof value!=='string'||value.length>max||(!empty&&!value.trim()))throw fail(name+'为空或超过长度限制');return value.trim();};
@@ -27,7 +27,7 @@ async function callModel(cfg,messages,json=true) {
   return content;
 }
 function parseResult(content){try{return JSON.parse(content);}catch(e){throw fail('模型输出格式异常，请重试。',502);}}
-function validateInterview(value,source,isFollowUp=false,competency=null) {
+function validateInterview(value,source,isFollowUp=false,competency=null,reviewContext=null) {
   if(!value||typeof value!=='object')throw fail('点评格式异常',502);
   const scores={};
   for(const key of ['relevance','structure','evidence','depth']){const n=value.scores?.[key];if(!Number.isInteger(n)||n<0||n>5)throw fail('点评分数格式异常',502);scores[key]=n;}
@@ -35,7 +35,8 @@ function validateInterview(value,source,isFollowUp=false,competency=null) {
   if(!evidenceQuotes.length||!evidenceQuotes.every(q=>source.includes(q)))throw fail('点评引用与原回答不符，请重试。',502);
   const followUp=isFollowUp?'':text(value.followUp,'追问',2000);
   if(competency&&!validCriteria(value.criteria,competency,source))throw fail('能力标准或回答依据异常',502);
-  return {scores,strengths:list(value.strengths,'优点'),gaps:list(value.gaps,'缺失'),suggestions:list(value.suggestions,'建议'),evidenceQuotes,followUp,...(competency?{criteria:value.criteria.map(c=>({id:c.id,status:c.status,quote:c.quote,reason:c.reason}))}:{})};
+  if(!validAnswerReview(value.review,source,source+'\n'+(reviewContext?.resume||''),reviewContext?.required===true))throw fail('本题详细点评未整理完整，原回答已保留，请重试。',502);
+  return {scores,strengths:list(value.strengths,'优点'),gaps:list(value.gaps,'缺失'),suggestions:list(value.suggestions,'建议'),evidenceQuotes,followUp,...(value.review?{review:value.review}:{}),...(competency?{criteria:value.criteria.map(c=>({id:c.id,status:c.status,quote:c.quote,reason:c.reason}))}:{})};
 }
 // Deterministic source locations: repeated wording in different paragraphs has different IDs.
 function resumeParagraphs(resume){
@@ -165,7 +166,12 @@ async function runAi(task,body,cfg){
     data={question,answer,jd,resume:text(body.resume??'','个人简历',30000,true),role:text(body.role??'通用','岗位',100),followUp,followUps,interviewer:interviewer.name,retry:body.retry===true,...(competency?{competency}:{})};
     instruction='评价面试回答：relevance 切题程度、structure 表达结构、evidence 事实与个人贡献、depth 决策与取舍，分别给 0 到 5 的整数分。这不是录用预测。简历只是背景，不能当作已回答的内容。引用回答原文作为依据。返回 {scores:{relevance,structure,evidence,depth},strengths:[优点],gaps:[缺失],suggestions:[可执行建议],evidenceQuotes:[逐字引用],followUp:一个紧扣回答的追问}。'+(body.reviewOnly===true?'本场正式模拟已结束，综合初答与追问进行证据化复盘，followUp 返回空字符串，不再追问。':body.retry===true?'这是修改后的独立重答，只评价当前回答，followUp 返回空字符串，不再追问。':followUp?'当前已完成一次追问，只点评初答与补充，followUp 返回空字符串，不再追问。':'只提一个追问。');
     if(competency)instruction+=' 同时逐项评价 competency.criteria，返回 criteria:[{id:标准ID,status:met或missing或unknown,quote:回答中的逐字依据或空字符串,reason:判断理由}]。met 必须有回答原话；没有明确证据时用 missing 或 unknown，不把简历写过当成已经回答，不要求不存在的数字。';
-    validate=v=>validateInterview(v,source,!!followUp||followUps.length>0||body.retry===true||body.reviewOnly===true,competency);
+    if(body.detailedReview!==undefined&&typeof body.detailedReview!=='boolean')throw fail('详细点评参数异常');
+    if(body.detailedReview===true){
+      data.detailedReview=true;
+      instruction+=' 另外必须返回 review:{version:"'+answerReviewVersion+'",summary:针对这次回答的一段直接结论,annotations:[{quote:回答中的连续逐字原话,reason:这句话具体好在哪里或为什么不合适及面试官会如何理解,rewrite:建议如何讲这句话}],missingFacts:[{question:需要用户补充的具体项目或事件及个人行动结果问题,reason:为何需要这个事实}],referenceAnswer:一段可口头讲述的完整参考回答,referenceEvidence:[{claim:参考回答中的事实性陈述原文,quote:支持该陈述的回答或简历连续原文}]}。最多标记五处最值得修改的表达，不强行挑错；最多四个缺失事实。不能只复述考察要点，必须解释用户实际回答的问题和调整方法。评分和优点只根据本次回答及追问；简历只可补充参考回答中的已知事实。参考回答是基于现有事实的建议表达，不是标准答案；不得编造项目、公司、角色、个人行动、结果或指标，不把JD要求说成用户已经做过。未知的经历和结果必须用【待补充：具体事实】占位；没有量化数据可写待确认的定性结果，不强求数字。每个事实性陈述提供referenceEvidence，所有claim必须在referenceAnswer内，quote必须在回答或简历原文内；没有可用事实时给带占位符的回答框架。参考回答和建议改写不引入材料外的新数字。参考回答只能重述已有事实、提出明确的未来建议或给出待补充占位符；不要把点评中的推断改写成第一人称的“我不会”“我不太会”“我还不熟悉”等自我能力结论，未确认的判断整句用【待补充：是否属实及具体事实】表示。保留原话中的可能转写错误，不把疑似错字直接当能力不足，说明需要核对。未来行动可作为建议，但明确是建议计划，不伪装成已完成经历。绝不能从材料缺失推断用户没有做过：没有证据时写【待补充：是否做过及对应事实】，不得擅自写“还没有独立做过”“从未做过”“目前没有结果”等否定经历；也不擅自断言已经具备某项能力。保持简明，用自然中文输出，不输出Markdown。';
+    }
+    validate=v=>validateInterview(v,source,!!followUp||followUps.length>0||body.retry===true||body.reviewOnly===true,competency,{resume:data.resume,required:body.detailedReview===true});
   }else if(task==='resume-diagnose'){
     text(body.resume,'简历正文',30000);const resume=body.resume,jd=text(body.jd??'','目标 JD',10000,true);data={resume,jd,paragraphs:resumeParagraphs(resume).map(({id,original})=>({id,text:original}))};
     instruction='诊断简历：检查目标岗位匹配、个人贡献、行动、结果证据和表达清晰度。不估算虚假匹配百分比。没有 JD 时按通用标准，不声称岗位匹配。paragraphs 是系统已编号的简历原文。选 1 到 6 个最值得改进的片段，每个 paragraphId 只能出现一次，同一片段的问题合并说明，不跨片段引用。概述和建议保持简洁，每段提 1 到 3 个事实补充问题，此步不改写。返回 {overview:概述,matched:[已有支撑],missing:[缺口],sections:[{paragraphId:paragraphs中的id,issue:问题,questions:[补充问题]}]}。无需重复返回原文，由系统按编号展示对应内容。';

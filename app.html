@@ -360,6 +360,22 @@
   .report-item .ri-points{margin-top:10px}
   .report-item .ri-points .pt{font-size:13px;color:var(--ink-soft);display:flex;gap:8px;padding:3px 0;line-height:1.55}
   .report-item .ri-points .pt span{color:var(--teal);flex:none}
+  .answer-review-overview{padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--paper-2);margin:20px 0;overflow-wrap:anywhere}
+  .answer-review-overview h4{margin:0 0 8px;font-family:var(--serif);font-size:19px}
+  .answer-review-overview progress{width:100%;height:7px;accent-color:var(--teal);margin:12px 0}
+  .answer-review-overview [role=status]{min-height:1.6em}
+  .answer-review-summary{font-size:15px;line-height:1.8;color:var(--ink);border-left:3px solid var(--teal);padding-left:14px}
+  .answer-annotated{white-space:pre-wrap;line-height:1.9;overflow-wrap:anywhere;background:var(--paper-2);padding:16px;border-radius:10px;margin:12px 0}
+  .answer-annotated mark{background:#f4d5b7;color:var(--ink);border-bottom:2px solid var(--seal);padding:2px 0}
+  .answer-annotated sup{font:700 11px var(--sans);color:var(--seal);padding:0 3px}
+  .answer-annotation{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:10px;line-height:1.7}
+  .answer-annotation p{margin:8px 0}.answer-annotation .suggested{color:var(--teal)}
+  .answer-reference{white-space:pre-wrap;line-height:1.9;background:var(--paper-2);padding:18px;border-radius:10px;overflow-wrap:anywhere}
+  .answer-reference .fact-placeholder{color:var(--seal);font-weight:600}
+  .answer-review-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.answer-review-actions .btn{min-height:44px;white-space:normal}
+  .answer-review-editor textarea{width:100%;box-sizing:border-box;min-height:160px;margin:12px 0}
+  .answer-review-editor{margin:14px 0}.answer-review-editor summary,.answer-review-rubric summary{cursor:pointer;min-height:44px;padding:10px 0;box-sizing:border-box;display:list-item;list-style-position:inside}
+  .answer-review-rubric{margin-top:12px;color:var(--ink-soft)}
   .report-actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
   .self-rate{display:flex;gap:8px;align-items:center;margin:14px 0 6px}
   .self-rate span{font-size:13px;color:var(--ink-soft)}
@@ -1178,7 +1194,7 @@
     if(r.resume!==undefined&&!str(r.resume,30000))return false;
     if(!InterviewPolicy.validFormal(r,isInterviewEnvelope))return false;
     if(r.questions.some(q=>q.source&&(!['resume','jd'].includes(q.source.kind)||!str(q.source.quote,500)||!q.source.quote.trim()||!(q.source.kind==='resume'?(r.resume||''):r.jd).includes(q.source.quote))))return false;
-    if(r.ai!==undefined&&(!Array.isArray(r.ai)||r.ai.length!==r.count||!r.ai.every((e,i)=>validAiEntry(e,r.answers?.[i]||''))))return false;
+    if(r.ai!==undefined&&(!Array.isArray(r.ai)||r.ai.length!==r.count||!r.ai.every((e,i)=>validAiEntry(e,r.answers?.[i]||'',r.resume||''))))return false;
     return Array.isArray(r.answers) && r.answers.length===r.count && r.answers.every(a=>str(a)) &&
       Array.isArray(r.durations) && r.durations.length===r.count && r.durations.every(n=>Number.isFinite(n)&&n>=0&&n<=1e9) &&
       Number.isInteger(r.index) && r.index>=0 && r.index<r.count && (!draft || r.status!=='saved');
@@ -1329,17 +1345,82 @@
     a.addEventListener('input',()=>{if(mockSession.practiceTask)return;mockAnswers[mockIdx]=a.value;if(mockSession.ai)mockSession.ai[mockIdx]=null;persistDraft();renderMockAi();});
     const next=()=>{if(mockAiBusy)return;stopMockVoice();mockAnswers[mockIdx]=a.value;if(mockSession.ai?.[mockIdx]&&mockSession.ai[mockIdx].sourceAnswer!==a.value)mockSession.ai[mockIdx]=null;stopTimer();mockSession.durations[mockIdx]=mockSec;
       if(mockSession.practiceTask&&!mockSession.ai?.[mockIdx]?.retry?.evaluation&&!FormalInterview.cancelPractice())return;
-      if(mockIdx===mockQuestions.length-1){mockSession.status='report';persistDraft();renderReport();}
+      if(mockIdx===mockQuestions.length-1){mockSession.status='report';persistDraft();renderReport();if(!mockSession.practiceTask)evaluateCoachingReport(mockSession);}
       else{mockIdx++;mockSec=mockSession.durations[mockIdx];persistDraft();renderQuestion();}};
     document.getElementById('mockNext').addEventListener('click',next);
     document.getElementById('mockSkip').addEventListener('click',()=>{if(!mockSession.practiceTask)a.value='';next();});
     if(mockSession.practiceTask){document.getElementById('mockSkip').textContent='暂不重答，查看记录';document.getElementById('mockNext').textContent='结束并查看本次练习';}
     renderMockAi();mountMockVoice('mockA','mockVoiceTools');if(typeof renderMockAnswerPicker==='function'&&typeof assetsInitialized!=='undefined'&&assetsInitialized)renderMockAnswerPicker();const body=document.getElementById('mockBody');if(body)body.scrollTop=body.scrollHeight;startTimer();
   }
+  function coachingReviewIndices(r){return r.questions.map((_,i)=>i).filter(i=>r.answers[i]?.trim());}
+  function coachingReviewOverview(r){
+    const indices=coachingReviewIndices(r),done=indices.filter(i=>coachingEvaluation(r.ai?.[i])?.result.review),pending=indices.length-done.length;
+    return `<div class="answer-review-overview" data-coaching-report="${esc(r.id)}"><h4>逐题 AI 复盘</h4><p>看原话、改表达、补事实，再用同一道题检验改进。</p><progress max="${indices.length||1}" value="${done.length}" aria-label="逐题点评完成进度"></progress><p>${done.length} / ${indices.length} 道已作答题目有完整点评 · 未作答不评分</p><p id="coachingReviewStatus" role="status" aria-live="polite">${pending?'原回答已保留，生成后可逐题查看具体建议与参考回答。':indices.length?'点评已整理。参考回答中的待补充事实，请核实后再重答。':'本场没有可评价的回答，题目与记录已保留。'}</p>${pending?`<button class="btn btn-primary" id="coachingEvaluate" ${mockAiBusy?'disabled':''}>${done.length?'继续生成剩余点评':'生成完整 AI 点评'}</button>`:''}</div>`;
+  }
+  function reviewRecord(id){return mockSession?.id===id?snapshot():mockStore.records.find(r=>r.id===id);}
+  function commitReview(id,update){
+    const current=reviewRecord(id);if(!current)throw Error('原面试记录已不可用');
+    const candidate=JSON.parse(JSON.stringify(current));update(candidate);
+    if(!validRecord(candidate))throw Error('点评数据校验失败，原回答保留');
+    const next=candidate.status==='saved'?{...mockStore,records:mockStore.records.map(r=>r.id===id?candidate:r)}:{...mockStore,draft:candidate};
+    if(!writeMockStore(next))throw Error('点评未能保存，请先导出备份，再重试');
+    if(mockSession?.id===id)mockSession=candidate;
+    return candidate;
+  }
+  function paintCoachingReview(id,message=''){
+    const target=reviewRecord(id);if(!target||document.querySelector('[data-coaching-report]')?.dataset.coachingReport!==id)return;
+    const scroll=window.scrollY,open=[...document.querySelectorAll('[data-report-retry-editor][open]')].map(el=>el.dataset.reportRetryEditor);
+    if(mockSession?.id===id)renderReport();else{document.getElementById('mockStage').innerHTML='<div class="report">'+reportHtml(target)+'</div>';bindInterviewRepeats(target);bindCoachingReview(target);}
+    for(const index of open)document.querySelector(`[data-report-retry-editor="${index}"]`)?.setAttribute('open','');
+    if(message)document.getElementById('coachingReviewStatus').textContent=message;
+    if(mockAiBusy)setMockAiBusy(true);window.scrollTo({top:scroll,behavior:'instant'});
+  }
+  function validateDetailedEvaluation(data,record,index,source){
+    if(!isInterviewEnvelope(data)||!data.result.evidenceQuotes.length||!data.result.evidenceQuotes.every(q=>source.includes(q))||!InterviewPolicy.validCriteriaEnvelope(data,source)||!InterviewPolicy.validAnswerReview(data.result.review,source,source+'\n'+(record.resume||''),true))throw Error('本题详细点评未整理完整，原回答已保留');
+    const context=FormalInterview.rubricContext?.(record,index)||{};
+    if(context.competencyId&&(data.meta.competencyId!==context.competencyId||data.meta.competencyVersion!==context.blueprintVersion))throw Error('点评标准与原题不一致');
+  }
+  async function evaluateCoachingReport(record){
+    if(mockAiBusy||!record||record.mode==='formal'||record.status==='active')return;
+    const id=record.id,target=reviewRecord(id);if(!target)return;
+    const todo=coachingReviewIndices(target).filter(i=>!coachingEvaluation(target.ai?.[i])?.result.review);if(!todo.length)return;
+    stopMockVoice();setMockAiBusy(true);let failure='';
+    try{for(const index of todo){
+      const current=reviewRecord(id),entry=current.ai?.[index],source=coachingSource(current,index);
+      paintCoachingReview(id,`正在点评第 ${index+1} 题，逐题保存中。你可以先查看已完成的反馈……`);
+      const body={...(FormalInterview.rubricContext?.(current,index)||{}),question:current.questions[index].q,answer:current.answers[index],jd:current.jd,resume:current.resume||'',role:current.role,interviewer:current.interviewer||'business',reviewOnly:true,detailedReview:true};
+      if(entry?.followUpAnswer.trim())body.followUp={question:entry.initial.result.followUp,answer:entry.followUpAnswer};
+      const out=await requestAi('interview',body,{openSettings:false});validateDetailedEvaluation(out,current,index,source);
+      commitReview(id,r=>{r.ai??=Array(r.count).fill(null);if(r.ai[index])r.ai[index].report=out;else r.ai[index]={sourceAnswer:r.answers[index],initial:out,followUpAnswer:'',final:null};});
+    }}catch(e){failure=e.message;}
+    finally{setMockAiBusy(false);paintCoachingReview(id,failure?failure+'。已完成的点评和全部回答已保留，可继续生成剩余点评。':'逐题点评已完成。先补充缺少的事实，再在对应题目下重答并查看对比。');renderMockHistory();FormalInterview.refreshHome();}
+  }
+  function bindCoachingReview(record){
+    if(record.mode==='formal')return;
+    document.getElementById('coachingEvaluate')?.addEventListener('click',()=>evaluateCoachingReport(record));
+    document.querySelectorAll('[data-report-retry-input]').forEach(input=>{input.oninput=()=>{
+      const index=Number(input.dataset.reportRetryInput),msg=document.querySelector(`[data-report-retry-status="${index}"]`);
+      try{commitReview(record.id,r=>{const old=r.ai[index].retry;r.ai[index].retry={answer:input.value,evaluation:old?.answer===input.value?old.evaluation:null};});input.closest('.report-item').querySelector('.retry-comparison')?.remove();msg.textContent='重答草稿已保存，初答和原点评保留。';}catch(e){msg.textContent=e.message+'；当前输入仍在页面中，请复制保留。';}
+    };});
+    document.querySelectorAll('[data-report-retry-evaluate]').forEach(button=>{button.onclick=async()=>{
+      if(mockAiBusy)return;const index=Number(button.dataset.reportRetryEvaluate),input=document.querySelector(`[data-report-retry-input="${index}"]`),answer=input.value,recordId=record.id,msg=t=>{const el=document.querySelector(`[data-report-retry-status="${index}"]`);if(el)el.textContent=t;};
+      if(!answer.trim()||answer.length>12000){msg('请填写 1 到 12000 字完整重答。');return;}
+      const current=reviewRecord(recordId);if(answer.trim()===current.answers[index].trim()){msg('重答与初答相同，请先结合建议补充或调整。');return;}
+      try{commitReview(recordId,r=>{r.ai[index].retry={answer,evaluation:null};});}catch(e){msg(e.message);return;}
+      stopMockVoice();setMockAiBusy(true);msg('正在点评这次重答，初答与原点评保留……');let failure='';
+      try{
+        const out=await requestAi('interview',{...(FormalInterview.rubricContext?.(current,index)||{}),question:current.questions[index].q,answer,jd:current.jd,resume:current.resume||'',role:current.role,interviewer:current.interviewer||'business',retry:true,detailedReview:true},{openSettings:false});
+        validateDetailedEvaluation(out,current,index,answer);commitReview(recordId,r=>{if(r.ai[index].retry.answer!==answer)throw Error('重答已改变，请重新点评');r.ai[index].retry.evaluation=out;});
+      }catch(e){failure=e.message;}
+      finally{setMockAiBusy(false);paintCoachingReview(recordId);msg(failure?failure+'。重答已保留，可再次点评。':'重答点评已完成，上方可查看与初答的对比。');}
+    };});
+  }
+  function coachingSource(r,i){return [r.answers[i],r.ai?.[i]?.followUpAnswer].filter(Boolean).join('\n');}
+  function coachingEvaluation(entry){return entry?.report||(entry?.followUpAnswer?.trim()?entry.final:entry?.initial);}
   function reportHtml(r){
     if(r.mode==='formal')return FormalInterview.reportHtml(r);
-    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div>${trainingSummaryHtml(r)}${r.jobSnapshot?`<p>关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（训练时快照）</p>`:''}<details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
-      r.questions.map((q,i)=>`<div class="report-item"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div>${questionSource(q)}<div class="ri-a ${r.answers[i]?'':'empty'}" style="white-space:pre-wrap">${esc(r.answers[i]||'（未作答）')}</div><div class="sub">本题 ${r.durations[i]} 秒</div><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>要点</span>${esc(p)}</div>`).join('')}</div>${reportAiHtml(r.ai?.[i],r,i)}${r.answers[i]?`<button class="btn btn-ghost" data-answer-record="${esc(r.id)}" data-answer-index="${i}">存入个人答案库</button>`:''}</div>`).join('')+interviewRepeatHtml(r);
+    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div>${coachingReviewOverview(r)}${trainingSummaryHtml(r)}${r.jobSnapshot?`<p>关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（训练时快照）</p>`:''}<details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
+      r.questions.map((q,i)=>{const evaluation=coachingEvaluation(r.ai?.[i]);return `<div class="report-item" id="coachingAnswer${i}"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div>${questionSource(q)}${evaluation?.result.review?'':`<div class="ri-a ${r.answers[i]?'':'empty'}">${esc(r.answers[i]||'未作答，本题不评分')}</div>`}<div class="sub">本题 ${r.durations[i]} 秒</div>${reportAiHtml(r.ai?.[i],r,i)}<details class="answer-review-rubric"><summary>本题考察标准</summary><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>考察</span>${esc(p)}</div>`).join('')}</div></details>${r.answers[i]?`<button class="btn btn-ghost" data-answer-record="${esc(r.id)}" data-answer-index="${i}">存入个人答案库</button>`:''}</div>`;}).join('')+interviewRepeatHtml(r);
   }
   function renderReport(){
     if(mockSession?.mode==='formal')return FormalInterview.renderReport();
@@ -1347,7 +1428,7 @@
     const r=snapshot(),saved=mockSession.status==='saved',stage=document.getElementById('mockStage');if(!stage)return;
     stage.innerHTML=`<div class="report">${reportHtml(r)}<div class="self-rate" id="mockRate"><span>本次自评：</span>${['优秀','良好','待提高'].map(rate=>`<button class="chip ${rate===mockSelfRate?'on':''}" data-rate="${rate}" ${saved?'disabled':''}>${rate}</button>`).join('')}</div><div class="report-actions"><button class="btn btn-primary" id="mockSave" ${saved?'disabled':''}>${saved?'已保存 ✓':'保存记录'}</button></div></div>`;
     document.querySelectorAll('#mockRate [data-rate]').forEach(c=>c.addEventListener('click',()=>{mockSelfRate=c.dataset.rate;persistDraft();renderReport();}));
-    document.getElementById('mockSave').addEventListener('click',saveMock);bindInterviewRepeats(r);
+    document.getElementById('mockSave').addEventListener('click',saveMock);bindInterviewRepeats(r);bindCoachingReview(r);if(mockAiBusy)setMockAiBusy(true);
   }
   function saveMock(){
     const rec={...snapshot(),status:'saved'};
@@ -1365,7 +1446,7 @@
     if(mockAiBusy)return;FormalInterview.closeRoomTools();stopMockVoice();
     if(mockSession?.status==='active'||mockSession?.status==='report'){stopTimer();if(!persistDraft()){startTimer();return;}}mockSession=null;
     const r=mockStore.records[i];if(!r||r.legacy)return;
-    FormalInterview.setStageMode(r.mode==='formal','report');document.getElementById('mockStage').innerHTML=`<div class="report">${reportHtml(r)}<p>自评：${esc(r.rate)}</p><p>可返回准备继续上场练习。</p></div>`;FormalInterview.bindReport(r);
+    FormalInterview.setStageMode(r.mode==='formal','report');document.getElementById('mockStage').innerHTML=`<div class="report">${reportHtml(r)}<p>自评：${esc(r.rate)}</p><p>可返回准备继续上场练习。</p></div>`;FormalInterview.bindReport(r);bindCoachingReview(r);
   }
   function exportMock(){
     if(mockSession && mockSession.status!=='saved'){const r=snapshot();mockStore={...mockStore,draft:r};}
@@ -1390,18 +1471,31 @@
     const strings=v=>Array.isArray(v)&&v.length<=8&&v.every(x=>typeof x==='string'&&x.length<=2000);
     return !!(data?.meta && typeof data.meta.model==='string' && typeof data.meta.promptVersion==='string' && typeof data.meta.createdAt==='string' && data.result &&
       ['relevance','structure','evidence','depth'].every(k=>Number.isInteger(data.result.scores?.[k])&&data.result.scores[k]>=0&&data.result.scores[k]<=5) &&
-      ['strengths','gaps','suggestions','evidenceQuotes'].every(k=>strings(data.result[k])) && typeof data.result.followUp==='string'&&data.result.followUp.length<=2000&&InterviewPolicy.validCriteriaEnvelope(data));
+      ['strengths','gaps','suggestions','evidenceQuotes'].every(k=>strings(data.result[k])) && typeof data.result.followUp==='string'&&data.result.followUp.length<=2000&&InterviewPolicy.validCriteriaEnvelope(data)&&InterviewPolicy.validAnswerReview(data.result.review));
   }
-  function validAiEntry(entry,answer){
+  function validAiEntry(entry,answer,resume=''){
+    const grounded=(e,source)=>!e||InterviewPolicy.validAnswerReview(e.result?.review,source,source+'\n'+resume);
+    if(entry?.report&&(!isInterviewEnvelope(entry.report)||!entry.report.result.evidenceQuotes.length||!entry.report.result.evidenceQuotes.every(q=>(answer+'\n'+entry.followUpAnswer).includes(q))||!InterviewPolicy.validCriteriaEnvelope(entry.report,answer+'\n'+entry.followUpAnswer)||!grounded(entry.report,answer+'\n'+entry.followUpAnswer)))return false;
     if(entry===null)return true;
+    if(entry&&(!grounded(entry.initial,answer)||!grounded(entry.final,answer+'\n'+entry.followUpAnswer)||!grounded(entry.retry?.evaluation,entry.retry?.answer||'')))return false;
     if(entry?.retry!==undefined&&(!entry.retry||typeof entry.retry.answer!=='string'||entry.retry.answer.length>12000||(entry.retry.evaluation!==null&&(!isInterviewEnvelope(entry.retry.evaluation)||!InterviewPolicy.validCriteriaEnvelope(entry.retry.evaluation,entry.retry.answer)||!entry.retry.evaluation.result.evidenceQuotes.length||!entry.retry.evaluation.result.evidenceQuotes.every(q=>entry.retry.answer.includes(q))))))return false;
     return !!(entry && entry.sourceAnswer===answer && typeof entry.followUpAnswer==='string'&&entry.followUpAnswer.length<=12000 &&
       isInterviewEnvelope(entry.initial)&&InterviewPolicy.validCriteriaEnvelope(entry.initial,answer)&&entry.initial.result.evidenceQuotes.every(q=>answer.includes(q))&&
       (entry.final===null||(isInterviewEnvelope(entry.final)&&InterviewPolicy.validCriteriaEnvelope(entry.final,answer+'\n'+entry.followUpAnswer)&&entry.final.result.evidenceQuotes.every(q=>(answer+'\n'+entry.followUpAnswer).includes(q)))));
   }
-  function aiFeedbackHtml(envelope,title='AI 点评'){
+  function annotatedAnswerHtml(source,annotations){
+    const spans=annotations.map((a,i)=>({start:source.indexOf(a.quote),end:source.indexOf(a.quote)+a.quote.length,indices:[i+1]})).filter(a=>a.start>=0).sort((a,b)=>a.start-b.start||a.end-b.end),merged=[];let cursor=0,html='';
+    for(const span of spans){const previous=merged.at(-1);if(previous&&span.start<previous.end){previous.end=Math.max(previous.end,span.end);previous.indices.push(...span.indices);}else merged.push(span);}
+    for(const span of merged){html+=esc(source.slice(cursor,span.start))+`<mark>${esc(source.slice(span.start,span.end))}</mark><sup>[${span.indices.join(', ')}]</sup>`;cursor=span.end;}
+    return html+esc(source.slice(cursor));
+  }
+  function detailedReviewHtml(review,source){
+    const reference=esc(review.referenceAnswer).replace(/【待补充[：:][^】]*】/g,t=>'<span class="fact-placeholder">'+t+'</span>');
+    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>参考回答的事实来源</summary>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p>${esc(e.claim)}</p><blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
+  }
+  function aiFeedbackHtml(envelope,title='AI 点评',source=''){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
-    return `<div class="ai-feedback"><h4>${esc(title)}</h4><div class="ai-scores">${Object.entries(labels).map(([k,l])=>`<span>${l} ${r.scores[k]}/5</span>`).join('')}</div><p class="mock-note">用于练习参考，不代表录用概率。</p>${FormalInterview.criteriaHtml?.(envelope)||''}${[['strengths','优点'],['gaps','缺失'],['suggestions','下一次怎么答']].map(([key,label])=>`<b>${label}</b><ul>${r[key].map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`).join('')}<b>依据你的回答</b>${r.evidenceQuotes.map(q=>`<blockquote>${esc(q)}</blockquote>`).join('')}<div class="meta">${esc(envelope.meta.model)} · 评价标准 ${esc(envelope.meta.competencyVersion||envelope.meta.promptVersion)}</div></div>`;
+    return `<div class="ai-feedback"><h4>${esc(title)}</h4>${r.review?detailedReviewHtml(r.review,source):''}<div class="ai-scores">${Object.entries(labels).map(([k,l])=>`<span>${l} ${r.scores[k]}/5</span>`).join('')}</div><p class="mock-note">用于练习参考，不代表录用概率。</p>${r.review?`<details class="answer-review-rubric"><summary>评分依据与下一次行动</summary>`:''}${FormalInterview.criteriaHtml?.(envelope)||''}${[['strengths','哪里答得好'],['gaps','哪里还没讲清楚'],['suggestions','下一次怎么答']].map(([key,label])=>`<b>${label}</b><ul>${r[key].map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`).join('')}<b>依据你的回答</b>${r.evidenceQuotes.map(q=>`<blockquote>${esc(q)}</blockquote>`).join('')}${r.review?'</details>':''}<div class="meta">${esc(envelope.meta.model)} · 评价标准 ${esc(envelope.meta.competencyVersion||envelope.meta.promptVersion)}</div></div>`;
   }
   function renderMockAi(){
     const box=document.getElementById('mockAiBox');if(!box||!mockSession)return;
@@ -1409,7 +1503,7 @@
     const hint=document.getElementById('mockAnswerHint');if(hint)hint.textContent=entry?'初答已点评；修改此处会清除本题点评。再次练习请用下方“修改后再答一次”。':'';
     if(!entry){box.innerHTML='<button class="btn btn-ghost" id="mockAiEvaluate">AI 点评并追问</button><p class="mock-note" id="mockAiMsg" role="status">写下回答后，可请求点评；失败可重试或继续题库练习。</p>';}
     else{
-      box.innerHTML=feedbackDisclosure(entry.initial,'初答点评',!entry.final&&!entry.retry?.evaluation)+(entry.initial.result.followUp?`<details class="ai-feedback" ${entry.retry?.evaluation?'':'open'}><summary>针对性追问${entry.final?' · 已完成':''}</summary><p>${esc(entry.initial.result.followUp)}</p><div class="field"><label for="mockFollowUpAnswer">补充回答</label><div id="mockFollowVoice"></div><textarea id="mockFollowUpAnswer" rows="4" maxlength="12000" ${entry.final?'readonly':''}></textarea></div>${entry.final?aiFeedbackHtml(entry.final,'追问后的点评'):'<button class="btn btn-primary" id="mockAiFollowUp">提交追问并点评</button>'}<p class="mock-note" id="mockAiMsg" role="status">每题最多一次追问；可直接进入下一题。</p></details>`:'');
+      box.innerHTML=feedbackDisclosure(entry.initial,'初答点评',!entry.final&&!entry.retry?.evaluation,entry.sourceAnswer)+(entry.initial.result.followUp?`<details class="ai-feedback" ${entry.retry?.evaluation?'':'open'}><summary>针对性追问${entry.final?' · 已完成':''}</summary><p>${esc(entry.initial.result.followUp)}</p><div class="field"><label for="mockFollowUpAnswer">补充回答</label><div id="mockFollowVoice"></div><textarea id="mockFollowUpAnswer" rows="4" maxlength="12000" ${entry.final?'readonly':''}></textarea></div>${entry.final?aiFeedbackHtml(entry.final,'追问后的点评',entry.sourceAnswer+'\n'+entry.followUpAnswer):'<button class="btn btn-primary" id="mockAiFollowUp">提交追问并点评</button>'}<p class="mock-note" id="mockAiMsg" role="status">每题最多一次追问；可直接进入下一题。</p></details>`:'');
       const field=document.getElementById('mockFollowUpAnswer');if(field)field.value=entry.followUpAnswer;
       field?.addEventListener('input',()=>{entry.followUpAnswer=field.value;persistDraft();});
     }
@@ -1420,8 +1514,8 @@
   function setMockAiBusy(busy){
     if(busy&&!mockSetupLock)mockSetupLock=new Map([...document.querySelectorAll('#mock .mock-setup input,#mock .mock-setup select,#mock .mock-setup textarea,#mock .mock-setup button')].map(el=>[el,el.disabled]));
     mockAiBusy=busy;
-    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockRetryAnswer','mockRetryEvaluate','mockBeginRetry','mockPersonalStart','formalStart','formalNext','formalSkip','formalEnd','formalEvaluate','formalSetup','formalPause','formalClarify','formalUnknown','mockSave','mockStart','mockResume','mockStory','mockUseStory','mockRoomBack','mockRoomContinue','mockRoomTools'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
-    document.querySelectorAll('[data-answer-record],[data-interview-repeat]').forEach(el=>el.disabled=busy);
+    ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockRetryAnswer','mockRetryEvaluate','mockBeginRetry','mockPersonalStart','formalStart','formalNext','formalSkip','formalEnd','formalEvaluate','formalSetup','formalPause','formalClarify','formalUnknown','mockSave','mockStart','mockResume','mockStory','mockUseStory','mockRoomBack','mockRoomContinue','mockRoomTools','coachingEvaluate'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
+    document.querySelectorAll('[data-answer-record],[data-interview-repeat],[data-report-retry-evaluate],[data-report-retry-input]').forEach(el=>el.disabled=busy);
     const storyUse=document.getElementById('mockUseStory'),storySelect=document.getElementById('mockStory');if(storyUse&&storySelect)storyUse.disabled=busy||!storySelect.value||(document.getElementById('mockStoryPreview')?.textContent.length||0)>12000;
     if(busy){for(const el of mockSetupLock.keys())el.disabled=true;}else{if(mockSetupLock)for(const [el,disabled] of mockSetupLock)if(el.isConnected)el.disabled=disabled;mockSetupLock=null;FormalInterview.syncControls?.();}
     FormalInterview.renderTarget?.();
@@ -1435,10 +1529,10 @@
     if(followUp && (!entry||!entry.followUpAnswer.trim())){msg('请先填写追问的补充回答。');return;}
     stopMockVoice();stopTimer();persistDraft();setMockAiBusy(true);msg('AI 正在阅读回答，最多等待约 105 秒……');
     try{
-      const body={...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',question:mockQuestions[index].q,answer};
+      const body={detailedReview:true,...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',question:mockQuestions[index].q,answer};
       if(followUp)body.followUp={question:entry.initial.result.followUp,answer:entry.followUpAnswer};
       const data=await requestAi('interview',body);
-      if(!isInterviewEnvelope(data))throw new Error('点评格式异常，请重试。');
+      if(!isInterviewEnvelope(data)||!InterviewPolicy.validAnswerReview(data.result.review,answer+(followUp?'\n'+entry.followUpAnswer:''),answer+(followUp?'\n'+entry.followUpAnswer:'')+'\n'+mockSession.resume,true))throw new Error('详细点评未整理完整，请重试。');
       if(mockSession?.id!==id||mockIdx!==index||mockAnswers[index]!==answer)return;
       if(!mockSession.ai)mockSession.ai=Array(mockQuestions.length).fill(null);
       if(followUp)entry.final=data;else mockSession.ai[index]={sourceAnswer:answer,initial:data,followUpAnswer:'',final:null};
@@ -1447,16 +1541,17 @@
     finally{setMockAiBusy(false);if(mockSession?.id===id&&mockSession.status==='active')startTimer();}
   }
   function reportAiHtml(entry,record,index){
-    if(!entry)return '';
-    return feedbackDisclosure(entry.initial,'初答点评',false)+`<div class="ai-feedback"><b>AI 追问</b><p>${esc(entry.initial.result.followUp)}</p><blockquote>${esc(entry.followUpAnswer||'未回答追问')}</blockquote></div>`+(entry.final?aiFeedbackHtml(entry.final,'追问后的点评'):'')+(entry.retry?.evaluation?retryComparisonHtml(entry,record,index,false):'');
+    if(!entry)return record.answers[index]?.trim()?'<p class="mock-note">本题尚未生成点评。可在报告顶部生成完整点评。</p>':'';
+    const evaluation=coachingEvaluation(entry);
+    return (evaluation?aiFeedbackHtml(evaluation,entry.followUpAnswer?'综合初答与补充的点评':'本题 AI 点评',coachingSource(record,index)):'<p>本题的补充回答尚未点评。</p>')+(entry.initial.result.followUp?`<details class="answer-review-rubric"><summary>本题追问与补充记录</summary><p>${esc(entry.initial.result.followUp)}</p><blockquote>${esc(entry.followUpAnswer||'未回答追问')}</blockquote></details>`:'')+(entry.retry?.evaluation?retryComparisonHtml(entry,record,index,false):'')+(evaluation?`<details class="answer-review-editor" data-report-retry-editor="${index}"><summary>按建议修改后，再点评一次</summary><label for="reportRetry${index}">补充真实事实，重新组织这道题的完整回答</label><textarea id="reportRetry${index}" data-report-retry-input="${index}" maxlength="12000">${esc(entry.retry?.answer||'')}</textarea><button class="btn btn-primary" data-report-retry-evaluate="${index}">点评重答并对比</button><p role="status" data-report-retry-status="${index}" class="mock-note"></p></details>`:'');
   }
 
-  function feedbackDisclosure(envelope,title,open){return `<details class="feedback-disclosure" ${open?'open':''}><summary>${esc(title)} · 展开查看依据与建议</summary>${aiFeedbackHtml(envelope,title)}</details>`;}
+  function feedbackDisclosure(envelope,title,open,source=''){return `<details class="feedback-disclosure" ${open?'open':''}><summary>${esc(title)} · 展开查看依据与建议</summary>${aiFeedbackHtml(envelope,title,source)}</details>`;}
   function retryComparisonHtml(entry,record=snapshot(),index=mockIdx,quick=true){
     const retry=entry.retry;if(!retry?.evaluation)return '';
     const labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'},before=entry.initial.result.scores,after=retry.evaluation.result.scores;
     const comparable=entry.initial.meta.model===retry.evaluation.meta.model&&entry.initial.meta.promptVersion===retry.evaluation.meta.promptVersion&&entry.initial.meta.competencyVersion===retry.evaluation.meta.competencyVersion&&entry.initial.meta.competencyId===retry.evaluation.meta.competencyId;
-    return `<div class="ai-feedback retry-comparison"><h4>初答与重答对比</h4><p class="mock-note">${comparable?'同一道题、同版标准与同一模型；分数可能上升或下降，仅供训练参考。':'模型或评价版本已变化，分数不直接比较，请核对具体回答依据。'}</p><div class="retry-answers"><div><b>第一次回答</b><p>${esc(entry.sourceAnswer)}</p></div><div><b>修改后重答</b><p>${esc(retry.answer)}</p></div></div><table><thead><tr><th>维度</th><th>初答</th><th>重答</th><th>变化</th></tr></thead><tbody>${Object.entries(labels).map(([k,label])=>{const d=after[k]-before[k];return `<tr><td>${label}</td><td>${before[k]}/5</td><td>${after[k]}/5</td><td>${comparable?(d>0?'+':'')+d:'—'}</td></tr>`;}).join('')}</tbody></table>${feedbackDisclosure(retry.evaluation,'重答的具体反馈',true)}${answerLibraryButton(record,index,'retry',quick)}</div>`;
+    return `<div class="ai-feedback retry-comparison"><h4>初答与重答对比</h4><p class="mock-note">${comparable?'同一道题、同版标准与同一模型；分数可能上升或下降，仅供训练参考。':'模型或评价版本已变化，分数不直接比较，请核对具体回答依据。'}</p><div class="retry-answers"><div><b>第一次回答</b><p>${esc(entry.sourceAnswer)}</p></div><div><b>修改后重答</b><p>${esc(retry.answer)}</p></div></div><table><thead><tr><th>维度</th><th>初答</th><th>重答</th><th>变化</th></tr></thead><tbody>${Object.entries(labels).map(([k,label])=>{const d=after[k]-before[k];return `<tr><td>${label}</td><td>${before[k]}/5</td><td>${after[k]}/5</td><td>${comparable?(d>0?'+':'')+d:'—'}</td></tr>`;}).join('')}</tbody></table>${feedbackDisclosure(retry.evaluation,'重答的具体反馈',true,retry.answer)}${answerLibraryButton(record,index,'retry',quick)}</div>`;
   }
   function retryPanelHtml(entry){
     if(!entry.retry)return '<div class="ai-feedback"><h4>把建议变成一次更好的回答</h4><p>保留初答，结合点评和追问补充真实事实，再完整回答同一道题。</p><button class="btn btn-primary" id="mockBeginRetry">修改后再答一次</button></div>';
@@ -1475,15 +1570,15 @@
     if(answer.trim()===entry.sourceAnswer.trim()){msg('重答与初答相同，请先根据建议补充或调整。');return;}
     stopMockVoice();stopTimer();persistDraft();setMockAiBusy(true);msg('正在按同一标准评价重答，最多等待约 105 秒…');
     try{
-      const data=await requestAi('interview',{...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',question:mockQuestions[index].q,answer,jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',retry:true});
-      if(!isInterviewEnvelope(data)||!data.result.evidenceQuotes.length||!data.result.evidenceQuotes.every(q=>answer.includes(q)))throw new Error('重答点评依据异常，请重试。');
+      const data=await requestAi('interview',{detailedReview:true,...(FormalInterview.rubricContext?.(mockSession,index)||{}),interviewer:mockSession.interviewer||'business',question:mockQuestions[index].q,answer,jd:mockSession.jd,role:mockSession.role,resume:mockSession.resume||'',retry:true});
+      if(!isInterviewEnvelope(data)||!InterviewPolicy.validAnswerReview(data.result.review,answer,answer+'\n'+(mockSession.resume||''),true)||!data.result.evidenceQuotes.length||!data.result.evidenceQuotes.every(q=>answer.includes(q)))throw new Error('重答点评依据异常，请重试。');
       if(mockSession?.id!==id||mockIdx!==index||mockSession.ai?.[index]!==entry||entry.retry.answer!==answer)return;
       if(mockSession.practiceTask){if(!FormalInterview.completePractice(data,answer))throw Error('重练结果未能保存，回答保留，请先导出备份');}else{entry.retry.evaluation=data;persistDraft();}renderMockAi();
     }catch(e){msg(e.message+' 初答、追问与重答已保留。');}
     finally{setMockAiBusy(false);if(mockSession?.id===id&&mockSession.status==='active')startTimer();}
   }
   function trainingSummaryHtml(r){
-    const evaluated=(r.ai||[]).filter(Boolean),retries=evaluated.filter(e=>e.retry?.evaluation),gaps=[...new Set(evaluated.flatMap(e=>(e.retry?.evaluation||e.final||e.initial).result.gaps))].slice(0,3);
+    const evaluated=(r.ai||[]).filter(e=>coachingEvaluation(e)),retries=evaluated.filter(e=>e.retry?.evaluation),gaps=[...new Set(evaluated.flatMap(e=>(e.retry?.evaluation||coachingEvaluation(e)).result.gaps))].slice(0,3);
     return `<div class="ai-feedback"><h4>这次练习的收获</h4><p>${r.answers.filter(a=>a.trim()).length}/${r.count} 题已作答 · ${evaluated.length} 题有 AI 点评 · ${retries.length} 题完成重答对比</p>${gaps.length?'<b>下一次优先练</b><ul>'+gaps.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul>':'<p class="mock-note">完成回答与点评后，这里会整理具体练习方向。</p>'}</div>`;
   }
   function stopMockVoice(){window.MockVoice?.stop();}
@@ -2555,12 +2650,12 @@
   document.getElementById('answerImport').onclick=()=>document.getElementById('answerImportFile').click();document.getElementById('answerImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(answersBlocked)throw Error('原存储异常，请先导出检查');if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!validAnswerStore(data))throw Error('答案备份格式错误');const added=data.records.filter(a=>!answerStore.records.some(old=>old.id===a.id)),next={schemaVersion:1,records:[...added,...answerStore.records]};if(!validAnswerStore(next))throw Error('答案数量超过上限');if(writeAnswers(next)){renderAnswers();renderJobDetail();renderMockAnswerPicker();answerMsg(`已导入 ${added.length} 个答案，同 ID 保留现有版本。`);}}catch(err){answerMsg('导入失败：'+err.message+'。原数据保留。');}finally{e.target.value='';}};
   assetsInitialized=true;renderAnswers();renderMockAnswerPicker();if(answersBlocked)['answerSave','answerImport','answerCompose'].forEach(id=>document.getElementById(id).disabled=true);
   /* ================= 共用 AI 连接 ================= */
-  async function requestAi(task,body){
+  async function requestAi(task,body,{openSettings=true}={}){
     if(!['http:','https:'].includes(location.protocol))throw new Error('请通过本地服务打开工作台后使用 AI。');
     let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(105000)});}
     catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
     let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
-    if(!response.ok){if((data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings){if(document.getElementById('mock').classList.contains('active'))FormalInterview.openRoomTools(true);settings.open=true;}}throw new Error(data.error||'AI 请求失败。');}
+    if(!response.ok){if(openSettings&&(data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings){if(document.getElementById('mock').classList.contains('active'))FormalInterview.openRoomTools(true);settings.open=true;}}throw new Error(data.error||'AI 请求失败。');}
     if(window.ZM_ACCOUNT&&data.meta){const notice=document.getElementById('modelUsageMessage');if(notice)notice.textContent='本次使用：'+data.meta.connectionName+' · '+data.meta.model+(data.meta.fallback?'（已自动切换备用连接）':'');}
     return data;
   }
