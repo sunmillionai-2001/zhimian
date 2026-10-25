@@ -1398,10 +1398,10 @@
   function bindCoachingReview(record){
     if(record.mode==='formal')return;
     document.getElementById('coachingEvaluate')?.addEventListener('click',()=>evaluateCoachingReport(record));
-    document.querySelectorAll('[data-report-retry-input]').forEach(input=>{input.oninput=()=>{
-      const index=Number(input.dataset.reportRetryInput),msg=document.querySelector(`[data-report-retry-status="${index}"]`);
+    document.querySelectorAll('[data-report-retry-input]').forEach(input=>{const index=Number(input.dataset.reportRetryInput);input.oninput=()=>{
+      const msg=document.querySelector(`[data-report-retry-status="${index}"]`);
       try{commitReview(record.id,r=>{const old=r.ai[index].retry;r.ai[index].retry={answer:input.value,evaluation:old?.answer===input.value?old.evaluation:null};});input.closest('.report-item').querySelector('.retry-comparison')?.remove();msg.textContent='重答草稿已保存，初答和原点评保留。';}catch(e){msg.textContent=e.message+'；当前输入仍在页面中，请复制保留。';}
-    };});
+    };mountMockVoice(input.id,'reportRetryVoice'+index,()=>({id:record.id,index,kind:'report-retry'}));});
     document.querySelectorAll('[data-report-retry-evaluate]').forEach(button=>{button.onclick=async()=>{
       if(mockAiBusy)return;const index=Number(button.dataset.reportRetryEvaluate),input=document.querySelector(`[data-report-retry-input="${index}"]`),answer=input.value,recordId=record.id,msg=t=>{const el=document.querySelector(`[data-report-retry-status="${index}"]`);if(el)el.textContent=t;};
       if(!answer.trim()||answer.length>12000){msg('请填写 1 到 12000 字完整重答。');return;}
@@ -1491,7 +1491,7 @@
   }
   function detailedReviewHtml(review,source){
     const reference=esc(review.referenceAnswer).replace(/【待补充[：:][^】]*】/g,t=>'<span class="fact-placeholder">'+t+'</span>');
-    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>参考回答的事实来源</summary>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
+    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>AI 参考了你的哪些原话</summary><p class="mock-note">以下摘自本题回答或本场简历，用来核对参考回答中的经历是否准确。</p>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p class="mock-note">${source?(source.includes(e.quote)?'本题回答':'本场简历'):'你提供的材料'}</p>${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
   }
   function aiFeedbackHtml(envelope,title='AI 点评',source=''){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
@@ -1543,7 +1543,7 @@
   function reportAiHtml(entry,record,index){
     if(!entry)return record.answers[index]?.trim()?'<p class="mock-note">本题尚未生成点评。可在报告顶部生成完整点评。</p>':'';
     const evaluation=coachingEvaluation(entry);
-    return (evaluation?aiFeedbackHtml(evaluation,entry.followUpAnswer?'综合初答与补充的点评':'本题 AI 点评',coachingSource(record,index)):'<p>本题的补充回答尚未点评。</p>')+(entry.initial.result.followUp?`<details class="answer-review-rubric"><summary>本题追问与补充记录</summary><p>${esc(entry.initial.result.followUp)}</p><blockquote>${esc(entry.followUpAnswer||'未回答追问')}</blockquote></details>`:'')+(entry.retry?.evaluation?retryComparisonHtml(entry,record,index,false):'')+(evaluation?`<details class="answer-review-editor" data-report-retry-editor="${index}"><summary>按建议修改后，再点评一次</summary><label for="reportRetry${index}">补充真实事实，重新组织这道题的完整回答</label><textarea id="reportRetry${index}" data-report-retry-input="${index}" maxlength="12000">${esc(entry.retry?.answer||'')}</textarea><button class="btn btn-primary" data-report-retry-evaluate="${index}">点评重答并对比</button><p role="status" data-report-retry-status="${index}" class="mock-note"></p></details>`:'');
+    return (evaluation?aiFeedbackHtml(evaluation,entry.followUpAnswer?'综合初答与补充的点评':'本题 AI 点评',coachingSource(record,index)):'<p>本题的补充回答尚未点评。</p>')+(entry.initial.result.followUp?`<details class="answer-review-rubric"><summary>本题追问与补充记录</summary><p>${esc(entry.initial.result.followUp)}</p><blockquote>${esc(entry.followUpAnswer||'未回答追问')}</blockquote></details>`:'')+(entry.retry?.evaluation?retryComparisonHtml(entry,record,index,false):'')+(evaluation?`<details class="answer-review-editor" data-report-retry-editor="${index}"><summary>按建议修改后，再点评一次</summary><label for="reportRetry${index}">补充真实事实，重新组织这道题的完整回答</label><div id="reportRetryVoice${index}"></div><textarea id="reportRetry${index}" data-report-retry-input="${index}" maxlength="12000">${esc(entry.retry?.answer||'')}</textarea><button class="btn btn-primary" data-report-retry-evaluate="${index}">点评重答并对比</button><p role="status" data-report-retry-status="${index}" class="mock-note"></p></details>`:'');
   }
 
   function feedbackDisclosure(envelope,title,open,source=''){return `<details class="feedback-disclosure" ${open?'open':''}><summary>${esc(title)} · 展开查看依据与建议</summary>${aiFeedbackHtml(envelope,title,source)}</details>`;}
@@ -1582,10 +1582,10 @@
     return `<div class="ai-feedback"><h4>这次练习的收获</h4><p>${r.answers.filter(a=>a.trim()).length}/${r.count} 题已作答 · ${evaluated.length} 题有 AI 点评 · ${retries.length} 题完成重答对比</p>${gaps.length?'<b>下一次优先练</b><ul>'+gaps.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul>':'<p class="mock-note">完成回答与点评后，这里会整理具体练习方向。</p>'}</div>`;
   }
   function stopMockVoice(){window.MockVoice?.stop();}
-  function mountMockVoice(targetId,hostId){
+  function mountMockVoice(targetId,hostId,context=null){
     const host=document.getElementById(hostId),target=document.getElementById(targetId);if(!host||!target||target.readOnly)return;
     if(!window.MockVoice){host.innerHTML='<p class="mock-note">语音组件未加载，请刷新页面后重试。</p>';return;}
-    MockVoice.mount(target,host,{context:()=>({id:mockSession?.id,index:mockIdx,pending:mockSession?.formal?.pending?.question||''}),blocked:()=>mockAiBusy||mockPlanBusy});
+    MockVoice.mount(target,host,{context:context||(()=>({id:mockSession?.id,index:mockIdx,pending:mockSession?.formal?.pending?.question||''})),blocked:()=>mockAiBusy||mockPlanBusy});
   }
 
   document.getElementById('mockSample')?.addEventListener('click',()=>{document.getElementById('mockJd').value=SAMPLE_JD;parseJd();});

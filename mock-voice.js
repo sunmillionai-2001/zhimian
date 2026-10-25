@@ -1,12 +1,12 @@
 // Microphone capture + same-origin transcription. Never uses browser cloud recognition.
 window.MockVoice=(()=>{
  let active=null;
- const ids=['mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockRetryEvaluate','mockBeginRetry','formalNext','formalSkip','formalEnd','formalPause','formalClarify','formalUnknown','mockRoomBack','mockRoomContinue'];
+ const ids=['mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockRetryEvaluate','mockBeginRetry','formalNext','formalSkip','formalEnd','formalPause','formalClarify','formalUnknown','mockRoomBack','mockRoomContinue','mockRoomTools','mockSave','coachingEvaluate'];
  const key=options=>JSON.stringify(options.context());
- const valid=s=>active===s&&!s.controller.signal.aborted&&s.target.isConnected&&key(s.options)===s.context;
+ const valid=s=>active===s&&!s.controller.signal.aborted&&s.target.isConnected&&!s.disclosures.some(d=>!d.open)&&key(s.options)===s.context;
  function lock(s){
-  s.fields=new Map();for(const el of new Set([s.target,...['mockA','mockFollowUpAnswer','mockRetryAnswer'].map(id=>document.getElementById(id))]))if(el){s.fields.set(el,el.readOnly);el.readOnly=true;}s.locks=new Map();
-  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice]')])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
+  s.fields=new Map();for(const el of new Set([s.target,...['mockA','mockFollowUpAnswer','mockRetryAnswer'].map(id=>document.getElementById(id)),...document.querySelectorAll('[data-report-retry-input]')]))if(el){s.fields.set(el,el.readOnly);el.readOnly=true;}s.locks=new Map();
+  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice],[data-report-retry-evaluate],[data-answer-record],[data-interview-repeat]')])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
  }
  function unlock(s){if(s.locks){for(const [el,disabled]of s.locks)if(el.isConnected)el.disabled=disabled;s.locks=null;for(const [el,readOnly]of s.fields)if(el.isConnected)el.readOnly=readOnly;s.fields=null;}}
  function closeAudio(s){clearInterval(s.timer);s.stream?.getTracks().forEach(t=>t.stop());try{s.node?.disconnect();s.source?.disconnect();s.gain?.disconnect();}catch{}if(s.audioContext&&s.audioContext.state!=='closed')s.audioContext.close().catch(()=>{});}
@@ -42,7 +42,8 @@ window.MockVoice=(()=>{
  }
  async function begin(target,button,cancel,notice,options){
   if(active||options.blocked())return;
-  const s={target,button,cancel,notice,options,context:key(options),controller:new AbortController(),phase:'starting',chunks:[],frames:0};active=s;lock(s);s.observer=new MutationObserver(()=>{if(active===s&&!target.isConnected)stop();});s.observer.observe(document.getElementById('mockStage'),{childList:true,subtree:true});button.disabled=true;cancel.hidden=false;cancel.textContent='取消';notice.textContent='正在准备语音作答…';
+  const disclosures=[];for(let el=target.parentElement;el;el=el.parentElement)if(el.tagName==='DETAILS')disclosures.push(el);
+  const s={target,button,cancel,notice,options,disclosures,context:key(options),controller:new AbortController(),phase:'starting',chunks:[],frames:0};active=s;lock(s);s.observer=new MutationObserver(()=>{if(active===s&&(!target.isConnected||disclosures.some(d=>!d.open)))stop();});s.observer.observe(document.getElementById('mockStage'),{childList:true,subtree:true,attributes:true,attributeFilter:['open']});button.disabled=true;cancel.hidden=false;cancel.textContent='取消';notice.textContent='正在准备语音作答…';
   try{
    const response=await fetch('/api/voice/status',{signal:AbortSignal.any([s.controller.signal,AbortSignal.timeout(12000)])});const status=await response.json();if(!response.ok||!status.enabled)throw Error(status.error||'语音识别尚未启用，请联系管理员。');s.maxSeconds=Math.min(status.maxSeconds||180,180);
    s.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true},video:false});if(!valid(s)){closeAudio(s);return;}
@@ -53,6 +54,7 @@ window.MockVoice=(()=>{
   }catch(e){closeAudio(s);if(!valid(s))return;active=null;s.observer?.disconnect();unlock(s);button.disabled=false;cancel.hidden=true;notice.textContent=(({'NotAllowedError':'麦克风权限未允许，请在浏览器地址栏开启麦克风后重试。','NotFoundError':'没有找到麦克风，请连接设备后重试。','NotReadableError':'麦克风正被其他程序占用，请关闭占用后重试。'})[e.name]||(e.name==='TimeoutError'?'连接工作台超时，请重试。':e.message==='Failed to fetch'?'暂时连不上工作台，请检查本地服务。':e.message))+' 原回答保留。';}
  }
  function mount(target,host,options){
+  if(active?.target===target)stop();
   host.innerHTML='<div class="paste-actions"><button type="button" class="btn btn-ghost" data-voice>语音作答</button><button type="button" class="btn btn-ghost" data-voice-cancel hidden>取消录音</button></div><p class="mock-note" role="status" aria-live="polite" data-voice-status></p>';
   const button=host.querySelector('[data-voice]'),cancel=host.querySelector('[data-voice-cancel]'),notice=host.querySelector('[data-voice-status]');
   const supported=!!(window.isSecureContext&&navigator.mediaDevices?.getUserMedia&&(window.AudioContext||window.webkitAudioContext)&&window.AudioWorkletNode);button.disabled=!supported;notice.textContent=supported?'说完后停止转写，文字会追加到回答中；每段最多 3 分钟。':'当前环境无法录音，请使用 HTTPS 或本机地址打开，并允许麦克风。';
