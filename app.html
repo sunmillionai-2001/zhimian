@@ -372,6 +372,9 @@
   .answer-annotation p{margin:8px 0}.answer-annotation .suggested{color:var(--teal)}
   .answer-reference{white-space:pre-wrap;line-height:1.9;background:var(--paper-2);padding:18px;border-radius:10px;overflow-wrap:anywhere}
   .answer-reference .fact-placeholder{color:var(--seal);font-weight:600}
+  .reference-fill-help{margin:12px 0;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card-hi);line-height:1.7;overflow-wrap:anywhere}
+  .reference-fill-help summary{cursor:pointer;font-weight:600;min-height:36px;display:list-item;list-style-position:inside}
+  .reference-fill-help p{margin:8px 0}.reference-fill-help ol{padding-left:22px;margin:8px 0}.reference-fill-help li+li{margin-top:12px}
   .answer-review-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.answer-review-actions .btn{min-height:44px;white-space:normal}
   .answer-review-editor textarea{width:100%;box-sizing:border-box;min-height:160px;margin:12px 0}
   .answer-review-editor{margin:14px 0}.answer-review-editor summary,.answer-review-rubric summary{cursor:pointer;min-height:44px;padding:10px 0;box-sizing:border-box;display:list-item;list-style-position:inside}
@@ -1489,9 +1492,21 @@
     for(const span of merged){html+=esc(source.slice(cursor,span.start))+`<mark>${esc(source.slice(span.start,span.end))}</mark><sup>[${span.indices.join(', ')}]</sup>`;cursor=span.end;}
     return html+esc(source.slice(cursor));
   }
+  function referenceFillGuide(label){
+    if(/是否|属实|真实情况/.test(label))return {question:'先核对这段经历或判断是否符合你的实际情况；如果属实，再说明是哪件事、你做了什么。',frame:'属实：补一个真实例子。不属实：删去或纠正参考回答中的这段内容。'};
+    if(/关注|学习|准备|研究|练习|课程/.test(label))return {question:'为这个岗位，你实际研究或实践过什么？选一件事，讲清你看了什么、做了什么、有什么发现。产品名不是必填项，也可以讲一次分析、学习后的实践或相关工作尝试。',frame:'可以按这个句式组织（不是你的真实经历）：我为了了解___，研究／实践了___，具体做了___，发现___。'};
+    if(/项目|事件|场景|客户/.test(label))return {question:'选一件与你这道题相关的真实事情：当时要解决什么问题，你具体负责什么、做了什么，最后有什么可确认的结果？',frame:'可以这样组织：在___项目／场景中，我负责___，采取了___，结果是___。'};
+    if(/个人|职责|负责|分工|承担|行动|做法|采取/.test(label))return {question:'说清你本人承担了哪部分工作、采取了什么具体行动，哪些是你独立完成的，哪些需要和别人配合。',frame:'可以这样组织：我本人负责___，先___，再___；团队其他成员负责___。'};
+    if(/结果|产出|效果|验证|指标|数据|交付/.test(label))return {question:'补充已经确认的结果，以及你通过什么记录、反馈或验收来判断。没有数字也可以说清交付了什么、获得了什么反馈。',frame:'可以这样组织：完成后___；我通过___确认这一结果。尚未验证的部分如实说明。'};
+    return {question:/[？?]/.test(label)?label:'请把“'+label+'”说具体：是哪件真实的事，你本人做了什么，哪些信息已经确认？',frame:'先选一个真实例子，再补具体细节；上方“还需要补充哪些真实事实”也可帮助你回忆。'};
+  }
+  function referenceFillHelpHtml(reference){
+    const labels=[...new Set([...reference.matchAll(/【待补充[：:]([^】]*)】/g)].map(m=>m[1].trim()))];if(!labels.length)return '';
+    return '<details class="reference-fill-help" open><summary>红色位置怎么补 · '+labels.length+' 处</summary><p class="mock-note">AI 在现有材料里还没找到这些信息，不等于你没做过。红字是给你的补充提示，不是要照读的答案，也不用在参考回答中直接填写。</p><ol>'+labels.map(label=>{const guide=referenceFillGuide(label);return '<li><b>'+esc(label)+'</b><p>'+esc(guide.question)+'</p><p class="mock-note">'+esc(guide.frame)+'</p></li>';}).join('')+'</ol><p class="mock-note"><b>没有对应经历怎么办？</b>不必硬补，去掉参考回答中这段未经确认的经历。若想讲后续打算，请明确说是计划，不能说成已经做过。</p><p class="mock-note"><b>下一步：</b>在本题下方选择重答，用真实信息替换红字提示，再让 AI 点评。</p></details>';
+  }
   function detailedReviewHtml(review,source){
     const reference=esc(review.referenceAnswer).replace(/【待补充[：:][^】]*】/g,t=>'<span class="fact-placeholder">'+t+'</span>');
-    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达。方括号内需要补充真实事实，确认后再用自己的话重答。</p><div class="answer-reference">${reference}</div><details class="answer-review-rubric"><summary>AI 参考了你的哪些原话</summary><p class="mock-note">以下摘自本题回答或本场简历，用来核对参考回答中的经历是否准确。</p>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p class="mock-note">${source?(source.includes(e.quote)?'本题回答':'本场简历'):'你提供的材料'}</p>${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
+    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达，请先核对经历是否准确。${/【待补充[：:]/.test(review.referenceAnswer)?'红色位置还缺你的真实信息，具体怎么补见下方说明。':'确认后，再用自己的话重答。'}</p><div class="answer-reference">${reference}</div>${referenceFillHelpHtml(review.referenceAnswer)}<details class="answer-review-rubric"><summary>AI 参考了你的哪些原话</summary><p class="mock-note">以下摘自本题回答或本场简历，用来核对参考回答中的经历是否准确。</p>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p class="mock-note">${source?(source.includes(e.quote)?'本题回答':'本场简历'):'你提供的材料'}</p>${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
   }
   function aiFeedbackHtml(envelope,title='AI 点评',source=''){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
