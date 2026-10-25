@@ -33,6 +33,19 @@ test('source IDs restore verbatim oral segments and cannot use resume facts as a
  assert.deepEqual(out.result.evidenceQuotes,['嗯，我整理需求。']);assert.equal(out.result.review.annotations[0].quote,'但是结果还没核对。');assert.deepEqual(out.result.review.referenceEvidence,[{quote:resume}]);
  let calls=0;await assert.rejects(runAi('interview',body,{...cfg,transport:async()=>{calls++;return {choices:[{message:{content:JSON.stringify({...evaluation,answerEvidenceIds:['r1'],review:makeReview(answer)})}}]};}}),e=>e.code==='ANSWER_REVIEW_INCOMPLETE'&&e.reviewIssues.includes('answerEvidenceIds'));assert.equal(calls,2);
 });
+test('formal opening review accepts equivalent years and durations but rejects invented dates, quantities and metrics',async()=>{
+ const makeReview=require('./review-fixture.cjs'),policy=require('../interview-policy'),answer='我有两年的项目交付经验。',resume='教育经历：2020.09-2024.06，软件工程。';
+ const review=makeReview(answer);review.version=policy.answerReviewVersion;review.referenceEvidence=[{quote:answer}];review.annotations=[];
+ const issues=(referenceAnswer,facts=answer+'\n'+resume)=>policy.answerReviewIssues({...review,referenceAnswer},answer,facts,true);
+ for(const reference of ['我于2024年6月毕业，有2年的项目交付经验。','1. 我有2年的项目交付经验。\n2、我负责【待补充：具体职责及2025年的例子】。'])assert.deepEqual(issues(reference),[],reference);
+ for(const reference of ['我于2025年毕业。','我有3年的项目交付经验。','我带来999%的增长。','项目效率提高2倍。'])assert.ok(issues(reference).includes('review.unsupportedNumbers'),reference);
+ assert.ok(issues('我于2024年毕业。',answer+'\n指标2024.06万元').includes('review.unsupportedNumbers'),'A decimal metric cannot establish a graduation year');
+ assert.ok(issues('我于2024年毕业。',answer+'\n指标2024.06%').includes('review.unsupportedNumbers'));
+ assert.deepEqual(issues('我负责120万元的项目。',answer+'\n我负责一百二十万元的项目。'),[]);
+ assert.deepEqual(issues('我负责12000万元的项目。',answer+'\n我负责一亿两千万元的项目。'),[]);
+ let calls=0;const out=await runAi('interview',{question:'介绍相关经历。',answer,resume,interviewer:'hr',reviewOnly:true,detailedReview:true},{...cfg,transport:async()=>{calls++;return {choices:[{message:{content:JSON.stringify({...evaluation,evidenceQuotes:[answer],review:{...review,referenceAnswer:'我于2024年毕业，有2年的项目交付经验。'}})}}]};}});
+ assert.equal(calls,1,'Equivalent numbers must not spend the repair call');assert.match(out.result.review.referenceAnswer,/2024年/);
+});
 test('fresh plans receive bounded previous questions and reject punctuation-only repeats without extra calls',async()=>{
  let calls=0,duplicate=false;const c={...cfg,transport:async(c,p)=>{calls++;const u=JSON.parse(p.messages[1].content);assert.deepEqual(u.previousQuestions,['请说明方案取舍？']);assert.match(p.messages[0].content,/换一个具体场景/);return {choices:[{message:{content:JSON.stringify({questions:Array.from({length:5},(_,i)=>({topic:'取舍',q:duplicate&&i===0?'请说明 方案取舍?':'请说明新的判断角度'+i,points:['个人判断'],source:{kind:'jd',quote:'产品经理'}}))})}}]};}};
  const body={jd:'产品经理',count:5,previousQuestions:['请说明方案取舍？']};const out=await runAi('interview-plan',body,c);assert.equal(out.result.questions.length,5);assert.match(out.meta.promptVersion,/fresh-questions/);

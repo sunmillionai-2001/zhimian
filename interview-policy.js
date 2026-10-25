@@ -21,6 +21,18 @@
  const bounded=(v,n)=>typeof v==='string'&&v.length<=n;
  const answerReviewVersion='2026-10-25.answer-review.v2';
  const legacyAnswerReviewVersion='2026-10-24.answer-review.v1';
+ // Compare equivalent ways to write a quantity, without accepting a new metric.
+ // Keep legacy literal matches so existing reports/backups stay readable.
+ function reviewNumbers(value,asSource=false){
+  const clean=value.replace(/【待补充[：:][^】]*】/g,'').replace(/(^|\n)\s*(?:\d+[、．)]|\d+\.\s|[（(]\d+[）)])\s*/g,'$1');
+  const digits={零:0,〇:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9},units={十:10,百:100,千:1000,万:10000,亿:100000000};
+  const chinese=s=>{if(!/[十百千万亿]/.test(s))return Number([...s].map(c=>digits[c]).join(''));let total=0,part=0,n=0;for(const c of s){if(c in digits)n=digits[c];else{const u=units[c];if(u<10000){part+=(n||1)*u;n=0;}else{part+=n;if(u===10000)total+=part*u;else total=(total+part)*u;part=0;n=0;}}}return total+part+n;};
+  const dates=clean.replace(/(?<!\d)((?:19|20)\d{2})[./-](0?[1-9]|1[0-2])(?:[./-](0?[1-9]|[12]\d|3[01]))?(?![\d.%％万元亿倍kKmM])/g,(_,y,m,d)=>y+'年'+Number(m)+'月'+(d?Number(d)+'日':''));
+  const normalized=asSource?dates.replace(/([零〇一二两三四五六七八九十百千万亿]+)(?=年|月|周|天|日|小时|分钟|秒|次|个|项|人|家|笔|套|组|页|%|％|倍|元)/g,(_,s)=>String(chinese(s))):dates;
+  const unitAfter=s=>s.match(/^(?:\s*)(年|月|周|天|日|小时|分钟|秒|次|个|项|人|家|笔|套|组|页|元)/)?.[1]||'';
+  const rows=[...normalized.matchAll(/\d+(?:\.\d+)?(?:%|％|万|亿|倍|[kKmM])?/g)].map(m=>{const suffix=m[0].match(/[%％万亿倍kKmM]$/)?.[0]||'',scale={万:1e4,亿:1e8,k:1e3,K:1e3,m:1e6,M:1e6}[suffix]||1,kind=/[%％]/.test(suffix)?'%':suffix==='倍'?'倍':unitAfter(normalized.slice(m.index+m[0].length));return {literal:m[0],key:kind+':'+Number((parseFloat(m[0])*scale).toPrecision(12))};});
+  return {literals:clean.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[],claims:rows};
+ }
  // Optional for old backups. New detailed reviews must quote the actual answer;
  // resume facts may support a reference answer, but never a higher answer score.
  function answerReviewIssues(v,source,facts,required=false){
@@ -40,7 +52,7 @@
    if(facts!==undefined&&!v.referenceEvidence.every(e=>typeof e?.quote==='string'&&facts.includes(e.quote)))issues.push('review.referenceEvidence.quote');
    if(!v.referenceEvidence.length&&typeof v.referenceAnswer==='string'&&!/【待补充[：:]/.test(v.referenceAnswer))issues.push('review.referenceEvidence.required');
   }
-  if(facts!==undefined&&typeof v.referenceAnswer==='string'&&Array.isArray(v.annotations)){const numbers=s=>s.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[],known=new Set(numbers(facts));if(numbers(v.referenceAnswer+'\n'+v.annotations.map(a=>a?.rewrite||'').join('\n')).some(n=>!known.has(n)))issues.push('review.unsupportedNumbers');}
+  if(facts!==undefined&&typeof v.referenceAnswer==='string'&&Array.isArray(v.annotations)){const known=reviewNumbers(facts,true),literals=new Set(known.literals),keys=new Set(known.claims.map(n=>n.key));if(reviewNumbers(v.referenceAnswer+'\n'+v.annotations.map(a=>a?.rewrite||'').join('\n')).claims.some(n=>!literals.has(n.literal)&&!keys.has(n.key)))issues.push('review.unsupportedNumbers');}
   return issues;
  }
  function validAnswerReview(v,source,facts,required=false){return answerReviewIssues(v,source,facts,required).length===0;}
