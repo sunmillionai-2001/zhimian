@@ -623,6 +623,27 @@
   .mock-tools-dialog{position:fixed;inset:auto;left:var(--room-dialog-x,50%);top:var(--room-dialog-y,50%);transform:translate(-50%,-50%);margin:0;padding:0;width:min(680px,var(--room-dialog-width,calc(100vw - 24px)));max-width:none;max-height:var(--room-dialog-height,calc(100dvh - 24px));border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);box-shadow:var(--shadow)}.mock-tools-dialog[open]{display:flex;flex-direction:column}.mock-tools-dialog::backdrop{background:rgba(33,28,20,.25)}.mock-tools-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line)}.mock-tools-head h3{font:900 18px var(--serif)}.mock-tools-head .btn{min-height:44px}.mock-tools-body{overflow:auto;overscroll-behavior:contain;padding:20px;min-height:0}.mock-tools-body .ai-settings{margin-bottom:20px}.mock-tools-body .mock-history{margin-top:20px}body:has(#mockToolsDialog[open]){overflow:hidden}
   @media(max-width:650px){#mockStage .stage-body,#mockStage .stage-foot{padding:18px 16px}#mockStage .stage-bar{padding:16px}#mockStage .q-card{padding:18px}#mockStage .q-text{font-size:18px}#mockStage .stage-foot textarea{min-height:150px}#mockStage>.report{padding:16px}.mock-loading{min-height:440px}.mock-loading h3{font-size:21px}#mock .mock-room-actions{gap:6px}#mock .mock-room-actions .btn{padding:8px 10px;font-size:12px}}
   @media(prefers-reduced-motion:reduce){#mock *,#mock *:before,#mock *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* One question at a time; report actions remain within reach. */
+.report-workspace{scroll-margin-top:100px;display:grid;grid-template-columns:220px minmax(0,1fr);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:24px 0;background:var(--paper,#fffdf6)}
+.report-question-nav{padding:16px;background:rgba(162,135,88,.06);border-right:1px solid var(--line);max-height:min(740px,calc(100dvh - 150px));overflow:auto}
+.report-question-nav h4{margin:0 0 6px}.report-question-nav p{font-size:12px;margin:0 0 12px}
+.report-question-nav button{display:block;width:100%;text-align:left;padding:12px;border:1px solid transparent;border-radius:9px;background:none;color:inherit;margin-bottom:6px;cursor:pointer;font:inherit;font-size:13px}
+.report-question-nav button[aria-current="true"]{background:#fffdf6;border-color:var(--teal,#2d605f);color:var(--teal,#2d605f)}
+.report-question-nav small{display:block;color:#8e806b;margin-top:4px}.report-question-nav b{font-weight:600}
+.report-question-mobile{display:none}.report-question-main{min-width:0;display:flex;flex-direction:column}
+.report-question-head{padding:20px 24px 12px;border-bottom:1px solid var(--line)}.report-question-head p{margin:6px 0 0;font-size:16px;font-weight:600;line-height:1.7}.report-question-head p{max-height:8em;overflow:auto}.report-question-head small{color:#8e806b}
+.report-tabs{display:flex;gap:4px;flex-wrap:wrap;padding:12px 20px 0}.report-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;min-height:44px;font:inherit;font-size:13px;color:#8e806b;cursor:pointer}.report-tabs button[aria-selected="true"]{color:var(--teal,#2d605f);border-color:var(--teal,#2d605f);font-weight:600}
+.report-question-body{height:clamp(300px,calc(100dvh - 330px),560px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:4px 24px 20px}
+.report-workspace .report-item{border:0;padding:0;margin:0;border-radius:0;background:none}.report-workspace .report-item>summary,.report-workspace .ri-q{display:none}
+.report-workspace [hidden]{display:none!important}.report-workspace .ai-feedback{border:0;background:none;padding:8px 0;margin:0}.report-workspace .retry-comparison{padding-top:16px}.report-workspace .answer-review-editor{border:0;margin-top:8px;padding:0}.report-workspace textarea{width:100%;min-height:160px}
+.report-question-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line);background:#faf5e9}.report-question-footer .btn{min-height:44px;padding:10px 14px;font-size:13px}.report-question-footer .paste-actions{margin:0;gap:8px}
+.report-workspace .answer-reference{padding:18px}.report-workspace .answer-annotation{margin:12px 0}.report-workspace .reference-fill-help{padding:12px}.report-workspace .reference-fill-help p{line-height:1.7}
+.report-unanswered{padding:18px 20px;margin:18px 0;border:1px solid var(--line);border-radius:12px;background:rgba(45,96,95,.04)}.report-unanswered h4,.report-unanswered p{margin:0 0 10px}
+.target-progress{margin-top:24px;scroll-margin-top:100px}.target-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.target-progress-head label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft)}.target-progress-head select{font:inherit;padding:9px 12px;min-width:130px;border:1px solid var(--line);border-radius:8px;background:var(--card-hi);color:var(--ink)}.target-progress-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.target-progress-metrics>div{padding:16px;background:rgba(162,135,88,.07);border-radius:10px}.target-progress-metrics b{display:block;font-size:24px;color:var(--teal,#2d605f)}.target-progress-metrics span{font-size:12px;color:#8e806b}.target-progress-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.target-progress-row{border-top:1px solid var(--line);padding:14px 0}.target-progress-row p{margin:5px 0}.target-progress-row .btn{min-height:44px;padding:8px 12px;font-size:12px}
+@media(max-width:1000px){.report-workspace{grid-template-columns:180px minmax(0,1fr)}}
+@media(max-width:700px){.report-workspace{display:block}.report-question-nav{display:none}.report-question-mobile{display:block;padding:12px 16px;border-bottom:1px solid var(--line)}.report-question-mobile select{width:100%;font:inherit;padding:10px;background:#fffdf6;border:1px solid var(--line);border-radius:8px}.report-question-head{padding:16px}.report-question-head p{font-size:14px}.report-tabs{padding:8px 8px 0;gap:0}.report-tabs button{font-size:12px;padding:8px}.report-question-body{padding:0 16px 16px;height:clamp(300px,calc(100dvh - 350px),520px)}.report-question-footer{padding:12px}.report-question-footer .btn{padding:9px 11px;font-size:12px}.target-progress-metrics{grid-template-columns:1fr 1fr}.target-progress-columns{grid-template-columns:1fr;gap:8px}}
+
 </style>
 </head>
 <body>
@@ -897,7 +918,7 @@
 可以粘贴具体职位 JD，也可以先写求职方向。"></textarea></div>
           <p class="mock-note">输入自动保存。每个目标分别保留准备材料；修改目标不会改动已开始的面试快照。</p>
           <p class="mock-note" id="targetMsg" role="status" aria-live="polite"></p>
-          <div class="paste-actions"><button class="btn btn-primary" id="targetResume" type="button">下一步：准备简历 →</button><button class="btn btn-ghost" id="targetMock" type="button">去模拟面试 →</button></div>
+          <div class="paste-actions"><button class="btn btn-primary" id="targetResume" type="button">下一步：准备简历 →</button><button class="btn btn-ghost" id="targetMock" type="button">去模拟面试 →</button><button class="btn btn-ghost" id="targetProgressJump" type="button">查看训练进展 ↓</button></div>
         </section>
         <aside class="record-form target-library">
           <div class="target-library-head"><h3>我的目标</h3><button class="btn btn-ghost" id="targetNew" type="button">＋ 新建目标</button></div>
@@ -906,6 +927,7 @@
           <details class="target-backup"><summary>准备配置与备份</summary><p class="mock-note">每个目标自动保存当前准备。可将当前 JD、简历与面试设置保存为配置，之后恢复使用；恢复会替换临时调整。</p><div class="paste-actions"><button class="btn btn-ghost" id="targetDefault" type="button">保存准备配置</button><button class="btn btn-ghost" id="targetReset" type="button">恢复已保存配置</button></div><div class="paste-actions"><button class="btn btn-ghost" id="targetExport" type="button">导出目标准备</button><button class="btn btn-ghost" id="targetImport" type="button">导入目标准备</button><input id="targetGoalFile" type="file" accept=".json,application/json" hidden></div><p class="mock-note">导出 JSON 备份，包含全部目标准备材料；同目标导入时保留现有材料。</p></details>
         </aside>
       </div>
+      <section class="record-form target-progress" id="targetProgress" aria-label="目标训练进展"></section>
     </section>
 
     <!-- ===== 简历助手 ===== -->
@@ -1273,7 +1295,7 @@
   }
   function interviewRepeatHtml(r){
     if(r.legacy||r.practiceTask)return '';
-    return `<section class="interview-repeat"><h4>继续练习</h4><p class="mock-note">保留本场报告，用同一份简历与岗位材料再练一场。</p><div class="paste-actions"><button class="btn btn-ghost" data-interview-repeat="same">原题重练</button><button class="btn btn-primary" data-interview-repeat="fresh">换一组 AI 题</button></div><p class="mock-note">原题重练：保留问题，重新作答。换一组 AI 题：重新出题，参考最近已练题目减少重复。</p><p id="mockRepeatMsg" class="mock-note" role="status" aria-live="polite"></p></section>`;
+    return `<section class="interview-repeat"><h4>继续练习</h4><p class="mock-note">保留本场报告，用同一份简历与岗位材料再练一场。</p><div class="paste-actions"><button class="btn btn-ghost" data-interview-repeat="same">原题重练</button>${r.continuation?'':'<button class="btn btn-primary" data-interview-repeat="fresh">换一组 AI 题</button>'}</div><p class="mock-note">${r.continuation?'本次只重练原场次的未答题。若想换一组题，可返回准备，开始新的 AI 专项或正式模拟。':'原题重练：保留问题，重新作答。换一组 AI 题：重新出题，参考最近已练题目减少重复。'}</p><p id="mockRepeatMsg" class="mock-note" role="status" aria-live="polite"></p></section>`;
   }
   function bindInterviewRepeats(r){document.querySelectorAll('[data-interview-repeat]').forEach(b=>b.onclick=()=>repeatInterview(r,b.dataset.interviewRepeat==='fresh'));}
   function recentInterviewQuestions(source){
@@ -1286,7 +1308,7 @@
     if(mockAiBusy||mockPlanBusy||mockStorageBlocked)return;
     const source=structuredClone(record.id===mockSession?.id?snapshot():mockStore.records.find(r=>r.id===record.id)||record);
     const notice=t=>{const el=document.getElementById('mockRepeatMsg');if(el)el.textContent=t;};
-    if(source.legacy||source.practiceTask||!['report','saved'].includes(source.status))return;
+    if(source.legacy||source.practiceTask||source.continuation&&fresh||!['report','saved'].includes(source.status))return;
     if(mockStore.draft&&mockStore.draft.id!==source.id&&!confirm('开始这场练习会替换当前未完成草稿，本场报告会保留。继续吗？'))return;
     stopMockVoice();stopTimer();let started=false,error='';mockPlanBusy=true;setMockAiBusy(true);notice(fresh?'正在根据本场材料重新出题…':'正在保留报告并准备原题…');
     try{
@@ -1301,7 +1323,7 @@
         questions=source.mode==='formal'?[questions[0],...rows.map(q=>({...q,kind:'main'})),questions.at(-1)]:rows;questionPlan=plan.meta;
       }
       const candidate={...source,id:crypto.randomUUID(),date:new Date().toISOString(),status:'active',index:0,rate:'未评',questions,count:questions.length,answers:Array(questions.length).fill(''),durations:Array(questions.length).fill(0),ai:Array(questions.length).fill(null),...(questionPlan?{questionPlan}:{}),...(source.mode==='formal'?{formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(questions.length).fill(null),control:{paused:false,clarifications:[],skipped:[]}}}:{})};
-      delete candidate.origin;
+      delete candidate.origin;delete candidate.continuation;
       const next={...mockStore,records:[{...source,status:'saved'},...mockStore.records.filter(r=>r.id!==source.id)],draft:candidate};
       if(!validStore(next)||!writeMockStore(next))throw Error('新练习未能保存，请先导出备份。');
       mockSession=candidate;mockQuestions=candidate.questions;mockAnswers=candidate.answers;mockIdx=0;mockSec=0;mockSelfRate='';mockFound=candidate.keywords.slice();mockRole=candidate.role;mockCount=[5,8,12].includes(candidate.count)?candidate.count:5;
@@ -1341,9 +1363,10 @@
     if(mockSession?.mode==='formal')return FormalInterview.renderQuestion();
     FormalInterview.setStageMode(false);
     const stage=document.getElementById('mockStage');if(!stage)return;
-    stage.innerHTML=`<div class="stage-bar"><div class="who">面</div><div><div class="who-name">面试官 · ${esc(InterviewPolicy.profile(mockSession.interviewer||'business').name)}</div><div class="who-sub">${esc(mockSession.role)} · ${mockSession.questionPlan?'AI 专项练习':'题库专项练习'}</div></div><div class="stage-timer"><span class="step">第 ${mockIdx+1}/${mockQuestions.length} 题</span><span class="t" id="mockClock"></span></div></div>
+    stage.innerHTML=`<div class="stage-bar"><div class="who">面</div><div><div class="who-name">面试官 · ${esc(InterviewPolicy.profile(mockSession.interviewer||'business').name)}</div><div class="who-sub">${esc(mockSession.role)} · ${mockSession.continuation?'未答题专项练习':mockSession.questionPlan?'AI 专项练习':'题库专项练习'}</div></div><div class="stage-timer"><span class="step">第 ${mockIdx+1}/${mockQuestions.length} 题</span><span class="t" id="mockClock"></span></div></div>
       <div class="stage-body" id="mockBody">${`<div class="q-card"><div class="q-topic">${esc(mockQuestions[mockIdx].topic)}</div><div class="q-text">${esc(mockQuestions[mockIdx].q)}</div>${questionSource(mockQuestions[mockIdx])}</div>`}${mockIdx?`<details class="mock-transcript"><summary>查看本场记录 · ${mockIdx} 道已练问题</summary>${mockQuestions.slice(0,mockIdx).map((q,i)=>`<p><b>${esc(q.topic)}</b> · ${esc(q.q)}</p><blockquote>${esc(mockAnswers[i]||'已跳过')}</blockquote>`).join('')}</details>`:''}</div>
       <div class="stage-foot"><div id="mockVoiceTools"></div><textarea id="mockA" maxlength="12000" aria-label="本题回答" placeholder="写下你的回答要点……"></textarea><p id="mockAnswerHint" class="mock-note"></p><div class="stage-actions"><button class="btn btn-primary" id="mockNext">${mockIdx===mockQuestions.length-1?'结束并生成报告':'下一题 →'}</button><button class="btn btn-ghost" id="mockSkip">跳过</button><span class="hint">回答自动保存，可刷新后恢复</span></div><div id="mockStoryPicker"></div><div id="mockAiBox"></div></div>`;
+    if(mockSession.continuation){stage.insertAdjacentHTML('afterbegin',FormalInterview.continuationHtml(mockSession));FormalInterview.bindContinuation(mockSession);}
     const a=document.getElementById('mockA');a.value=mockAnswers[mockIdx]||'';a.readOnly=!!mockSession.practiceTask;a.focus({preventScroll:true});FormalInterview.roomQuestionMotion();
     a.addEventListener('input',()=>{if(mockSession.practiceTask)return;mockAnswers[mockIdx]=a.value;if(mockSession.ai)mockSession.ai[mockIdx]=null;persistDraft();renderMockAi();});
     const next=()=>{if(mockAiBusy)return;stopMockVoice();mockAnswers[mockIdx]=a.value;if(mockSession.ai?.[mockIdx]&&mockSession.ai[mockIdx].sourceAnswer!==a.value)mockSession.ai[mockIdx]=null;stopTimer();mockSession.durations[mockIdx]=mockSec;
@@ -1400,6 +1423,8 @@
   }
   function bindCoachingReview(record){
     if(record.mode==='formal')return;
+    MockReportWorkspace.mount(record);
+    FormalInterview.bindUnanswered?.(record);
     document.getElementById('coachingEvaluate')?.addEventListener('click',()=>evaluateCoachingReport(record));
     document.querySelectorAll('[data-report-retry-input]').forEach(input=>{const index=Number(input.dataset.reportRetryInput);input.oninput=()=>{
       const msg=document.querySelector(`[data-report-retry-status="${index}"]`);
@@ -1422,7 +1447,7 @@
   function coachingEvaluation(entry){return entry?.report||(entry?.followUpAnswer?.trim()?entry.final:entry?.initial);}
   function reportHtml(r){
     if(r.mode==='formal')return FormalInterview.reportHtml(r);
-    return `<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div>${coachingReviewOverview(r)}${trainingSummaryHtml(r)}${r.jobSnapshot?`<p>关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（训练时快照）</p>`:''}<details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
+    return `${FormalInterview.continuationHtml?.(r)||''}<h3>面试报告</h3><div class="sub">${esc(displayMockDate(r.date))} · ${esc(r.role)} · ${r.count} 题 · 总用时 ${r.durations.reduce((a,b)=>a+b,0)} 秒</div>${coachingReviewOverview(r)}${trainingSummaryHtml(r)}${r.jobSnapshot?`<p>关联岗位：${esc(r.jobSnapshot.company)} · ${esc(r.jobSnapshot.role)}（训练时快照）</p>`:''}<details><summary>本次岗位 JD</summary><div style="white-space:pre-wrap">${esc(r.jd||'未填写')}</div></details>`+
       r.questions.map((q,i)=>{const evaluation=coachingEvaluation(r.ai?.[i]);return `<div class="report-item" id="coachingAnswer${i}"><div class="ri-q"><b>Q${i+1}</b><span>${esc(q.q)}</span></div>${questionSource(q)}${evaluation?.result.review?'':`<div class="ri-a ${r.answers[i]?'':'empty'}">${esc(r.answers[i]||'未作答，本题不评分')}</div>`}<div class="sub">本题 ${r.durations[i]} 秒</div>${reportAiHtml(r.ai?.[i],r,i)}<details class="answer-review-rubric"><summary>本题考察标准</summary><div class="ri-points">${q.points.map(p=>`<div class="pt"><span>考察</span>${esc(p)}</div>`).join('')}</div></details>${r.answers[i]?`<button class="btn btn-ghost" data-answer-record="${esc(r.id)}" data-answer-index="${i}">存入个人答案库</button>`:''}</div>`;}).join('')+interviewRepeatHtml(r);
   }
   function renderReport(){
@@ -1506,7 +1531,7 @@
   }
   function detailedReviewHtml(review,source){
     const reference=esc(review.referenceAnswer).replace(/【待补充[：:][^】]*】/g,t=>'<span class="fact-placeholder">'+t+'</span>');
-    return `<p class="answer-review-summary">${esc(review.summary)}</p>${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}<h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达，请先核对经历是否准确。${/【待补充[：:]/.test(review.referenceAnswer)?'红色位置还缺你的真实信息，具体怎么补见下方说明。':'确认后，再用自己的话重答。'}</p><div class="answer-reference">${reference}</div>${referenceFillHelpHtml(review.referenceAnswer)}<details class="answer-review-rubric"><summary>AI 参考了你的哪些原话</summary><p class="mock-note">以下摘自本题回答或本场简历，用来核对参考回答中的经历是否准确。</p>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p class="mock-note">${source?(source.includes(e.quote)?'本题回答':'本场简历'):'你提供的材料'}</p>${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details>`;
+    return `<p class="answer-review-summary">${esc(review.summary)}</p><section data-review-part="feedback">${source?`<h4>你的回答 · 重点标记</h4><div class="answer-annotated">${annotatedAnswerHtml(source,review.annotations)}</div>`:''}${review.annotations.length?'<h4>这些话可以怎么改</h4>'+review.annotations.map((a,i)=>`<div class="answer-annotation"><b>[${i+1}] ${esc(a.quote)}</b><p>${esc(a.reason)}</p><p class="suggested"><b>建议表达：</b>${esc(a.rewrite)}</p></div>`).join(''):'<p class="mock-note">本题没有需要单独标记修改的原话。</p>'}${review.missingFacts.length?'<h4>还需要补充哪些真实事实</h4><ul>'+review.missingFacts.map(f=>`<li><b>${esc(f.question)}</b><br><span class="mock-note">${esc(f.reason)}</span></li>`).join('')+'</ul>':''}</section><section data-review-part="reference"><h4>参考回答 · 按你的经历组织</h4><p class="mock-note">这是一种建议表达，请先核对经历是否准确。${/【待补充[：:]/.test(review.referenceAnswer)?'红色位置还缺你的真实信息，具体怎么补见下方说明。':'确认后，再用自己的话重答。'}</p><div class="answer-reference">${reference}</div>${referenceFillHelpHtml(review.referenceAnswer)}<details class="answer-review-rubric"><summary>AI 参考了你的哪些原话</summary><p class="mock-note">以下摘自本题回答或本场简历，用来核对参考回答中的经历是否准确。</p>${review.referenceEvidence.length?review.referenceEvidence.map(e=>`<p class="mock-note">${source?(source.includes(e.quote)?'本题回答':'本场简历'):'你提供的材料'}</p>${e.claim?'<p>'+esc(e.claim)+'</p>':''}<blockquote>${esc(e.quote)}</blockquote>`).join(''):'<p>当前事实不足，提供的是带占位符的回答框架。</p>'}</details></section>`;
   }
   function aiFeedbackHtml(envelope,title='AI 点评',source=''){
     const r=envelope.result,labels={relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'};
@@ -1530,10 +1555,11 @@
     if(busy&&!mockSetupLock)mockSetupLock=new Map([...document.querySelectorAll('#mock .mock-setup input,#mock .mock-setup select,#mock .mock-setup textarea,#mock .mock-setup button')].map(el=>[el,el.disabled]));
     mockAiBusy=busy;
     ['mockA','mockNext','mockSkip','mockAiEvaluate','mockAiFollowUp','mockFollowUpAnswer','mockRetryAnswer','mockRetryEvaluate','mockBeginRetry','mockPersonalStart','formalStart','formalNext','formalSkip','formalEnd','formalEvaluate','formalSetup','formalPause','formalClarify','formalUnknown','mockSave','mockStart','mockResume','mockStory','mockUseStory','mockRoomBack','mockRoomContinue','mockRoomTools','coachingEvaluate'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=busy;});
-    document.querySelectorAll('[data-answer-record],[data-interview-repeat],[data-report-retry-evaluate],[data-report-retry-input]').forEach(el=>el.disabled=busy);
+    document.querySelectorAll('[data-answer-record],[data-interview-repeat],[data-report-retry-evaluate],[data-report-retry-input],[data-report-write],[data-practice-unanswered],[data-formal-practice],[data-task-carry],[data-formal-setup],[data-formal-resume]').forEach(el=>el.disabled=busy);
     const storyUse=document.getElementById('mockUseStory'),storySelect=document.getElementById('mockStory');if(storyUse&&storySelect)storyUse.disabled=busy||!storySelect.value||(document.getElementById('mockStoryPreview')?.textContent.length||0)>12000;
     if(busy){for(const el of mockSetupLock.keys())el.disabled=true;}else{if(mockSetupLock)for(const [el,disabled] of mockSetupLock)if(el.isConnected)el.disabled=disabled;mockSetupLock=null;FormalInterview.syncControls?.();}
     FormalInterview.renderTarget?.();
+    if(typeof MockReportWorkspace!=='undefined')MockReportWorkspace.sync();
   }
   async function evaluateMock(followUp){
     if(mockAiBusy||!mockSession)return;

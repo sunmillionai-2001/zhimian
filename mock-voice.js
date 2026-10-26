@@ -6,7 +6,7 @@ window.MockVoice=(()=>{
  const valid=s=>active===s&&!s.controller.signal.aborted&&s.target.isConnected&&!s.disclosures.some(d=>!d.open)&&key(s.options)===s.context;
  function lock(s){
   s.fields=new Map();for(const el of new Set([s.target,...['mockA','mockFollowUpAnswer','mockRetryAnswer'].map(id=>document.getElementById(id)),...document.querySelectorAll('[data-report-retry-input]')]))if(el){s.fields.set(el,el.readOnly);el.readOnly=true;}s.locks=new Map();
-  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice],[data-report-retry-evaluate],[data-answer-record],[data-interview-repeat]')])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
+  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice],[data-report-retry-evaluate],[data-answer-record],[data-interview-repeat],[data-report-control],[data-practice-unanswered]')])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
  }
  function unlock(s){if(s.locks){for(const [el,disabled]of s.locks)if(el.isConnected)el.disabled=disabled;s.locks=null;for(const [el,readOnly]of s.fields)if(el.isConnected)el.readOnly=readOnly;s.fields=null;}}
  function closeAudio(s){clearInterval(s.timer);s.stream?.getTracks().forEach(t=>t.stop());try{s.node?.disconnect();s.source?.disconnect();s.gain?.disconnect();}catch{}if(s.audioContext&&s.audioContext.state!=='closed')s.audioContext.close().catch(()=>{});}

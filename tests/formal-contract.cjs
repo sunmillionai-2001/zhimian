@@ -10,6 +10,18 @@ test('overview isolates weaknesses, report and draft to the selected target, inc
  assert.equal(homeState({},store).last,b);
 });
 function record(){return {mode:'formal',interviewer:'business',count:7,index:1,status:'active',answers:['介绍','我整理需求','','','','',''],questions:[{kind:'intro'},...Array.from({length:5},()=>({kind:'main'})),{kind:'closing'}],formal:{phase:'active',turns:[],pending:null,draft:'',decisionPending:false,evaluations:Array(7).fill(null)}};}
+test('unanswered practice retains snapshots and only resumes the missing role questions',()=>{
+ const p=require('../interview-policy'),r=record();Object.assign(r,{id:'parent',date:'2026-10-25',status:'saved',jd:'产品经理',resume:'项目经历',role:'产品',goalId:'g'});r.formal.phase='report';r.questions.forEach((q,i)=>Object.assign(q,{q:'问题'+i,topic:'能力'+i,points:['标准']}));
+ const baseline=JSON.stringify(r),child=p.unansweredSession(r,'child','2026-10-26');assert.deepEqual(child.continuation.indices,[2,3,4,5]);assert.equal(child.mode,'coaching');assert.equal(child.count,4);assert.equal(child.resume,r.resume);assert.deepEqual(child.questions,r.questions.slice(2,6));assert.ok(child.answers.every(x=>!x));assert.equal(child.formal,undefined);assert.ok(p.validPractice(child));assert.equal(JSON.stringify(r),baseline);
+ for(const c of [{...child.continuation,indices:[2,2,4,5]},{...child.continuation,indices:[0,3,4,5]},{...child.continuation,recordId:'child'},{...child.continuation,questionKeys:['forged',...child.continuation.questionKeys.slice(1)]}])assert.equal(p.validPractice({...child,continuation:c}),false);
+ r.answers.fill('完整回答');assert.equal(p.unansweredSession(r,'none','2026-10-26'),null);assert.equal(p.unansweredSession({...r,status:'active'},'none','2026-10-26'),null);
+});
+test('goal progress isolates goals and interviewer, counts continuation coverage without rewriting parent',()=>{
+ const p=require('../interview-policy'),r=record();Object.assign(r,{id:'parent',date:'2026-10-25',status:'saved',jd:'同样 JD',resume:'经历',role:'产品',goalId:'g'});r.formal.phase='report';r.questions.forEach((q,i)=>Object.assign(q,{q:'问题'+i,topic:'能力'+i,points:['标准']}));const c=p.unansweredSession(r,'child','2026-10-26');c.answers[0]='补练回答';const store={draft:c,records:[r,{...r,id:'other-goal',goalId:'other'},{...r,id:'other-role',interviewer:'hr'}]},original=JSON.stringify(store);
+ let result=p.goalProgress({goalId:'g',jd:r.jd,interviewer:'business'},store);assert.equal(result.sessions,1);assert.deepEqual(result.unanswered,[3,4,5]);assert.equal(result.draft.id,'child');assert.equal(result.reviewed,0);assert.equal(result.improved.length,0);assert.equal(JSON.stringify(store),original);
+ assert.equal(p.goalProgress({goalId:'g',jd:r.jd,interviewer:'hr'},store).draft,null);assert.equal(p.goalProgress({goalId:'missing',jd:r.jd,interviewer:'business'},store).sessions,0);
+ const e=(model,score,facts=[])=>({meta:{model,promptVersion:'v1'},result:{scores:{relevance:score,structure:score,evidence:score,depth:score},review:{missingFacts:facts}}});c.ai[0]={initial:e('a',2),retry:{answer:'更具体的回答',evaluation:e('b',4)}};result=p.goalProgress({goalId:'g',interviewer:'business'},store);assert.equal(result.improved.length,0,'different models are not compared');c.ai[0].retry.evaluation.meta.model='a';assert.equal(p.goalProgress({goalId:'g',interviewer:'business'},store).improved.length,1);
+});
 test('goal preparation validates distinct identities, material provenance and immutable run references',()=>{
  const {validGoals,validPreparation}=require('../interview-policy');
  const setup={jd:'产品经理',resume:'整理需求',interviewer:'hr',mode:'formal',roleSelection:'auto',resumeSource:'resume-version',resumeVersionId:'v1',resumeLabel:'版本一'};

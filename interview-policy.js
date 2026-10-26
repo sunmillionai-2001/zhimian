@@ -18,6 +18,36 @@
   const context=current?.goalId||current?.jobId||current?.jd?.trim()?current:store.draft||store.records.find(r=>r.mode==='formal');
   return {context,draft:sameGoal(context,store.draft)?store.draft:null,last:store.records.find(r=>r.mode==='formal'&&sameGoal(context,r))||null};
  }
+ function unansweredIndices(r){return r?.mode==='formal'?r.questions.flatMap((q,i)=>i>0&&i<6&&q.kind==='main'&&!combined(r,i).trim()?[i]:[]):[];}
+ function remainingUnanswered(r,records){const answered=new Set(records.filter(x=>x?.continuation?.recordId===r.id).flatMap(x=>x.continuation.indices.filter((_,i)=>x.answers[i]?.trim())));return unansweredIndices(r).filter(i=>!answered.has(i));}
+ function unansweredSession(r,id,date,indices=unansweredIndices(r)){
+  if(!indices.length||indices.some(i=>!unansweredIndices(r).includes(i))||!['report','saved'].includes(r.status))return null;
+  const child=JSON.parse(JSON.stringify(r));for(const key of ['formal','origin','practiceTask','selectedFocus','continuation'])delete child[key];
+  return {...child,id,date,mode:'coaching',status:'active',index:0,rate:'未评',count:indices.length,questions:indices.map(i=>JSON.parse(JSON.stringify(r.questions[i]))),answers:indices.map(()=>''),durations:indices.map(()=>0),ai:indices.map(()=>null),continuation:{recordId:r.id,indices,questionKeys:indices.map(i=>questionFingerprint(r.questions[i].q))}};
+ }
+ // Derived view only: never mutates reports or treats an unanswered question as a zero score.
+ function goalProgress(scope,store){
+  const seen=new Set(),records=[store.draft,...store.records].filter(r=>r&&!r.legacy&&sameGoal(scope,r)&&(!scope.interviewer||r.interviewer===scope.interviewer)&&!seen.has(r.id)&&seen.add(r.id)).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+  const completed=records.filter(r=>r.status!=='active'),formal=completed.filter(r=>r.mode==='formal'),latest=formal[0]||null,questions=new Map(),tasks=new Map(),pendingReviews=[];let reviewed=0,retried=0;
+  for(const r of records){
+   for(const t of r.formal?.tasks||[]){const key=[r.interviewer,r.blueprint?.version,t.criterionId].join(':');if(!tasks.has(key))tasks.set(key,{recordId:r.id,index:t.index,...t});}
+   r.questions.forEach((q,index)=>{
+    const entry=r.ai?.[index],evaluation=r.mode==='formal'?r.formal.evaluations[index]:entry?.retry?.evaluation||entry?.report||(entry?.followUpAnswer?.trim()?entry.final:entry?.initial);
+    if(!evaluation?.result.review){if(r.status!=='active'&&q.kind!=='closing'&&r.answers[index]?.trim())pendingReviews.push({recordId:r.id,index});return;}reviewed++;if(entry?.retry?.evaluation)retried++;
+    const key=[r.interviewer,r.blueprint?.version||evaluation.meta.promptVersion,questionFingerprint(q.q)].join(':');
+    if(!questions.has(key))questions.set(key,{recordId:r.id,index,question:q,review:evaluation.result.review,entry,evaluation});
+   });
+  }
+  const improved=[...tasks.values()].filter(t=>t.status==='verified').map(t=>({recordId:records.some(r=>r.id===t.attempts.at(-1)?.recordId)?t.attempts.at(-1).recordId:t.recordId,index:records.some(r=>r.id===t.attempts.at(-1)?.recordId)?0:t.index,title:t.title,detail:t.attempts.at(-1)?.criterion.reason||'重答已提供这项标准所需的回答依据'}));
+  const missing=[];
+  for(const row of questions.values()){
+   for(const fact of row.review.missingFacts||[])missing.push({recordId:row.recordId,index:row.index,title:(row.question.topic?row.question.topic+' · ':'')+fact.question,detail:fact.reason});
+   const before=row.entry?.initial,after=row.entry?.retry?.evaluation;if(!before||!after||before.meta.model!==after.meta.model||before.meta.promptVersion!==after.meta.promptVersion||before.meta.competencyVersion!==after.meta.competencyVersion||before.meta.competencyId!==after.meta.competencyId)continue;
+   const gains=Object.entries({relevance:'切题',structure:'结构',evidence:'事实证据',depth:'深度'}).filter(([k])=>after.result.scores[k]>before.result.scores[k]).map(([k,label])=>label+' '+before.result.scores[k]+' → '+after.result.scores[k]);
+   if(gains.length)improved.push({recordId:row.recordId,index:row.index,title:row.question.topic||'本题重答',detail:gains.join('，')+'；可打开原话与重答核对'});
+  }
+  return {sessions:formal.length,reviewed,retried,latest,improved,missing,pendingReviews,pendingTasks:[...tasks.values()].filter(t=>t.status!=='verified'),unanswered:latest?remainingUnanswered(latest,records):[],draft:records.find(r=>r.id===store.draft?.id)||null};
+ }
  const bounded=(v,n)=>typeof v==='string'&&v.length<=n;
  const answerReviewVersion='2026-10-25.answer-review.v2';
  const legacyAnswerReviewVersion='2026-10-24.answer-review.v1';
@@ -113,6 +143,7 @@
   }return true;
  }
  function validPractice(r){
+  if(r.continuation!==undefined){const c=r.continuation;if(!c||r.mode!=='coaching'||r.origin||r.practiceTask||!bounded(c.recordId,100)||!c.recordId||c.recordId===r.id||!Array.isArray(c.indices)||c.indices.length!==r.count||!c.indices.length||c.indices.length>5||new Set(c.indices).size!==c.indices.length||c.indices.some((i,n)=>!Number.isInteger(i)||i<1||i>5||n>0&&i<=c.indices[n-1])||!Array.isArray(c.questionKeys)||c.questionKeys.length!==r.count||!Array.isArray(r.questions)||r.questions.some((q,i)=>q.kind!=='main'||typeof q.q!=='string'||c.questionKeys[i]!==questionFingerprint(q.q)))return false;}
   if(r.origin!==undefined&&(!r.origin||!bounded(r.origin.recordId,100)||!Number.isInteger(r.origin.index)||r.origin.index<0||r.origin.index>11||r.origin.taskId!==undefined&&!bounded(r.origin.taskId,200)))return false;
   const t=r.practiceTask;if(t===undefined)return true;
   const q=r.questions?.[0],c=Array.isArray(q?.criteria)?q.criteria.find(c=>c.id===t?.criterionId):null;
@@ -167,5 +198,5 @@
   if(f.pending!==null){const t=f.pending;if(!t||record.index<1||record.index>5||f.turns.filter(x=>x.index===record.index).length>=2||!str(t.question,1000)||!t.question.trim()||!str(t.quote,500)||!t.quote.trim()||!combined(record,record.index).includes(t.quote)||f.decisionPending)return false;}
   return f.phase==='active'?record.status==='active':record.status!=='active'&&f.pending===null&&!f.decisionPending;
  }
- return {answerReviewVersion,answerReviewIssues,validAnswerReview,questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
+ return {answerReviewVersion,answerReviewIssues,validAnswerReview,questionFingerprint,validResumeDocument,profiles,profile,combined,sameGoal,homeState,unansweredIndices,remainingUnanswered,unansweredSession,goalProgress,validSetup,validGoals,validPreparation,blueprint,ability,validBlueprint,validCriteria,validCriteriaEnvelope,competencyVersion,deriveTasks,verifyTask,validTasks,validPractice,validFocus,validFormal,version:'2026-10-15.roles.v1'};
 });
