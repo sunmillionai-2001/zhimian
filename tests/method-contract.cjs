@@ -131,6 +131,21 @@ test('已达标时优先推进，不再挑毛病',()=>{
   }
 });
 
+test('题目问的是已发生的事，不用「你需要……」的假设语气',()=>{
+  for(const q of M.D2.questions){
+    assert.ok(!/需要(推动|改变)/.test(q.q),'行为题不应使用假设语气：'+q.q);
+    assert.match(q.q,/讲一次|经历/,'应是行为事件题：'+q.q);
+    assert.ok(q.hint&&q.hint.length>10,'每题都要有「去哪儿找例子」的提示：'+q.id);
+  }
+});
+
+test('同一维度按档位出题，档位越高题越难',()=>{
+  assert.equal(M.pickQuestion('executor').id,'D2-Q1');
+  assert.equal(M.pickQuestion('owner').id,'D2-Q2');
+  assert.equal(M.pickQuestion('lead').id,'D2-Q3');
+  assert.equal(M.pickQuestion('strategy').id,'D2-Q3','最高档复用最难那题');
+});
+
 test('每次只给一条下一步，且不返回总分',()=>{
   const r=M.judge('我们团队做完了，效果不错。',{jobStage:'owner'});
   assert.equal(typeof r.nextStep,'string');
