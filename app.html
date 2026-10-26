@@ -137,6 +137,56 @@
   .rec-title{font-weight:700;font-size:14px;line-height:1.4}
   .rec-sub{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
 
+  /* 方法论诊断工作台 */
+  .md-steps-bar{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 6px}
+  .md-step-pill{display:flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px;color:var(--ink-faint);transition:.2s}
+  .md-step-pill b{font-family:var(--latin);font-style:italic;font-weight:500;font-size:12px;letter-spacing:.5px}
+  .md-step-pill.on{border-color:var(--seal);color:var(--seal-deep);background:var(--seal-soft)}
+  .md-step-pill.done{color:var(--teal);border-color:rgba(47,93,93,.35)}
+  .md-panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-soft);margin:18px 0}
+  .md-panel h3{font-family:var(--serif);font-weight:900;font-size:19px;margin-bottom:8px}
+  .md-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  .md-scale{margin-top:18px;padding:16px;border-radius:14px;background:var(--paper-2);border:1px solid var(--line-soft)}
+  .md-scale-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
+  .md-scale-line b{color:var(--seal-deep)}
+  .md-scale-note{font-size:12.5px;color:var(--ink-faint);margin-top:8px;line-height:1.65}
+  .md-q-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+  .md-q-head h3{margin:0;font-size:20px;line-height:1.45}
+  .md-verdict-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .md-level{font-family:var(--serif);font-weight:900;font-size:30px;line-height:1;color:var(--seal)}
+  .md-level.met{color:var(--teal)}
+  .md-verdict-sub{font-size:13.5px;color:var(--ink-soft)}
+  .md-star{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+  .md-star-cell{border:1px solid var(--line-soft);border-radius:12px;padding:12px;background:var(--card-hi)}
+  .md-star-cell .k{font-family:var(--latin);font-style:italic;font-size:12px;letter-spacing:1px;color:var(--ink-faint)}
+  .md-star-cell .s{font-size:13.5px;font-weight:700;margin:5px 0 4px}
+  .md-star-cell .h{font-size:12px;color:var(--ink-faint);line-height:1.5}
+  .md-star-cell.ok{border-color:rgba(47,93,93,.4)}
+  .md-star-cell.ok .s{color:var(--teal)}
+  .md-star-cell.warn{border-color:rgba(184,138,46,.45)}
+  .md-star-cell.warn .s{color:var(--gold)}
+  .md-star-cell.miss{border-color:rgba(193,58,30,.3)}
+  .md-star-cell.miss .s{color:var(--seal)}
+  .md-block{margin-top:18px}
+  .md-block h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px}
+  .md-evidence{border-left:3px solid var(--seal-soft);padding:8px 0 8px 13px;margin:8px 0;font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .md-evidence q{font-style:italic}
+  .md-next{padding:14px 16px;border-radius:12px;background:var(--seal-soft);color:var(--seal-deep);font-weight:600;font-size:14.5px;line-height:1.65}
+  .md-gap{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:rgba(193,58,30,.08);color:var(--seal-deep);margin:0 7px 7px 0}
+  .md-gap i{font-family:var(--latin);font-style:italic;font-size:11px;opacity:.75}
+  .md-swap-answer{margin:14px 0;padding:15px 17px;border-radius:12px;background:var(--paper-2);border-left:3px solid var(--teal);font-size:14.5px;line-height:1.75;white-space:pre-wrap}
+  .md-swap-diff{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .md-swap-box{border:1px solid var(--line-soft);border-radius:12px;padding:14px;background:var(--card-hi)}
+  .md-swap-box .t{font-size:12px;color:var(--ink-faint);margin-bottom:6px}
+  .md-swap-box .v{font-family:var(--serif);font-weight:900;font-size:20px}
+  .md-punch{margin-top:14px;padding:14px 16px;border-radius:12px;background:rgba(47,93,93,.08);border-left:3px solid var(--teal);font-size:14.5px;line-height:1.7;font-weight:600}
+  .md-hist{border:1px solid var(--line-soft);border-radius:12px;padding:13px 15px;margin-bottom:10px;background:var(--card-hi)}
+  .md-hist .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink-faint)}
+  .md-hist .lv{font-family:var(--serif);font-weight:900;font-size:16px;color:var(--seal)}
+  .md-hist .q{font-size:13.5px;margin:6px 0 4px;line-height:1.6}
+  .md-cards{margin-top:8px}
+  @media(max-width:720px){.md-grid2,.md-star,.md-swap-diff{grid-template-columns:1fr}}
+
   /* 方法论卡片 */
   .method-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   .method-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-soft);transition:.2s;position:relative;overflow:hidden}
@@ -787,30 +837,103 @@
     <section class="view" id="method">
       <div class="hero">
         <span class="eyebrow">Methodology</span>
-        <h1>面试<em>方法论</em>。<br/>不是背题，是掌握思路。</h1>
-        <p>重点在「怎么想、怎么讲」。每个方法都给你一套可套用的框架，还能直接练。</p>
+        <h1>面试<em>方法论</em>。<br/>不是背题，是把话说成证据。</h1>
+        <p>先把标准定下来，再练。系统按你投的岗位定标尺，抓出你回答里缺的那一块，只给一条能马上改的动作。</p>
         <div class="hero-actions">
-          <button class="btn btn-primary" data-open="star">✎ 用 STAR 练习器练一段</button>
+          <button class="btn btn-primary" id="methodStart" type="button">开始一次诊断</button>
+          <button class="btn btn-ghost" data-open="star" type="button">✎ 用 STAR 练习器练一段</button>
         </div>
       </div>
-      <div class="method-toolbar">
-        <div class="filter-label">按岗位</div>
-        <div class="filter-row" id="methodRoles"></div>
+
+      <div class="md-steps-bar" id="methodSteps">
+        <div class="md-step-pill" data-step="profile"><b>01</b><span>定标尺</span></div>
+        <div class="md-step-pill" data-step="answer"><b>02</b><span>答一题</span></div>
+        <div class="md-step-pill" data-step="probe"><b>03</b><span>追问补证据</span></div>
+        <div class="md-step-pill" data-step="verdict"><b>04</b><span>看诊断</span></div>
       </div>
-      <div class="method-toolbar">
-        <div class="filter-label">按类型</div>
-        <div class="filter-row" id="methodCats"></div>
-        <label class="method-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="text" id="methodSearch" placeholder="搜方法论：如 STAR / SPIN / 简历……" />
-        </label>
-      </div>
-      <div id="methodStats" class="method-stats"></div>
-      <section class="method-grid" id="methodGrid"></section>
-      <div id="methodEmpty" class="method-empty" style="display:none">
-        <h3>没有匹配的方法论</h3>
-        <p>换个关键词或分类试试。</p>
-      </div>
+
+      <p class="mock-note" id="methodMsg" role="status" aria-live="polite"></p>
+
+      <!-- 01 定标尺 -->
+      <section class="md-panel" id="mdPanelProfile">
+        <h3>先把标尺定下来</h3>
+        <p class="mock-note">我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。</p>
+        <div class="md-grid2">
+          <div class="field"><label for="mdYears">你工作几年了？</label><select id="mdYears"></select></div>
+          <div class="field"><label for="mdRole">你在看什么岗位（选填）</label><input id="mdRole" maxlength="80" placeholder="如：产品经理 / 后端开发" /></div>
+        </div>
+        <div class="field"><label for="mdJd">岗位 JD（选填，填了诊断更准）</label><textarea id="mdJd" rows="4" maxlength="30000" placeholder="粘贴任职要求，用来判断这个岗位要什么人"></textarea></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdSaveProfile" type="button">确认标尺</button>
+          <button class="btn btn-ghost" id="mdUseJob" type="button">从目标岗位带入</button>
+        </div>
+        <div class="md-scale" id="mdScale" hidden></div>
+      </section>
+
+      <!-- 02 答题 -->
+      <section class="md-panel" id="mdPanelAnswer" hidden>
+        <div class="md-q-head"><span class="tag" id="mdQuestionDim"></span><h3 id="mdQuestion"></h3></div>
+        <p class="mock-note" id="mdQuestionHint"></p>
+        <div class="field"><label for="mdAnswer">你的回答</label><textarea id="mdAnswer" rows="8" maxlength="30000" placeholder="像真的面试那样讲一遍，不用先想结构。"></textarea></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdSubmit" type="button">提交回答</button>
+          <span class="mock-note" id="mdAnswerState"></span>
+        </div>
+      </section>
+
+      <!-- 03 追问 -->
+      <section class="md-panel" id="mdPanelProbe" hidden>
+        <span class="eyebrow" id="mdProbeRound"></span>
+        <h3 id="mdProbeText"></h3>
+        <p class="mock-note" id="mdProbeWhy"></p>
+        <div class="field"><label for="mdProbeAnswer">补充说明</label><textarea id="mdProbeAnswer" rows="5" maxlength="30000" placeholder="针对这个问题补充，不用重讲整段。"></textarea></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdProbeSubmit" type="button">补充完，继续</button>
+          <button class="btn btn-ghost" id="mdProbeSkip" type="button">跳过，直接看诊断</button>
+        </div>
+      </section>
+
+      <!-- 04 诊断 -->
+      <section class="md-panel" id="mdPanelVerdict" hidden>
+        <div id="mdVerdictBody"></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdAgain" type="button">再练一题</button>
+          <button class="btn btn-ghost" id="mdSwapOpen" type="button">换位模式：你来当面试官</button>
+        </div>
+      </section>
+
+      <!-- 换位模式 -->
+      <section class="md-panel" id="mdPanelSwap" hidden>
+        <span class="eyebrow">Swap</span>
+        <h3 id="mdSwapDim"></h3>
+        <p class="mock-note">下面是一段候选人的回答。你先按自己的感觉打个档，再看专业判定差在哪。</p>
+        <blockquote class="md-swap-answer" id="mdSwapAnswer"></blockquote>
+        <div class="field"><label>你会给这一档</label><div class="filter-row" id="mdSwapPick"></div></div>
+        <div class="field"><label for="mdSwapReason">一句理由</label><input id="mdSwapReason" maxlength="200" placeholder="你为什么给这一档" /></div>
+        <div class="paste-actions"><button class="btn btn-primary" id="mdSwapSubmit" type="button">看专家判定</button><button class="btn btn-ghost" id="mdSwapBack" type="button">返回诊断</button></div>
+        <div id="mdSwapResult"></div>
+      </section>
+
+      <!-- 历史 -->
+      <section class="md-panel" id="mdPanelHistory" hidden>
+        <h3>你的诊断记录</h3>
+        <p class="mock-note" id="mdHistoryNote"></p>
+        <div id="mdHistoryList"></div>
+        <div class="paste-actions">
+          <button class="btn btn-ghost" id="mdExport" type="button">导出记录</button>
+          <button class="btn btn-ghost" id="mdClear" type="button">清空记录</button>
+        </div>
+      </section>
+
+      <!-- 方法卡 -->
+      <section class="md-cards">
+        <div class="section-head"><h2>方法卡<span class="num">60 秒一张</span></h2></div>
+        <div class="method-grid" id="methodGrid"></div>
+        <div id="methodEmpty" class="method-empty" style="display:none">
+          <h3>没有匹配的方法论</h3>
+          <p>换个关键词试试。</p>
+        </div>
+      </section>
     </section>
 
     <!-- 方法论详情弹层 -->
@@ -1150,6 +1273,7 @@
   </main>
 </div>
 
+<script src="methodology.js"></script>
 <script src="skill-learning.js"></script>
 <script src="interview-policy.js"></script>
 <script src="formal-interview.js"></script>
@@ -2116,51 +2240,29 @@
   try { favs = JSON.parse(localStorage.getItem('zm_method_fav')||'[]'); } catch(e){ favs = []; }
   function saveFavs(){ try{ localStorage.setItem('zm_method_fav', JSON.stringify(favs)); }catch(e){} }
 
-  let mRole = '全部';
-  let mCat = '全部';
   let curQ = '';
 
-  // 兼容早期条目：补齐 role / type 字段
+  // 兼容早期条目：补齐 role / type 字段（方法卡仍在用）
   METHOD.list.forEach(m=>{
     if(!m.role) m.role = '通用';
     if(!m.type) m.type = ({'技术面':'专业面','突击':'专业面','软技能':'行为面'})[m.cat] || m.cat || '专业面';
   });
 
-  // 岗位维度
-  function renderRoleChips(){
-    const box = document.getElementById('methodRoles'); if(!box) return;
-    box.innerHTML = METHOD.roles.map(r=>`<span class="chip ${r===mRole?'active':''}" data-role="${r}">${r}</span>`).join('');
-    box.querySelectorAll('[data-role]').forEach(e=>e.addEventListener('click',()=>{
-      mRole = e.dataset.role; renderRoleChips(); renderGrid();
-    }));
-  }
-  // 类型维度
-  function renderCats(){
-    const box = document.getElementById('methodCats'); if(!box) return;
-    box.innerHTML = METHOD.cats.map(c=>`<span class="chip ${c===mCat?'active':''}" data-cat="${c}">${c}</span>`).join('');
-    box.querySelectorAll('[data-cat]').forEach(e=>e.addEventListener('click',()=>{
-      mCat = e.dataset.cat; renderCats(); renderGrid();
-    }));
-  }
-
-  // 当前可视列表
   function visible(){
     const q = curQ.trim().toLowerCase();
+    if(!q) return METHOD.list;
     return METHOD.list.filter(m=>{
-      const okRole = mRole==='全部' || m.role===mRole;
-      const okCat = mCat==='全部' || m.type===mCat;
-      const okQ = !q || (m.title+' '+m.summary+' '+m.role+' '+m.type+' '+(m.detail||'')).toLowerCase().includes(q);
-      return okRole && okCat && okQ;
+      const hay = (m.title+' '+m.summary+' '+m.role+' '+m.type+' '+(m.detail||'')+' '+(m.lead||'')).toLowerCase();
+      return hay.includes(q);
     });
   }
 
   function renderGrid(){
     const grid = document.getElementById('methodGrid');
     const empty = document.getElementById('methodEmpty');
+    if(!grid) return;
     const list = visible();
-    const stats = document.getElementById('methodStats');
-    stats.textContent = `共 ${METHOD.list.length} 篇 · 当前 ${list.length} 篇${mRole!=='全部'?'（'+mRole+'）':''}${mCat!=='全部'?'（'+mCat+'）':''}`;
-    empty.style.display = list.length ? 'none' : 'block';
+    if(empty) empty.style.display = list.length ? 'none' : 'block';
     grid.innerHTML = list.map(m=>{
       const fav = favs.includes(m.id);
       const steps = m.steps.map(s=>`<div class="mc-step"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
@@ -2177,7 +2279,6 @@
         </div>
       </div>`;
     }).join('');
-    // 绑定卡片内交互
     grid.querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click',e=>{
       e.stopPropagation(); const id=b.dataset.fav;
       if(favs.includes(id)){ favs=favs.filter(x=>x!==id); } else { favs.push(id); }
@@ -2236,11 +2337,321 @@
   function openModal(id){ const el=document.getElementById(id); if(el) el.classList.add('open'); }
   function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open')); }
 
-  // 初始化方法论
-  renderRoleChips();
-  renderCats();
+  /* ================= 方法论诊断工作台 ================= */
+  const MD = window.ZmMethod;
+  const MD_KEY='zm_method_state_v1';
+  let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
+  let mdProbeToken=0;
+  // AI 只用于追问措辞润色。没有配置模型时自动退回规则底稿，功能不降级。
+  const mdAiEnabled = location.protocol==='http:'||location.protocol==='https:';
+
+  function mdMsg(t){const el=document.getElementById('methodMsg');if(el)el.textContent=t||'';}
+
+  function mdLoad(){
+    try{
+      const raw=localStorage.getItem(MD_KEY);
+      if(raw){const v=JSON.parse(raw);if(!MD.validate(v))throw new Error('格式异常');mdState=v;}
+    }catch(e){
+      mdBlocked=true;
+      mdMsg('本地记录读取失败，已停止覆盖原数据。可先导出备份再清理。');
+    }
+  }
+  function mdWrite(next){
+    if(mdBlocked){mdMsg('存储异常，已停止覆盖；可先导出备份。');return false;}
+    if(!MD.validate(next)){mdMsg('记录格式异常，未保存。');return false;}
+    try{localStorage.setItem(MD_KEY,JSON.stringify(next));mdState=next;return true;}
+    catch(e){mdMsg('保存失败：浏览器存储不可用或空间不足。');return false;}
+  }
+
+  function mdSetStep(step){
+    mdStep=step;
+    const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory'};
+    for(const [k,id] of Object.entries(map)){
+      const el=document.getElementById(id); if(el) el.hidden = k!==step;
+    }
+    const order=['profile','answer','probe','verdict'];
+    const at=order.indexOf(step);
+    document.querySelectorAll('.md-step-pill').forEach(p=>{
+      const i=order.indexOf(p.dataset.step);
+      p.classList.toggle('on',p.dataset.step===step);
+      p.classList.toggle('done',i>=0&&at>=0&&i<at);
+    });
+    if(step!=='verdict'&&step!=='swap'){const h=document.getElementById('mdPanelHistory');if(h)h.hidden=true;}
+  }
+
+  function mdRenderScale(scale){
+    const box=document.getElementById('mdScale'); if(!box) return;
+    const flagText={
+      stretch:'这个岗位要求比你的年限更高。这不代表没机会，但面试官会按更高标准追问。',
+      below:'这个岗位要求的档位低于你的经验。可能是转岗或降级机会，注意别答得太"轻"。',
+      match:'你的年限和岗位要求基本对齐。'
+    }[scale.flag]||'';
+    box.hidden=false;
+    box.innerHTML=`<div class="md-scale-line">
+        <span>按 <b>「${MD.stageName(scale.jobStage)}」</b> 的标准评你</span>
+        <span class="tag">你：${MD.stageName(scale.selfStage)}</span>
+        <span class="tag">岗位：${MD.stageName(scale.jobStage)}</span>
+      </div>
+      <p class="md-scale-note">${esc(flagText)}${scale.note?'<br>'+esc(scale.note):''}<br>觉得不对？可以直接改这里的标准：
+        <span class="filter-row" style="display:inline-flex;gap:6px;margin-top:8px;flex-wrap:wrap">${
+          MD.STAGES.map(s=>`<button type="button" class="chip ${s.id===scale.jobStage?'active':''}" data-md-jobstage="${s.id}">${esc(s.name)}</button>`).join('')
+        }</span>
+      </p>`;
+    box.querySelectorAll('[data-md-jobstage]').forEach(b=>b.onclick=()=>{
+      const next=structuredClone(mdState);
+      next.profile=Object.assign({},next.profile,{jobStage:b.dataset.mdJobstage,stageSource:'manual'});
+      if(mdWrite(next)){mdRenderScale({...MD.resolveScale({years:next.profile.years,jd:next.profile.jd,roleName:next.profile.role}),jobStage:b.dataset.mdJobstage,selfStage:next.profile.selfStage,flag:next.profile.jobStage===next.profile.selfStage?'match':(MD.stageIndex(b.dataset.mdJobstage)>MD.stageIndex(next.profile.selfStage)?'stretch':'below'),note:'已手动指定标准。'});mdMsg('标准已改为「'+MD.stageName(b.dataset.mdJobstage)+'」。');}
+    });
+  }
+
+  function mdRenderProfile(){
+    const sel=document.getElementById('mdYears');
+    // 选项必须无条件填充：没有档案时也要能选年限，否则第一步就卡住。
+    if(sel)sel.innerHTML=MD.YEARS.map(y=>`<option value="${y.id}">${esc(y.label)}</option>`).join('');
+    const p=mdState.profile;
+    if(p){
+      if(sel)sel.value=p.years;
+      const role=document.getElementById('mdRole'); if(role)role.value=p.role||'';
+      const jd=document.getElementById('mdJd'); if(jd)jd.value=p.jd||'';
+      mdRenderScale({
+        selfStage:p.selfStage,jobStage:p.jobStage,
+        flag:p.jobStage===p.selfStage?'match':(MD.stageIndex(p.jobStage)>MD.stageIndex(p.selfStage)?'stretch':'below'),
+        note:p.stageSource==='manual'?'（标准由你手动指定）':''
+      });
+    }
+  }
+
+  function mdSaveProfile(){
+    const years=document.getElementById('mdYears').value;
+    const role=document.getElementById('mdRole').value.trim();
+    const jd=document.getElementById('mdJd').value.trim();
+    const scale=MD.resolveScale({years,jd,roleName:role});
+    const next=structuredClone(mdState);
+    next.profile={years,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred'};
+    if(!mdWrite(next))return;
+    mdRenderScale(scale);
+    mdMsg(scale.jobSource==='fallback'?'已按你的年限定标准。填 JD 会更准。':'标尺已确认，可以开始答题了。');
+    mdStartAnswer();
+  }
+
+  function mdStartAnswer(){
+    if(!mdState.profile){mdSetStep('profile');mdMsg('先确认标尺。');return;}
+    const q=MD.pickQuestion(mdState.profile.jobStage);
+    mdSession={questionId:q.id,question:q.q,turns:[],probeSeed:0};
+    document.getElementById('mdQuestionDim').textContent=MD.D2.name;
+    document.getElementById('mdQuestion').textContent=q.q;
+    document.getElementById('mdQuestionHint').textContent='不用先想结构，像真的面试那样讲一遍。系统会抓出缺的那一块再追问。';
+    document.getElementById('mdAnswer').value='';
+    document.getElementById('mdAnswerState').textContent='';
+    mdSetStep('answer');
+    mdMsg('');
+  }
+
+  function mdSubmit(){
+    const answer=document.getElementById('mdAnswer').value.trim();
+    if(answer.length<10){mdMsg('先写一段真实回答，至少十来个字。');return;}
+    mdSession.turns=[{answer}];
+    mdNextTurn();
+  }
+
+  // 每轮只问一条、最多两轮；全部通过就直接进诊断。
+  // 追问措辞：规则引擎先出底稿并立刻显示，AI 若返回更好的说法再替换。
+  // 这样网络慢或没配 Key 时流程照样能走完，用户永远看得到一条可用的追问。
+  function mdNextTurn(){
+    const combined=mdSession.turns.map(t=>t.answer).join('\n');
+    const gaps=MD.detectGaps(MD.analyze(combined));
+    const probe=MD.nextProbe(gaps,mdSession.turns.length-1);
+    if(!probe){mdRenderVerdict();return;}
+    mdSession.probe=probe;
+    mdSession.probeText=MD.pickUtterance(probe.code,mdSession.probeSeed++);
+    mdSession.aiProbe=null;
+    const round=mdSession.turns.length;
+    document.getElementById('mdProbeRound').textContent='追问 '+round+' / '+MD.MAX_TURNS;
+    document.getElementById('mdProbeText').textContent=mdSession.probeText;
+    document.getElementById('mdProbeWhy').textContent='这条追问在查：'+probe.label+'。可以只补这一块，不用重讲整段。';
+    document.getElementById('mdProbeAnswer').value='';
+    mdSetStep('probe');
+    const next=structuredClone(mdState);next.metrics.probeOffered++;
+    mdWrite(next);
+    mdRefineProbe(probe,combined,round);
+  }
+
+  // AI 润色：失败就静默保留底稿，不打断用户。
+  // 只替换措辞，不改变「查哪个缺口」和追问轮次——判定权始终在规则引擎。
+  async function mdRefineProbe(probe,answer,round){
+    if(!mdAiEnabled)return;
+    const token=++mdProbeToken;
+    try{
+      const history=mdSession.turns.filter(t=>t.probe).map(t=>t.probeText||'');
+      const data=await requestAi('method-probe',{
+        gap:probe.code,base:MD.pickUtterance(probe.code,0),answer,history
+      },{openSettings:false,timeoutMs:20000});
+      const better=data?.result?.probe;
+      // 用户可能已经离开追问、进入下一轮，或又发起了新的追问：过期结果一律丢弃。
+      if(!better||token!==mdProbeToken||mdStep!=='probe'||round!==mdSession.turns.length)return;
+      mdSession.aiProbe=data.result;
+      document.getElementById('mdProbeText').textContent=better;
+      document.getElementById('mdProbeWhy').textContent='这条追问在查：'+probe.label+'。依据你说的：「'+data.result.quote+'」';
+    }catch(e){
+      // 未配置模型 / 超时 / 校验失败：保留规则底稿，不提示错误。
+      if(token===mdProbeToken)mdSession.aiError=(e&&e.message)||'';
+    }
+  }
+
+  function mdProbeSubmit(){
+    const extra=document.getElementById('mdProbeAnswer').value.trim();
+    if(!extra){mdMsg('补一句就好，或者点「跳过」直接看诊断。');return;}
+    mdSession.turns.push({answer:extra,probe:mdSession.probe.code});
+    const next=structuredClone(mdState);next.metrics.probeAccepted++;
+    mdWrite(next);
+    mdNextTurn();
+  }
+
+  function mdProbeSkip(){
+    mdRenderVerdict();
+  }
+
+  function mdRenderVerdict(){
+    const combined=mdSession.turns.map(t=>t.answer).join('\n');
+    const jobStage=mdState.profile.jobStage;
+    const v=MD.judge(combined,{jobStage});
+    const q=MD.D2.questions.find(x=>x.id===mdSession.questionId)||MD.D2.questions[0];
+    const starIcon={ok:'✅',warn:'⚠️',miss:'❌'};
+    const starHtml=v.star.map(x=>`<div class="md-star-cell ${x.status}"><div class="k">${x.key}</div><div class="s">${starIcon[x.status]} ${esc(x.label)}</div><div class="h">${esc(x.hint)}</div></div>`).join('');
+    const gapsHtml=v.gaps.length?v.gaps.map(g=>`<span class="md-gap"><i>${g.code}</i>${esc(g.label)}</span>`).join(''):'<span class="mock-note">五类缺口都补上了。</span>';
+    const evHtml=v.evidence.length?v.evidence.map(e=>`<div class="md-evidence"><b>${esc(e.name)}</b> · 你说过：<q>${esc(e.quote)}</q></div>`).join(''):'';
+    const capHtml=v.caps.length?v.caps.map(c=>`<div class="md-evidence"><b>封顶</b> · ${esc(c.reason)}</div>`).join(''):'';
+    const align=v.alignment==='met'?'met':'';
+    document.getElementById('mdVerdictBody').innerHTML=`
+      <div class="md-verdict-top">
+        <div class="md-level ${align}">${esc(v.levelName)}</div>
+        <div class="md-verdict-sub">按「${esc(v.jobStageName)}」标准评 · 这一档需要到「${esc(v.requiredName)}」才算达标 · ${v.alignment==='met'?'<b style="color:var(--teal)">已达标</b>':'<b style="color:var(--seal)">还差一点</b>'}</div>
+      </div>
+      <div class="md-star">${starHtml}</div>
+      <div class="md-block"><h4>缺的是这几块</h4><div>${gapsHtml}</div></div>
+      ${evHtml?`<div class="md-block"><h4>判定依据（你的原话）</h4>${evHtml}</div>`:''}
+      ${capHtml?`<div class="md-block"><h4>为什么没给更高</h4>${capHtml}</div>`:''}
+      <div class="md-block"><h4>下一步只做这一件事</h4><div class="md-next">${esc(v.nextStep)}</div></div>`;
+    const next=structuredClone(mdState);
+    next.sessions=next.sessions.concat([{
+      id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),
+      date:new Date().toISOString(),
+      questionId:q.id,
+      question:q.q,
+      jobStage,
+      turns:mdSession.turns.map(t=>({answer:t.answer})),
+      verdict:{level:v.level,score:v.score,alignment:v.alignment,jobStage},
+      nextStep:v.nextStep
+    }]).slice(-200);
+    next.metrics.completed++;
+    mdWrite(next);
+    mdSetStep('verdict');
+    mdMsg('');
+  }
+
+  /* 换位模式 */
+  function mdOpenSwap(){
+    mdSwapIdx=0;
+    mdRenderSwap();
+  }
+  function mdRenderSwap(){
+    const s=MD.SWAP[mdSwapIdx];
+    document.getElementById('mdSwapDim').textContent='第 '+(mdSwapIdx+1)+' / '+MD.SWAP.length+' 题 · '+s.dimension;
+    document.getElementById('mdSwapAnswer').textContent=s.answer;
+    document.getElementById('mdSwapReason').value='';
+    document.getElementById('mdSwapResult').innerHTML='';
+    document.getElementById('mdSwapPick').innerHTML=MD.LEVELS.map(l=>`<button type="button" class="chip" data-md-pick="${l.id}">${esc(l.name)}</button>`).join('');
+    document.querySelectorAll('[data-md-pick]').forEach(b=>b.onclick=()=>{
+      document.querySelectorAll('[data-md-pick]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+    mdSetStep('swap');
+  }
+  function mdSwapSubmit(){
+    const picked=document.querySelector('[data-md-pick].active');
+    if(!picked){mdMsg('先选一档。');return;}
+    const s=MD.SWAP[mdSwapIdx];
+    const level=picked.dataset.mdPick;
+    const hit=level===s.expertLevel;
+    document.getElementById('mdSwapResult').innerHTML=`
+      <div class="md-swap-diff">
+        <div class="md-swap-box"><div class="t">你给的</div><div class="v">${esc(MD.levelName(level))}</div></div>
+        <div class="md-swap-box"><div class="t">专业面试官会给</div><div class="v" style="color:var(--seal)">${esc(MD.levelName(s.expertLevel))}</div></div>
+      </div>
+      ${hit?'<p class="mock-note">这一档你判断对了。</p>':''}
+      <div class="md-block"><h4>差在哪</h4>${s.why.map(w=>`<div class="md-evidence">${esc(w)}</div>`).join('')}</div>
+      <div class="md-punch">${esc(s.punch)}</div>
+      <div class="paste-actions">${mdSwapIdx<MD.SWAP.length-1?'<button class="btn btn-primary" id="mdSwapNext" type="button">下一题</button>':''}<button class="btn btn-ghost" id="mdSwapDone" type="button">回到诊断</button></div>`;
+    const nx=document.getElementById('mdSwapNext');
+    if(nx)nx.onclick=()=>{mdSwapIdx++;mdRenderSwap();};
+    document.getElementById('mdSwapDone').onclick=()=>{mdSetStep('verdict');};
+    const next=structuredClone(mdState);next.metrics.swapDone++;
+    mdWrite(next);
+    mdMsg('');
+  }
+
+  function mdRenderHistory(){
+    const list=document.getElementById('mdHistoryList');
+    const rows=mdState.sessions.slice().reverse();
+    document.getElementById('mdHistoryNote').textContent=rows.length?`共 ${rows.length} 次诊断。看的是档位变化，不是分数。`:'还没有记录。先做一次诊断。';
+    list.innerHTML=rows.map(s=>`<div class="md-hist">
+      <div class="top"><span class="lv">${esc(MD.levelName(s.verdict.level))}</span>
+      <span>按「${esc(MD.stageName(s.verdict.jobStage))}」标准</span>
+      <span>${esc(displayMockDate(s.date))}</span></div>
+      <div class="q">${esc(s.question||'')}</div>
+      <div class="mock-note">${esc(s.nextStep||'')}</div>
+    </div>`).join('');
+  }
+
+  function mdFromJob(){
+    try{
+      const goals=typeof FormalInterview!=='undefined'?FormalInterview.resumeGoals():[];
+      const active=goals&&goals.length?goals[0]:null;
+      if(!active){mdMsg('还没有建立目标岗位。可以先去「目标岗位」建一个，或直接粘贴 JD。');return;}
+      const jd=document.getElementById('mdJd');
+      const role=document.getElementById('mdRole');
+      if(jd)jd.value=active.jd||'';
+      if(role)role.value=active.name||'';
+      mdMsg('已带入「'+(active.name||'目标岗位')+'」。确认标尺后开始。');
+    }catch(e){mdMsg('读取目标岗位失败，可直接粘贴 JD。');}
+  }
+
+  // 初始化方法论诊断
+  mdLoad();
   renderGrid();
-  document.getElementById('methodSearch').addEventListener('input', e=>{ curQ=e.target.value; renderGrid(); });
+  mdRenderProfile();
+  mdSetStep(mdState.profile?'answer':'profile');
+  if(mdState.profile)mdStartAnswer();
+
+  const mdBind=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
+  mdBind('methodStart',()=>{mdSetStep('profile');mdMsg('');});
+  mdBind('mdSaveProfile',mdSaveProfile);
+  mdBind('mdUseJob',mdFromJob);
+  mdBind('mdSubmit',mdSubmit);
+  mdBind('mdProbeSubmit',mdProbeSubmit);
+  mdBind('mdProbeSkip',mdProbeSkip);
+  mdBind('mdAgain',mdStartAnswer);
+  mdBind('mdSwapOpen',mdOpenSwap);
+  mdBind('mdSwapSubmit',mdSwapSubmit);
+  mdBind('mdSwapBack',()=>mdSetStep('verdict'));
+  mdBind('mdExport',()=>downloadAsset(mdState,'zhimian-method.json'));
+  mdBind('mdClear',()=>{
+    if(!confirm('会清空本地的诊断记录（标尺会保留）。继续吗？'))return;
+    const next=structuredClone(mdState);next.sessions=[];next.metrics={started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0};
+    if(mdWrite(next)){mdRenderHistory();mdMsg('记录已清空。');}
+  });
+  document.querySelectorAll('.md-step-pill').forEach(p=>p.onclick=()=>{
+    const s=p.dataset.step;
+    if(s==='profile')mdSetStep('profile');
+    else if(s==='answer'||s==='probe'||s==='verdict'){if(mdSession&&mdSession.turns&&mdSession.turns.length)mdSetStep(s);}
+  });
+  document.getElementById('mdAnswer')?.addEventListener('input',()=>{
+    const n=document.getElementById('mdAnswer').value.trim().length;
+    const el=document.getElementById('mdAnswerState');
+    if(el)el.textContent=n?n+' 字':'';
+  });
+
+  // 初始化方法卡与 STAR 练习器
   document.getElementById('starGenerate').addEventListener('click', buildStar);
   document.getElementById('starCopy').addEventListener('click', ()=>{
     const t=document.getElementById('starResult'); t.select();
@@ -2753,9 +3164,9 @@
   document.getElementById('answerImport').onclick=()=>document.getElementById('answerImportFile').click();document.getElementById('answerImportFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(answersBlocked)throw Error('原存储异常，请先导出检查');if(file.size>5e6)throw Error('备份超过 5 MB');const data=JSON.parse(await file.text());if(!validAnswerStore(data))throw Error('答案备份格式错误');const added=data.records.filter(a=>!answerStore.records.some(old=>old.id===a.id)),next={schemaVersion:1,records:[...added,...answerStore.records]};if(!validAnswerStore(next))throw Error('答案数量超过上限');if(writeAnswers(next)){renderAnswers();renderJobDetail();renderMockAnswerPicker();answerMsg(`已导入 ${added.length} 个答案，同 ID 保留现有版本。`);}}catch(err){answerMsg('导入失败：'+err.message+'。原数据保留。');}finally{e.target.value='';}};
   assetsInitialized=true;renderAnswers();renderMockAnswerPicker();if(answersBlocked)['answerSave','answerImport','answerCompose'].forEach(id=>document.getElementById(id).disabled=true);
   /* ================= 共用 AI 连接 ================= */
-  async function requestAi(task,body,{openSettings=true}={}){
+  async function requestAi(task,body,{openSettings=true,timeoutMs=105000}={}){
     if(!['http:','https:'].includes(location.protocol))throw new Error('请通过本地服务打开工作台后使用 AI。');
-    let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(105000)});}
+    let response;try{response=await fetch('/api/ai/'+task,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs)});}
     catch(e){throw new Error(e.name==='TimeoutError'?'等待模型超时，请重试。':'连接失败，请检查本地服务与网络。');}
     let data;try{data=await response.json();}catch(e){throw new Error('AI 接口返回格式异常。');}
     if(!response.ok){if(openSettings&&(data.error||'').includes('未配置')){const settings=document.getElementById(window.ZM_ACCOUNT?'modelSettings':'aiSettings');if(settings){if(document.getElementById('mock').classList.contains('active'))FormalInterview.openRoomTools(true);settings.open=true;}}throw Object.assign(new Error(data.error||'AI 请求失败。'),{status:response.status,...(data.code==='ANSWER_REVIEW_INCOMPLETE'?{code:data.code}:{})});}

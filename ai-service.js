@@ -216,6 +216,28 @@ async function runAi(task,body,cfg){
     data={original,jd,facts};const source=[original,...facts.map(f=>f.answer)].join('\n');
     instruction='仅改写这一段简历。只使用原段落和已确认的补充回答中的事实，JD 是要求，不是个人经历。没有指标可以用范围、方法、交付结果表达，绝不补造数字、公司、职位、年限或技术。不要把问题里的假设当事实。不加入待填写占位符。返回 {rewritten:候选改写,evidence:[{claim:改写中的原样陈述,source:原段落或补充回答的逐字引用}]}。所有新增事实都必须给来源。';
     validate=v=>validateRewrite(v,source);
+  }else if(task==='method-probe'){
+    // 规则引擎已经决定「查哪个缺口」，这里只负责把底稿说得更像真人。
+    // 判定权不给模型：缺口类型、追问轮次、最终档位都由客户端规则引擎掌握。
+    const GAP_NAMES={G1:'人称（"我们"太多，看不出个人贡献）',G2:'摩擦力（故事里没有真实障碍）',G3:'决策（听不出取舍和判断）',G4:'量化（结果没有数字）',G5:'反思（没有复盘）'};
+    const gapCode=text(body.gap,'缺口类型',10),base=text(body.base,'追问底稿',300),answer=text(body.answer,'回答',12000);
+    if(!Object.hasOwn(GAP_NAMES,gapCode))throw fail('未知的缺口类型');
+    const historyInput=body.history??[];if(!Array.isArray(historyInput)||historyInput.length>4)throw fail('追问历史过长');
+    const previous=historyInput.map(h=>text(h,'已问追问',300));
+    data={gap:gapCode,gapName:GAP_NAMES[gapCode],base,answer,previous};
+    instruction='你是面试官，正在追问一位社招候选人的行为面试回答。系统已判定这段回答缺「'+GAP_NAMES[gapCode]+'」，并给了底稿追问 base。你只把 base 说得更像真人面试官现场会问的话，不改变它在查什么。要求：只问一个问题；必须落在候选人的原话上；社招语域，直接、平等，可以轻微施压；不超过 60 字；不寒暄、不解释、不评价、不给建议；不假设候选人做过没说的事；不引入回答中没有的数字、公司、技术或人物。返回 {probe:追问原话,quote:回答中的逐字片段}。';
+    instruction+=' quote 必须从 answer 逐字复制一段连续原文，用来说明你基于哪句话追问。previous 是本题已经问过的追问，不要重复或改写它们。';
+    validate=v=>{
+      const probe=text(v?.probe,'追问',200),quote=text(v?.quote,'追问依据',300);
+      if(!answer.includes(quote))throw fail('追问依据不在回答中',502);
+      const norm=s=>s.toLowerCase().replace(/[\p{P}\p{S}\s]/gu,'');
+      if(previous.some(p=>norm(p)===norm(probe)))throw fail('追问与已有问题重复',502);
+      // 不允许把回答里没有的数字塞进追问——这是最容易出现的编造。
+      const nums=s=>(s.match(/\d+(?:\.\d+)?/g)||[]);
+      const known=new Set(nums(answer));
+      for(const n of nums(probe))if(!known.has(n))throw fail('追问引入了回答中没有的数字',502);
+      return {probe,quote};
+    };
   }else throw fail('未知 AI 任务',404);
   if(focus.length)instruction+=' focus 是用户本轮主动选择的训练重点。用同能力的新角度验证，不照抄 previousQuestion；既往片段不能作为本题已经回答的证据，不因此给高分或假设已掌握。';
   const messages=[{role:'system',content:BASE+'\n'+(task.startsWith('interview')?interviewer.instruction+'\n':'')+instruction},{role:'user',content:JSON.stringify(data)}];

@@ -1,0 +1,136 @@
+// 方法论诊断工作台浏览器验收：真实 Chrome + 真实本地服务，隔离存储，不调用任何模型。
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),http=require('node:http');
+const {spawn}=require('node:child_process');
+(async()=>{
+ const root=path.join(__dirname,'..'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'zhimian-method-'));
+ let app,browser;
+ try{
+  const files=['app.html','methodology.js','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','real-review-model.js','real-review-ui.js','mock-voice.js','voice-recorder-worklet.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','resume-library.js','document-import.js','document-worker.js'];
+  for(const f of files)if(fs.existsSync(path.join(root,f)))fs.copyFileSync(path.join(root,f),path.join(temp,f));
+  fs.symlinkSync(path.join(root,'node_modules'),path.join(temp,'node_modules'),'dir');
+  const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
+  app=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
+  await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('startup timeout')),8000);app.stdout.once('data',()=>{clearTimeout(t);resolve();});});
+  const base=`http://127.0.0.1:${port}`;
+  browser=await chromium.launch({channel:'chrome'});
+  const context=await browser.newContext({viewport:{width:1440,height:960},reducedMotion:'reduce'});
+  await context.route('https://fonts.googleapis.com/**',r=>r.abort());
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('dialog',d=>d.accept());
+
+  // 首次进入会弹新手指引，先关掉，否则会挡住点击
+  await page.addInitScript(()=>{try{localStorage.setItem('zm_guide_seen_v1','1');}catch(e){}});
+  await page.goto(base+'/app.html#method');
+  await page.waitForSelector('#methodStart');
+  if(await page.locator('#guideModal.open').isVisible().catch(()=>false))await page.locator('#guideModal [data-guide-close]').click();
+
+  // 01 定标尺：年限 + JD 推断出岗位档位
+  assert.equal(await page.locator('#mdPanelProfile').isVisible(),true,'首次进入应停在定标尺');
+  await page.locator('#mdYears').selectOption('y1');
+  await page.locator('#mdRole').fill('产品经理');
+  await page.locator('#mdJd').fill('5 年以上，带过团队，能跨部门推动');
+  await page.locator('#mdSaveProfile').click();
+  await page.waitForFunction(()=>!document.getElementById('mdScale').hidden);
+  const scaleText=await page.locator('#mdScale').innerText();
+  assert.match(scaleText,/带人带事/,'JD 里的「带过团队 / 跨部门推动」应推断为带人带事');
+  assert.match(scaleText,/独当一面/,'年限 3–6 年应推断为独当一面');
+  assert.match(scaleText,/更高/,'岗位高于年限时应给出冲高提示');
+
+  // 02 答题：一段只有「我们」的流水账
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  const question=await page.locator('#mdQuestion').innerText();
+  assert.ok(question.length>10,'应显示题目');
+  await page.locator('#mdAnswer').fill('我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了，领导很认可。');
+  await page.locator('#mdSubmit').click();
+
+  // 03 追问：第一条必须是人称（G1 优先级最高）
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProbe').hidden);
+  const probe=await page.locator('#mdProbeText').innerText();
+  assert.match(probe,/我们|拿掉|谁亲自/, '首轮追问应针对「我们」，实际：'+probe);
+  assert.match(await page.locator('#mdProbeRound').innerText(),/1 \/ 2/,'最多两轮');
+
+  // 补充个人动作后，第二轮应转向摩擦力
+  await page.locator('#mdProbeAnswer').fill('我拉了两个部门的会，我写了方案，但财务那边明确反对，因为口径要改。');
+  await page.locator('#mdProbeSubmit').click();
+  await page.waitForTimeout(200);
+  const stillProbe=await page.locator('#mdPanelProbe').isVisible();
+  if(stillProbe){
+    assert.match(await page.locator('#mdProbeRound').innerText(),/2 \/ 2/,'第二轮');
+    await page.locator('#mdProbeAnswer').fill('我拿了两周灰度数据给他看，对账时间从三天变成半天，他同意先试一个部门。');
+    await page.locator('#mdProbeSubmit').click();
+  }
+
+  // 04 诊断：档位 + 四段骨架 + 原话证据 + 只给一条下一步
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden,{timeout:5000});
+  const verdict=await page.locator('#mdVerdictBody').innerText();
+  assert.match(verdict,/强否|否|中性|是|强是/,'应显示档位');
+  assert.match(verdict,/按「带人带事」标准评/,'判定要标出用的是岗位档位');
+  assert.equal(await page.locator('.md-star-cell').count(),4,'结构检查器应有四段');
+  assert.match(verdict,/下一步只做这一件事/,'必须给出下一步');
+  assert.match(verdict,/判定依据/,'必须引用原话');
+  assert.equal(await page.locator('.md-next').count(),1,'只给一条建议，不是一堆');
+
+  // 记录已落库
+  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')));
+  assert.equal(stored.sessions.length,1);
+  assert.equal(stored.metrics.completed,1);
+  assert.ok(stored.metrics.probeOffered>=1);
+  assert.equal(stored.profile.jobStage,'lead');
+
+  // 换位模式：引擎判定与专家判定必须一致
+  await page.locator('#mdSwapOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelSwap').hidden);
+  await page.locator('[data-md-pick="yes"]').click();
+  await page.locator('#mdSwapReason').fill('感觉挺完整的');
+  await page.locator('#mdSwapSubmit').click();
+  const swap=await page.locator('#mdSwapResult').innerText();
+  assert.match(swap,/否/,'第一题专家判定应为否');
+  assert.match(swap,/差在哪/);
+  assert.match(swap,/形式完整/,'应给出一句话点破');
+
+  // 刷新后记录仍在（有档案时直接进答题，不再回到定标尺）
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')));
+  assert.equal(after.sessions.length,1,'刷新后记录应保留');
+
+  // AI 路径一：模型返回更好措辞时替换底稿，且依据来自原话
+  await page.evaluate(()=>{document.getElementById('mdAgain').click();});
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.locator('#mdAnswer').fill('我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。');
+  await page.route('**/api/ai/method-probe',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({result:{probe:'AI 追问：你说的"我们"里，哪一部分是你亲自做的？',quote:'我们团队一起做了个跨部门项目'},meta:{model:'fake'}})}));
+  await page.locator('#mdSubmit').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProbe').hidden);
+  await page.waitForFunction(()=>document.getElementById('mdProbeText').textContent.includes('AI 追问'),{timeout:5000});
+  assert.match(await page.locator('#mdProbeWhy').innerText(),/依据你说的/,'AI 返回后应展示逐字依据');
+
+  // AI 路径二：模型失败时静默回退到规则底稿，流程照常走完
+  await page.unroute('**/api/ai/method-probe');
+  await page.route('**/api/ai/method-probe',route=>route.fulfill({status:502,contentType:'application/json',body:JSON.stringify({error:'模型服务返回 HTTP 502'})}));
+  await page.locator('#mdProbeAnswer').fill('我拉了两个部门的会，我写了方案。');
+  await page.locator('#mdProbeSubmit').click();
+  await page.waitForTimeout(400);
+  const stillProbe2=await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden);
+  if(stillProbe2){
+    const baseText=await page.locator('#mdProbeText').innerText();
+    assert.ok(baseText.length>5,'AI 失败后应保留规则底稿，实际：'+baseText);
+    assert.ok(!baseText.includes('AI 追问'),'AI 失败不应残留上次的润色结果');
+    await page.locator('#mdProbeSkip').click();
+  }
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden,{timeout:5000});
+
+  // 窄屏不溢出
+  await page.setViewportSize({width:320,height:720});
+  await page.waitForTimeout(150);
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  assert.ok(overflow<=1,'320px 不应横向溢出，实际 '+overflow);
+
+  assert.deepEqual(errors,[],'不应有 JS 报错：'+errors.join(' | '));
+  console.log('方法论诊断工作台浏览器验收通过');
+ }finally{
+  if(browser)await browser.close();
+  if(app)app.kill();
+  fs.rmSync(temp,{recursive:true,force:true});
+ }
+})().catch(e=>{console.error('FAILED:',e.message);process.exit(1);});
