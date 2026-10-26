@@ -195,6 +195,8 @@ async function runAi(task,body,cfg){
     data={question,answer,jd,resume:text(body.resume??'','个人简历',30000,true),role:text(body.role??'通用','岗位',100),followUp,followUps,interviewer:interviewer.name,retry:body.retry===true,...(competency?{competency}:{})};
     instruction='评价面试回答：relevance 切题程度、structure 表达结构、evidence 事实与个人贡献、depth 决策与取舍，分别给 0 到 5 的整数分。这不是录用预测。简历只是背景，不能当作已回答的内容。引用回答原文作为依据。返回 {scores:{relevance,structure,evidence,depth},strengths:[优点],gaps:[缺失],suggestions:[可执行建议],evidenceQuotes:[逐字引用],followUp:一个紧扣回答的追问}。'+(body.reviewOnly===true?'本场练习已结束，综合初答与追问进行证据化复盘，followUp 返回空字符串，不再追问。':body.retry===true?'这是修改后的独立重答，只评价当前回答，followUp 返回空字符串，不再追问。':followUp?'当前已完成一次追问，只点评初答与补充，followUp 返回空字符串，不再追问。':'只提一个追问。');
     if(competency)instruction+=' 同时逐项评价 competency.criteria，返回 criteria:[{id:标准ID,status:met或missing或unknown,quote:回答中的逐字依据或空字符串,reason:判断理由}]。met 必须有回答原话；没有明确证据时用 missing 或 unknown，不把简历写过当成已经回答，不要求不存在的数字。';
+    if(body.realInterview!==undefined&&typeof body.realInterview!=='boolean')throw fail('真实面试参数异常');
+    if(body.realInterview===true){if(!['complete','partial'].includes(body.recall))throw fail('记不清的回答不能点评，请先补充回忆');data.recollection=body.recall;instruction+=' 这是用户事后回忆的真实面试内容，不是现场录音逐字稿。只评价已记录的回答，不推断未记录的表现、面试官态度或录用结果。回忆不完整时明确指出结论仅限这些内容，先提示核对或继续回忆，不能把遗漏当作现场没答出来。参考表达服务于下一次面试，不冒充用户当时说过的话。';}
     if(body.detailedReview!==undefined&&typeof body.detailedReview!=='boolean')throw fail('详细点评参数异常');
     if(body.detailedReview===true){
       data.detailedReview=true;data.answerSegments=reviewSegments(source,'a');data.resumeSegments=reviewSegments(data.resume,'r');

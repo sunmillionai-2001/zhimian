@@ -143,6 +143,7 @@
   }return true;
  }
  function validPractice(r){
+  if(r.realReviewOrigin!==undefined){const x=r.realReviewOrigin;if(!x||r.mode!=='coaching'||r.count!==1||r.continuation||r.practiceTask||!bounded(x.reviewId,100)||!x.reviewId||!bounded(x.questionId,100)||!x.questionId||!Number.isSafeInteger(x.revision)||x.revision<0||x.questionKey!==questionFingerprint(r.questions?.[0]?.q||''))return false;}
   if(r.continuation!==undefined){const c=r.continuation;if(!c||r.mode!=='coaching'||r.origin||r.practiceTask||!bounded(c.recordId,100)||!c.recordId||c.recordId===r.id||!Array.isArray(c.indices)||c.indices.length!==r.count||!c.indices.length||c.indices.length>5||new Set(c.indices).size!==c.indices.length||c.indices.some((i,n)=>!Number.isInteger(i)||i<1||i>5||n>0&&i<=c.indices[n-1])||!Array.isArray(c.questionKeys)||c.questionKeys.length!==r.count||!Array.isArray(r.questions)||r.questions.some((q,i)=>q.kind!=='main'||typeof q.q!=='string'||c.questionKeys[i]!==questionFingerprint(q.q)))return false;}
   if(r.origin!==undefined&&(!r.origin||!bounded(r.origin.recordId,100)||!Number.isInteger(r.origin.index)||r.origin.index<0||r.origin.index>11||r.origin.taskId!==undefined&&!bounded(r.origin.taskId,200)))return false;
   const t=r.practiceTask;if(t===undefined)return true;

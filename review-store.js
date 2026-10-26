@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const realModel=require('./real-review-model');
 const stages = ['初面','二面','三面','HR面'];
 const results = ['待定','通过','未通过'];
 const error = (message, status=400) => Object.assign(new Error(message), { status });
@@ -11,7 +12,7 @@ function normalizeReview(record, legacy=false) {
   const id=String(record.id ?? '');
   if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))throw error('复盘 ID 格式错误');
   const company=text('company',200),role=text('role',200),note=text('note',200000),date=text('date',30);
-  if(!company&&!note)throw error('请至少填写公司或复盘内容');
+  if(!company&&!note&&!(Array.isArray(record.real?.questions)&&record.real.questions.some(q=>typeof q?.question==='string'&&q.question.trim())))throw error('请至少填写公司或复盘内容');
   const iso=/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date;
   if(!iso&&!(legacy&&/^\d{1,2}\/\d{1,2}$/.test(date)))throw error('日期需为有效的 YYYY-MM-DD');
   if(!stages.includes(record.stage)||!results.includes(record.result))throw error('面试轮次或结果错误');
@@ -19,7 +20,9 @@ function normalizeReview(record, legacy=false) {
   const association={};
   if(record.jobId!=null){if(typeof record.jobId!=='string'||! /^[a-zA-Z0-9_-]{1,100}$/.test(record.jobId))throw error('关联岗位 ID 格式错误');association.jobId=record.jobId;
     const snap=record.jobSnapshot;if(!snap||!['company','role','jd'].every(k=>typeof snap[k]==='string'&&snap[k].length<=(k==='jd'?30000:200)))throw error('岗位快照格式错误');association.jobSnapshot={company:snap.company,role:snap.role,jd:snap.jd};}
-  return {id,company,role,...association,stage:record.stage,result:record.result,date,tags:[...new Set(record.tags)],note};
+  const real=record.real===undefined?{}:{real:realModel.normalize(record.real)};
+  if(record.revision!==undefined&&(!Number.isSafeInteger(record.revision)||record.revision<0))throw error('复盘版本错误');
+  return {id,company,role,...association,stage:record.stage,result:record.result,date,tags:[...new Set(record.tags)],note,...real,...(record.revision===undefined?{}:{revision:record.revision})};
 }
 function summary(records) {
   const total=records.length,passed=records.filter(r=>r.result==='通过').length,failed=records.filter(r=>r.result==='未通过').length;
@@ -47,13 +50,22 @@ function createReviewStore(directory) {
     catch(e){throw error('复盘写入失败，请重试',500);}
     finally {if(fs.existsSync(temporary))fs.unlinkSync(temporary);}
   }
+  const equivalent=(a,b)=>{const strip=x=>{const v={...x};delete v.revision;return JSON.stringify(v);};return strip(a)===strip(b);};
   const response=data=>({schemaVersion:1,records:data.records,summary:summary(data.records)});
   return {
     list:()=>response(read()),
     add:record=>{
       const item=normalizeReview(record),data=read(),existing=data.records.find(r=>r.id===item.id);
-      if(existing){if(JSON.stringify(existing)!==JSON.stringify(item))throw error('复盘 ID 已存在',409);return response(data);}
-      data.records.unshift(item);write(data);return response(data);
+      if(existing){if(!equivalent(existing,item))throw error('复盘 ID 已存在',409);return response(data);}
+      data.records.unshift(item.real?{...item,revision:1}:item);write(data);return response(data);
+    },
+    update:(id,record,baseRevision)=>{
+      const item=normalizeReview(record),data=read(),existing=data.records.find(r=>r.id===id);
+      if(!existing)throw error('复盘记录不存在',404);if(item.id!==id)throw error('复盘 ID 不一致');
+      if(equivalent(existing,item))return response(data);
+      if(!Number.isSafeInteger(baseRevision)||baseRevision!==(existing.revision||0))throw error('这份复盘已在另一页面更新，当前草稿保留。请先备份草稿再重新载入。',409);
+      if(existing.real&&(!item.real||!realModel.compatible(existing.real,item.real)))throw error('已点评的材料和旧点评需要保留；更换所用材料请新建一场复盘',409);
+      data.records=data.records.map(r=>r.id===id?{...item,revision:(existing.revision||0)+1}:r);write(data);return response(data);
     },
     remove:id=>{const data=read(),length=data.records.length;data.records=data.records.filter(r=>r.id!==id);if(data.records.length!==length)write(data);return response(data);},
     import:records=>{

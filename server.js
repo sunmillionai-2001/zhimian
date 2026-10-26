@@ -146,6 +146,8 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     return sendJson(res, 200, reviewStore.import(body.records));
   }
+  const reviewUpdate=/^\/api\/reviews\/([a-zA-Z0-9_-]{1,100})$/.exec(url);
+  if(reviewUpdate&&req.method==='POST'){const body=await readBody(req);return sendJson(res,200,reviewStore.update(reviewUpdate[1],body.record,body.baseRevision));}
   if (url.startsWith('/api/reviews/') && req.method === 'DELETE') {
     const id = url.slice('/api/reviews/'.length);
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return sendJson(res, 400, { error: '复盘 ID 格式错误' });
@@ -305,7 +307,7 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js', '/resume-library.js', '/mock-voice.js', '/voice-recorder-worklet.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js', '/resume-library.js', '/real-review-model.js', '/real-review-ui.js', '/mock-voice.js', '/voice-recorder-worklet.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;

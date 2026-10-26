@@ -5,8 +5,8 @@ window.MockVoice=(()=>{
  const key=options=>JSON.stringify(options.context());
  const valid=s=>active===s&&!s.controller.signal.aborted&&s.target.isConnected&&!s.disclosures.some(d=>!d.open)&&key(s.options)===s.context;
  function lock(s){
-  s.fields=new Map();for(const el of new Set([s.target,...['mockA','mockFollowUpAnswer','mockRetryAnswer'].map(id=>document.getElementById(id)),...document.querySelectorAll('[data-report-retry-input]')]))if(el){s.fields.set(el,el.readOnly);el.readOnly=true;}s.locks=new Map();
-  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice],[data-report-retry-evaluate],[data-answer-record],[data-interview-repeat],[data-report-control],[data-practice-unanswered]')])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
+  s.fields=new Map();for(const el of new Set([s.target,...['mockA','mockFollowUpAnswer','mockRetryAnswer'].map(id=>document.getElementById(id)),...document.querySelectorAll('[data-report-retry-input]'),...(s.options.fields?.()||[])]))if(el){s.fields.set(el,el.readOnly);el.readOnly=true;}s.locks=new Map();
+  for(const el of [...ids.map(id=>document.getElementById(id)),...document.querySelectorAll('[data-voice],[data-report-retry-evaluate],[data-answer-record],[data-interview-repeat],[data-report-control],[data-practice-unanswered]'),...(s.options.controls?.()||[])])if(el&&el!==s.button){s.locks.set(el,el.disabled);el.disabled=true;}
  }
  function unlock(s){if(s.locks){for(const [el,disabled]of s.locks)if(el.isConnected)el.disabled=disabled;s.locks=null;for(const [el,readOnly]of s.fields)if(el.isConnected)el.readOnly=readOnly;s.fields=null;}}
  function closeAudio(s){clearInterval(s.timer);s.stream?.getTracks().forEach(t=>t.stop());try{s.node?.disconnect();s.source?.disconnect();s.gain?.disconnect();}catch{}if(s.audioContext&&s.audioContext.state!=='closed')s.audioContext.close().catch(()=>{});}
@@ -23,7 +23,7 @@ window.MockVoice=(()=>{
  function append(s,text){
   if(!valid(s))return;if(s.options.blocked())throw Error('请等待当前操作结束后再重试转写。');
   const next=s.target.value+(s.target.value?'\n':'')+text;if(next.length>(s.target.maxLength>0?s.target.maxLength:12000))throw Error('加上本段语音后超过回答字数上限，请先精简原回答，再点击重试。');
-  s.target.value=next;s.target.dispatchEvent(new Event('input',{bubbles:true}));active=null;s.observer?.disconnect();unlock(s);s.chunks=[];s.audio=null;s.pendingText=null;s.button.disabled=false;s.button.textContent='语音作答';s.cancel.hidden=true;s.notice.textContent='已转写并填入回答，请核对文字后再提交。';s.target.focus({preventScroll:true});
+  s.target.value=next;s.target.dispatchEvent(new Event('input',{bubbles:true}));active=null;s.observer?.disconnect();unlock(s);s.chunks=[];s.audio=null;s.pendingText=null;s.button.disabled=false;s.button.textContent='语音作答';s.cancel.hidden=true;s.notice.textContent='已转写并填入回答，请核对文字后再提交。';s.target.focus({preventScroll:true});s.options.onAppend?.();
  }
  async function transcribe(s){
   if(!valid(s))return;lock(s);s.phase='transcribing';s.button.disabled=true;s.button.textContent='正在转写…';s.cancel.hidden=false;s.cancel.textContent='取消转写';s.notice.textContent='正在识别本段语音，原回答保留…';
@@ -43,7 +43,7 @@ window.MockVoice=(()=>{
  async function begin(target,button,cancel,notice,options){
   if(active||options.blocked())return;
   const disclosures=[];for(let el=target.parentElement;el;el=el.parentElement)if(el.tagName==='DETAILS')disclosures.push(el);
-  const s={target,button,cancel,notice,options,disclosures,context:key(options),controller:new AbortController(),phase:'starting',chunks:[],frames:0};active=s;lock(s);s.observer=new MutationObserver(()=>{if(active===s&&(!target.isConnected||disclosures.some(d=>!d.open)))stop();});s.observer.observe(document.getElementById('mockStage'),{childList:true,subtree:true,attributes:true,attributeFilter:['open']});button.disabled=true;cancel.hidden=false;cancel.textContent='取消';notice.textContent='正在准备语音作答…';
+  const s={target,button,cancel,notice,options,disclosures,context:key(options),controller:new AbortController(),phase:'starting',chunks:[],frames:0};active=s;lock(s);s.observer=new MutationObserver(()=>{if(active===s&&(!target.isConnected||disclosures.some(d=>!d.open)))stop();});s.observer.observe(options.root||document.getElementById('mockStage'),{childList:true,subtree:true,attributes:true,attributeFilter:['open']});button.disabled=true;cancel.hidden=false;cancel.textContent='取消';notice.textContent='正在准备语音作答…';
   try{
    const response=await fetch('/api/voice/status',{signal:AbortSignal.any([s.controller.signal,AbortSignal.timeout(12000)])});const status=await response.json();if(!response.ok||!status.enabled)throw Error(status.error||'语音识别尚未启用，请联系管理员。');s.maxSeconds=Math.min(status.maxSeconds||180,180);
    s.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true},video:false});if(!valid(s)){closeAudio(s);return;}

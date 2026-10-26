@@ -23,7 +23,7 @@ const {spawn}=require('node:child_process');
     });});
     await new Promise(r=>upstream.listen(0,'127.0.0.1',r));const modelUrl=`http://127.0.0.1:${upstream.address().port}/v1`;
     const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
-    for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
+    for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','real-review-model.js','real-review-ui.js','mock-voice.js','voice-recorder-worklet.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
     app=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('startup timeout')),5000);app.stdout.once('data',()=>{clearTimeout(timer);resolve();});});
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.route('**/fonts.googleapis.com/**',r=>r.abort());

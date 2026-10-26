@@ -18,7 +18,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({choices:[{message:{content:JSON.stringify(result)}}]}));
   });});
   await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
-  for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','resume-library.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
+  for(const f of ['app.html','model-settings.js','skill-learning.js','server.js','auth-store.js','model-store.js','model-network.js','model-service.js','review-store.js','real-review-model.js','real-review-ui.js','mock-voice.js','voice-recorder-worklet.js','ai-service.js','interview-policy.js','formal-interview.js','resume-navigation.js','resume-library.js','document-import.js','document-worker.js'])fs.copyFileSync(path.join(__dirname,'..',f),path.join(temp,f));
   fs.writeFileSync(path.join(temp,'server.config.json'),JSON.stringify({baseUrl:`http://127.0.0.1:${upstream.address().port}/v1`,model:'controlled',apiKey:'test-only-key'}));
   const reserve=http.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
   app=spawn(process.execPath,['server.js'],{cwd:temp,env:{...process.env,ZM_LOCAL_MODE:'1',PORT:String(port)},stdio:['ignore','pipe','pipe']});
