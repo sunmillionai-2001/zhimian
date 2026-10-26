@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs tests/model-contract.cjs tests/formal-contract.cjs tests/resume-export.test.cjs tests/configure-model.test.cjs tests/resume-layout.cjs tests/resume-navigation.cjs tests/voice-contract.cjs",
+    "test": "node --test tests/regression.cjs tests/ai-contract.cjs tests/import-contract.cjs tests/skill-contract.cjs tests/auth-contract.cjs tests/model-contract.cjs tests/formal-contract.cjs tests/resume-export.test.cjs tests/configure-model.test.cjs tests/resume-layout.cjs tests/resume-navigation.cjs tests/voice-contract.cjs tests/resume-library.cjs",
     "voice:setup": "node scripts/setup-voice.cjs",
     "account": "node account-cli.js"
   },

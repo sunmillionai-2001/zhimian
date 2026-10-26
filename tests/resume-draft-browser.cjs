@@ -1,3 +1,4 @@
+const {enterResume,activeResume}=require('./resume-test-ui.cjs');
 // Whole-document confirmation with independent editable paragraphs and real layout exports.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),http=require('node:http'),{spawn}=require('node:child_process');
@@ -21,7 +22,7 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   await p.route('**/api/ai/resume-rewrite',r=>{const text=r.request().postDataJSON().facts[0].answer;r.fulfill({json:{meta,result:{rewritten:text,evidence:[{claim:text,source:text}]}}});});
   let failPreview=false;const previewTexts=[];
   await p.route('**/api/resume/preview',r=>{previewTexts.push(r.request().postDataJSON().text);return failPreview?r.fulfill({status:422,json:{error:'Controlled layout failure'}}):r.continue();});
-  await p.goto(`http://127.0.0.1:${port}/app.html#resume`);
+  await p.goto(`http://127.0.0.1:${port}/app.html#resume`);await enterResume(p);
   const word=await styledWord();await p.locator('#resumeFile').setInputFiles({name:'draft.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:word});
   await p.locator('#resumeImportApply').waitFor({state:'visible',timeout:60000});await p.locator('#resumeImportApply').click();
   await p.locator('#resumeDiagnose').click();await p.locator('#resumeFact0_0').waitFor();
@@ -39,7 +40,7 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   await p.locator('#resumeOpenHistory').click();assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),true);assert.match(await p.locator('#resumeHistorySummary').innerText(),/0 条简历版本/);
   await p.keyboard.press('Escape');assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),false);assert.equal(await p.locator('#resumeDiagnosisDetails').evaluate(el=>el.open),false);
   await p.locator('#resumeDiagnosisDetails>summary').click();assert.equal(await p.locator('#resumeCandidate0').inputValue(),'Validated Alpha reports with source checks.');
-  await p.reload();
+  await p.reload();await enterResume(p);
   assert.equal(await p.locator('#resumeCandidate0').inputValue(),'Validated Alpha reports with source checks.');
   assert.equal(await p.locator('#resumeCandidate1').inputValue(),'Validated Beta reports.');
   assert.equal(await p.locator('.resume-version').count(),0);assert.equal(await p.locator('#resumeExportWord').isDisabled(),true);
@@ -53,17 +54,17 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   await p.locator('#resumePreviewDraft').click();await p.waitForFunction(()=>!document.getElementById('resumeConfirmVersion').disabled);
   await p.locator('#resumeConfirmVersion').click();
   assert.equal(await p.locator('.resume-version').count(),1);assert.equal(await p.locator('#resumeConfirmVersion').isDisabled(),true);
-  const confirmed=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
+  const confirmed=await activeResume(p);
   assert.equal(confirmed.versions.length,1);assert.equal(confirmed.accepted.text,confirmed.versions[0].text);
   await p.locator('.export-menu summary').click();let download=p.waitForEvent('download');await p.locator('#resumeExportWord').click();
   assert.equal((await openWord(fs.readFileSync(await(await download).path()))).text,confirmed.accepted.text);
   // Later draft changes must not silently alter the confirmed export.
   await edit(0);await p.locator('#resumeCandidate0').fill('Pending Alpha update.');
-  await p.reload();assert.match(await p.locator('#resumeExportState').innerText(),/上次已确认/);
+  await p.reload();await enterResume(p);assert.match(await p.locator('#resumeExportState').innerText(),/上次已确认/);
   if(!(await p.locator('#resumeExportWord').isVisible()))await p.locator('.export-menu summary').click();
   download=p.waitForEvent('download');await p.locator('#resumeExportWord').click();
   assert.equal((await openWord(fs.readFileSync(await(await download).path()))).text,confirmed.accepted.text);
-  const pending=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
+  const pending=await activeResume(p);
   assert.equal(pending.sections[0].adopted,'Pending Alpha update.');assert.equal(pending.accepted.text,confirmed.accepted.text);assert.equal(pending.versions.length,1);
   failPreview=true;await p.locator('#resumePreviewDraft').click();await p.waitForFunction(()=>document.getElementById('resumeDraftMessage').textContent.includes('Controlled layout failure'));
   assert.equal(await p.locator('#resumeConfirmVersion').isDisabled(),true);assert.equal(await p.locator('.resume-version').count(),1);
@@ -71,14 +72,14 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   // Failed storage must not commit a new accepted version in memory or on disk.
   await p.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('quota','QuotaExceededError');};});
   await p.locator('#resumeConfirmVersion').click();assert.match(await p.locator('#resumeDraftMessage').innerText(),/保存失败/);
-  assert.equal(await p.locator('.resume-version').count(),1);await p.reload();
-  assert.equal((await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')))).accepted.text,confirmed.accepted.text);
+  assert.equal(await p.locator('.resume-version').count(),1);await p.reload();await enterResume(p);
+  assert.equal((await activeResume(p)).accepted.text,confirmed.accepted.text);
   // Legacy per-paragraph records remain unchanged and the current accepted content migrates.
   const legacy={...confirmed};delete legacy.workflowVersion;delete legacy.accepted;delete legacy.draftBackups;
   const legacyContext=await browser.newContext();await legacyContext.route('**/fonts.googleapis.com/**',r=>r.abort());
   await legacyContext.addInitScript(state=>{localStorage.setItem('zm_resume_store_v1',JSON.stringify(state));localStorage.setItem('zm_guide_seen_v1','1');},legacy);
-  const old=await legacyContext.newPage();await old.goto(`http://127.0.0.1:${port}/app.html#resume`);assert.equal(await old.locator('.resume-version').count(),1);assert.equal(await old.locator('#resumeExportWord').isEnabled(),true);assert.equal(await old.locator('#resumeConfirmVersion').isDisabled(),true);
-  await old.locator('#resumePreviewDraft').click();await old.waitForFunction(()=>document.getElementById('resumeDraftMessage').textContent.includes('无需重复采用'));assert.equal(await old.locator('#resumeConfirmVersion').isDisabled(),true);assert.equal(await old.locator('.resume-version').count(),1);
+  const old=await legacyContext.newPage();await old.goto(`http://127.0.0.1:${port}/app.html#resume`);await enterResume(old);assert.equal(await old.locator('.resume-version').count(),1);assert.equal(await old.locator('#resumeExportWord').isEnabled(),false);assert.equal(await old.locator('#resumeConfirmVersion').isDisabled(),true);
+  await old.locator('#resumePreviewDraft').click();await old.waitForFunction(()=>!document.getElementById('resumeConfirmVersion').disabled);await old.locator('#resumeConfirmVersion').click();assert.equal(await old.locator('.resume-version').count(),2);
   for(const width of [320,390,820]){await p.setViewportSize({width,height:950});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await p.locator('#resumeParagraphSelect').selectOption('1');assert.equal(await p.locator('#resumeSection1').isVisible(),true);assert.equal(await p.locator('#resumeSection0').isVisible(),false);}
   await p.setViewportSize({width:1280,height:950});
   if(process.env.RESUME_NAV_SCREENSHOT){await p.locator('#resumeResults').scrollIntoViewIfNeeded();await p.screenshot({path:process.env.RESUME_NAV_SCREENSHOT});}
@@ -89,7 +90,7 @@ const {styledWord}=require('./layout-fixtures.cjs'),{openWord}=require('../resum
   const treeState={schemaVersion:1,workflowVersion:2,text:outlineText,jd:'技术支持',sections:outlineSections,diagnosis:{meta,result:{overview:'按经历核对事实',matched:[],missing:[],sections:outlineSections.map(({original,start,issue,questions})=>({original,start,issue,questions}))}},versions:Array.from({length:80},(_,i)=>({...confirmed.versions[0],id:'history-'+i})),accepted:null,draftBackups:[],activeSection:1};
   const treeContext=await browser.newContext({viewport:{width:1280,height:950},reducedMotion:'reduce'});
   await treeContext.route('**/fonts.googleapis.com/**',r=>r.abort());await treeContext.addInitScript(state=>{localStorage.setItem('zm_resume_store_v1',JSON.stringify(state));localStorage.setItem('zm_guide_seen_v1','1');},treeState);
-  const tree=await treeContext.newPage();tree.on('pageerror',e=>errors.push(e.message));await tree.goto(`http://127.0.0.1:${port}/app.html#resume`);
+  const tree=await treeContext.newPage();tree.on('pageerror',e=>errors.push(e.message));await tree.goto(`http://127.0.0.1:${port}/app.html#resume`);await enterResume(tree);
   assert.deepEqual(await tree.locator('.resume-nav-module>summary').allTextContents(),['教育经历 暂无修改建议','工作经历 0/2 已有草稿','项目经历 0/2 已有草稿','个人总结 暂无修改建议']);
   assert.equal(await tree.locator('.resume-nav-entry [data-resume-section]').count(),2);
   assert.match(await tree.locator('.resume-nav-entry>summary').innerText(),/云杉科技有限公司/);

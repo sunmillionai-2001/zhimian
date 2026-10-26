@@ -1,3 +1,4 @@
+const {enterResume,activeResume}=require('./resume-test-ui.cjs');
 // Imports and exports are exercised against an isolated real service with fictional documents.
 const { chromium } = require("playwright"),
   assert = require("node:assert/strict"),
@@ -120,7 +121,7 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
         },
       }),
     );
-    await p.goto(`http://127.0.0.1:${port}/app.html#resume`);
+    await p.goto(`http://127.0.0.1:${port}/app.html#resume`);await enterResume(p);
     // Legacy text-only records must never silently export a replacement template.
     await p.locator('#resumeText').fill('旧版正文，已有优化内容保留。');
     assert.equal(await p.locator('#resumeTemplateRequired').isVisible(), true);
@@ -154,12 +155,10 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     await p.locator("#resumeImportApply").click();
     assert.equal(await p.locator("#resumeSourcePanel").isVisible(), true);
     assert.equal(await p.locator("#resumeText").isVisible(), false);
-    let saved = await p.evaluate(() =>
-        JSON.parse(localStorage.getItem("zm_resume_store_v1")),
-      ),
+    let saved = await activeResume(p),
       sourceId = saved.source.id;
     assert.equal(saved.source.name, "two-column.docx");
-    assert.equal(saved.versions.length,0);assert.equal(saved.draftBackups[0].text, '旧版正文，已有优化内容保留。');
+    assert.equal(saved.versions.length,0);assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_library_v1')).resumes[0].state.text),'旧版正文，已有优化内容保留。');
     assert.equal(await p.locator('#resumeTemplateRequired').isVisible(), false);
     assert.equal(await p.locator('#resumeExportWord').isEnabled(), false);
     assert.deepEqual(
@@ -177,10 +176,8 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     await p.locator("#resumeCandidate0").waitFor();
     assert.equal(await p.locator('.resume-version').count(),0);
     await p.locator('#resumePreviewDraft').click();await p.locator('#resumeConfirmVersion').click();
-    await p.reload();
-    saved = await p.evaluate(() =>
-      JSON.parse(localStorage.getItem("zm_resume_store_v1")),
-    );
+    await p.reload();await enterResume(p);
+    saved = await activeResume(p);
     assert.equal(saved.source.id, sourceId);
     assert.equal(saved.versions[0].source.id, sourceId);
     await p.locator("#resumeSetupDetails>summary").click();
@@ -214,16 +211,17 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     await p.locator('#resumeImportApply').waitFor({state:'visible',timeout:60000});
     await p.locator('#resumeImportApply').click();
     assert.equal(await p.locator('#resumeExportWord').isEnabled(),false);
+    const former=await p.evaluate(id=>JSON.parse(localStorage.getItem('zm_resume_library_v1')).resumes.find(r=>r.state.accepted?.source?.id===id).id,sourceId);await p.locator('#resumeEditorSelect').selectOption(former);
     await p.locator('#resumeOpenHistory').click();
     await p.locator('#resumeVersions .resume-version').first().locator('summary').first().click();
     await p.locator('[data-restore-resume="0"]').click();
     assert.equal(await p.locator('#resumeHistoryDialog').isVisible(),false);
     assert.equal(await p.locator('#resumeDiagnosisDetails').evaluate(el=>el.open),true);
-    assert.equal(await p.locator('#resumeExportWord').isEnabled(),false);
-    await p.locator('#resumePreviewDraft').click();await p.locator('#resumeConfirmVersion').click();
-    await p.reload();
-    const restored=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
-    assert.equal(restored.sections[0].adopted,'Validated weekly reports.');
+    assert.equal(await p.locator('#resumeExportWord').isEnabled(),true);
+    await p.locator('#resumePreviewDraft').click();await p.locator('#resumeCloseDraft').click();
+    await p.reload();await enterResume(p);
+    const restored=await activeResume(p);
+    assert.match(restored.text,/Validated weekly reports/);
     sourceId=restored.source.id;
     if(!(await p.locator('#resumeExportWord').isVisible()))await p.locator('.export-menu summary').click();
     download=p.waitForEvent('download');await p.locator('#resumeExportWord').click();
@@ -240,7 +238,7 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     await p.locator("#resumeImportCancel").click();
     assert.equal(
       await p.evaluate(
-        () => JSON.parse(localStorage.getItem("zm_resume_store_v1")).source.id,
+        () => {const x=JSON.parse(localStorage.getItem('zm_resume_library_v1'));return x.resumes.find(r=>r.id===x.activeId).state.source.id;},
       ),
       sourceId,
     );
@@ -257,7 +255,7 @@ const { styledWord, styledPdf } = require("./layout-fixtures.cjs"),
     if (!(await p.locator("#resumeExportPdf").isVisible()))
       await p.locator(".export-menu summary").click();
     assert.equal(await p.locator('#resumeExportPdf').isEnabled(), false);
-    const rawState=await p.evaluate(()=>JSON.parse(localStorage.getItem('zm_resume_store_v1')));
+    const rawState=await activeResume(p);
     const noChanges=await p.request.post(`http://127.0.0.1:${port}/api/resume/export/pdf`,{data:{sourceId:rawState.source.id,text:rawState.text}});
     assert.equal(noChanges.status(),409);
     download = p.waitForEvent("download");

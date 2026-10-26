@@ -65,12 +65,14 @@ window.FormalInterview=(()=>{
   $('mockMode').value=r.mode||'coaching';$('mockInterviewer').value=r.interviewer||'business';resumeMeta=fromRecord(r);resumeMeta=resumeMetadata(resumeMeta);setupConfirmed=r.resume||'';$('mockConfirmResume').checked=!!r.resume;updateControls();renderGoalCard();refreshHome();
  }
  function context(){const g=activeGoal();if(!g)return {};const s=readSetup();return {goalId:g.id,preparation:{goalId:g.id,goalName:g.name,origin:JSON.stringify(s)===JSON.stringify(g.defaults)?'goal_default':'session',...resumeMeta,confirmed:!s.resume.trim()||$('mockConfirmResume').checked&&setupConfirmed===s.resume.trim()}};}
- function useResume(value,jd=''){
-  if(!ready||mockAiBusy||goalsBlocked)return;if(jd.trim()&&jd.trim()!==$('mockJd').value.trim()){
-   saveSetup();const match=goalState.goals.find(g=>g.working.jd.trim()===jd.trim()),g=match||createGoal({...emptySetup(),jd,mode:$('mockMode').value,interviewer:$('mockInterviewer').value});if(!g)return;activateGoal(g.id);
+ function useResume(value,jd='',version){
+  if(!ready||mockAiBusy||mockPlanBusy||goalsBlocked)return false;
+  const linked=goalState.goals.find(g=>g.id===version?.goalId);
+  if(linked&&linked.id!==goalState.activeId){if(!saveSetup())return false;activateGoal(linked.id);if(goalState.activeId!==linked.id)return false;}
+  else if(!linked&&jd.trim()&&jd.trim()!==$('mockJd').value.trim()){
+   if(!saveSetup())return false;const match=goalState.goals.find(g=>g.working.jd.trim()===jd.trim()),g=match||createGoal({...emptySetup(),jd,mode:$('mockMode').value,interviewer:$('mockInterviewer').value});if(!g)return false;activateGoal(g.id);if(goalState.activeId!==g.id)return false;
   }
-  setResumeMetadata(value);
-  $('mockProfile').value=value;$('mockConfirmResume').checked=false;setupConfirmed='';showSetup();saveSetup();
+  setResumeMetadata(value,version);$('mockProfile').value=value;$('mockConfirmResume').checked=false;setupConfirmed='';showSetup();return saveSetup();
  }
  function activateGoal(id){
   if(mockAiBusy||mockPlanBusy||goalsBlocked)return;const g=goalState.goals.find(g=>g.id===id);if(!g||!writeGoals({...goalState,activeId:id}))return;
@@ -124,6 +126,7 @@ window.FormalInterview=(()=>{
   if(!jd){$('targetMsg').textContent='先填写岗位名称与要求，再继续准备。';$('targetJd').focus();return;}
   if(!saveSetup()){$('targetMsg').textContent='目标未能保存，请先导出备份。';return;}
   if(resumeBlocked){$('targetMsg').textContent='简历存储异常，请到简历助手导出原始备份后再继续。';return;}
+  if(resumeLibrary){go('resume');resumeLibrary.forGoal({id:activeGoal().id,name:activeGoal().name,jd});return;}
   if(resumeState.jd.trim()!==jd){
    if(resumeState.jd.trim()&&!confirm('将简历助手切换到这个目标岗位？已采用的改写会保留为当前正文，诊断需重新生成。'))return;
    const previous=structuredClone(resumeState);
@@ -136,12 +139,12 @@ window.FormalInterview=(()=>{
   // Page images are rendered locally from the exact interview snapshot, never the original download.
  let resumePreview=null,previewPage=1;
  const documentOf=s=>InterviewPolicy.validResumeDocument(s?.resumeDocument)?s.resumeDocument:null;
- const resumeMetadata=s=>({resumeSource:s.resumeSource,resumeVersionId:s.resumeVersionId,resumeLabel:s.resumeLabel,...(documentOf(s)?{resumeDocument:{...s.resumeDocument}}:{})});
+ const resumeMetadata=s=>({resumeSource:s.resumeSource,resumeVersionId:s.resumeVersionId,resumeLabel:s.resumeLabel,...(s.resumeId?{resumeId:s.resumeId}:{}),...(documentOf(s)?{resumeDocument:{...s.resumeDocument}}:{})});
  function materialFor(s){
   const text=s.resume;if(!text.trim()||resumeBlocked)return null;
   let source=documentOf(s);
   if(!source){
-   const version=resumeState.versions.find(v=>v.id===s.resumeVersionId&&v.text===text);
+   const version=(resumeLibrary?.versions()||resumeState.versions).find(v=>v.id===s.resumeVersionId&&v.text===text);
    const accepted=currentAcceptedResume();
    source=version?.source||(accepted?.text===text?accepted.source:null);
   }
@@ -149,9 +152,9 @@ window.FormalInterview=(()=>{
   return {text,source:{...source},key:JSON.stringify([source.id,text])};
  }
  function setResumeMetadata(value,version){
-  const accepted=currentAcceptedResume(),v=version||(accepted?.text===value?accepted:resumeState.versions.find(v=>v.text===value));
+  const accepted=currentAcceptedResume(),v=version||(accepted?.text===value?accepted:(resumeLibrary?.versions()||resumeState.versions).find(v=>v.text===value));
   const label=v&&(v.kind==='confirmed-resume'||v.id===accepted?.id)?'已确认简历':'已保存简历';
-  resumeMeta={resumeSource:v?'resume-version':'resume-current',resumeVersionId:v?.id||null,resumeLabel:v?label+' · '+displayMockDate(v.date):'简历助手正文（未优化）',...(validResumeSource(v?.source)?{resumeDocument:{...v.source}}:{})};
+  resumeMeta={resumeSource:v?'resume-version':'resume-current',resumeVersionId:v?.id||null,...(v?.resumeId?{resumeId:v.resumeId}:{}),resumeLabel:v?(resumeLibrary&&v.resumeId?resumeLibrary.versionLabel(v):label+' · '+displayMockDate(v.date)):'简历助手正文（未优化）',...(validResumeSource(v?.source)?{resumeDocument:{...v.source}}:{})};
  }
  function prepareResumePreview(s){
   const material=materialFor(s);
@@ -204,15 +207,15 @@ window.FormalInterview=(()=>{
 
  function renderGoalCard(){
   if(!ready||!$('mockGoalCard'))return;const g=activeGoal(),s=readSetup();
-  const material=materialFor(s),accepted=currentAcceptedResume();
+  const material=materialFor(s),accepted=resumeLibrary?resumeLibrary.acceptedFor(g?{id:g.id,jd:g.working.jd}:null):currentAcceptedResume();
   const latest=accepted&&s.resume===accepted.text&&s.resumeVersionId===accepted.id&&documentOf(s)?.id===accepted.source?.id;
   const choices=goalState.goals.filter(x=>x.working.jd.trim());
   $('mockGoalOverviewContent').innerHTML=`<h4>本场目标与简历</h4><div class="mock-goal-overview"><div class="field mock-goal-choice"><div class="mock-goal-label-row"><label for="mockGoalSelect">选择要练习的目标岗位</label><button type="button" class="btn btn-ghost" id="mockManageTargets">${choices.length?'管理目标岗位 ↗':'创建目标岗位 ↗'}</button></div><select id="mockGoalSelect" title="${esc(g?.name||'请选择目标岗位')}" ${goalsBlocked||mockAiBusy||mockPlanBusy?'disabled':''}><option value="" ${!g?.working.jd.trim()?'selected':''} disabled>请选择目标岗位</option>${choices.map(x=>`<option value="${esc(x.id)}" ${x.id===g?.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><p class="mock-note mock-goal-hint">${choices.length?'自动带入该目标的岗位要求和准备材料':'还没有目标，请先创建目标岗位'}</p></div><div class="mock-goal-resume"><span class="mock-note">本场简历</span><p>${s.resume.trim()?esc(resumeMeta.resumeLabel):'尚未带入简历'}</p><span class="mock-note">${s.resume.trim()?($('mockConfirmResume').checked?'已核对本场材料':'展开下方材料，核对后确认'):'可仅按 JD 开练，或添加经历'}</span></div></div>`;
-  $('mockMaterialContent').innerHTML=`<p>岗位要求</p><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.jd||'尚未选择，请先选择目标岗位')}</blockquote><p><b>简历 / 经历 · 分页预览</b></p><p id="mockResumePreviewStatus" class="mock-note" role="status" aria-live="polite"></p><div id="mockResumePages" class="mock-resume-pages"></div><button type="button" class="btn btn-ghost" id="mockResumePreviewRetry" hidden>重试版式预览</button>${latest?'<p class="mock-note" id="mockResumeLatest">已使用最新已确认简历</p>':''}${!material&&s.resume.trim()?`<details class="mock-resume-text"><summary>查看本场经历</summary><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.resume)}</blockquote></details>`:''}`;
+  $('mockMaterialContent').innerHTML=`<p>岗位要求</p><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.jd||'尚未选择，请先选择目标岗位')}</blockquote><p><b>简历 / 经历 · 分页预览</b></p><p id="mockResumePreviewStatus" class="mock-note" role="status" aria-live="polite"></p><div id="mockResumePages" class="mock-resume-pages"></div><button type="button" class="btn btn-ghost" id="mockResumePreviewRetry" hidden>重试版式预览</button>${latest?'<p class="mock-note" id="mockResumeLatest">已使用本目标最新投递版</p>':''}${!material&&s.resume.trim()?`<details class="mock-resume-text"><summary>查看本场经历</summary><blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(s.resume)}</blockquote></details>`:''}`;
   $('mockManageTargets').onclick=e=>{e.preventDefault();go('target');};
   prepareResumePreview(s);$('mockMaterialDetails').ontoggle=()=>{if($('mockMaterialDetails').open)loadResumePreview();};$('mockResumePreviewRetry').onclick=loadResumePreview;if($('mockMaterialDetails').open)loadResumePreview();
   $('mockGoalSelect').onchange=e=>{const id=e.target.value;if(!id)return;if(saveSetup())activateGoal(id);else e.target.value=g?.id||'';};
-  const select=$('mockResumeVersion');if(select){const value=select.value;select.innerHTML='<option value="">选择版本后带入</option>'+resumeState.versions.map(v=>`<option value="${esc(v.id)}">${esc(displayMockDate(v.date))} · ${v.text.length} 字</option>`).join('');select.value=value;}
+  const select=$('mockResumeVersion');if(select){const value=select.value;select.innerHTML='<option value="">选择版本后带入</option>'+(resumeLibrary?resumeLibrary.versions():resumeState.versions).filter(v=>!resumeLibrary||v.kind==='confirmed-resume'||resumeLibrary.acceptedFor()?.id===v.id).map(v=>`<option value="${esc(v.id)}">${esc(resumeLibrary?resumeLibrary.versionLabel(v):displayMockDate(v.date))} · ${v.text.length} 字</option>`).join('');select.value=value;}
   $('mockResumeConfirmation').hidden=!s.resume.trim();
   renderTarget();
  }
@@ -263,14 +266,14 @@ window.FormalInterview=(()=>{
  }
  function cancelPractice(){const t=mockSession?.practiceTask;if(!t)return true;const parent=mockStore.records.find(r=>r.id===t.recordId);if(!parent)return true;const copy=JSON.parse(JSON.stringify(parent)),task=copy.formal.tasks.find(x=>x.id===t.id);if(!task)return true;task.status=task.attempts.at(-1)?.outcome||'selected';return saveReportCopy(copy);}
  function openResumeTask(r,t){
-  if(!t||mockAiBusy)return;go('resume');let box=$('resumeTrainingHint');if(!box){box=document.createElement('aside');box.id='resumeTrainingHint';box.className='ai-feedback';$('resume').prepend(box);}
-  const quote=r.questions[t.index].source?.kind==='resume'?r.questions[t.index].source.quote:'',locatable=quote&&resumeState.text.includes(quote);
+  if(!t||mockAiBusy)return;go('resume');resumeLibrary?.forReport(r);let box=$('resumeTrainingHint');if(!box){box=document.createElement('aside');box.id='resumeTrainingHint';box.className='ai-feedback';($('resumeEditorShell')&&!$('resumeEditorShell').hidden?$('resumeEditorShell'):$('resumeLibraryHome')||$('resume')).prepend(box);}
+  box.hidden=false;const quote=r.questions[t.index].source?.kind==='resume'?r.questions[t.index].source.quote:'',locatable=quote&&resumeState.text.includes(quote);
   box.innerHTML=`<h4>从模拟面试带来的事实补充任务</h4><p>${esc(t.title)}</p><p>${esc(t.reason)}</p><blockquote>${esc(t.sourceQuote)}</blockquote><p class="mock-note">请在相关经历中补充你确实做过的事实。采用新稿只影响后续场次，原面试材料与回答保留。</p>${locatable?'<button class="btn btn-ghost" id="resumeTaskLocate">定位相关简历原文</button>':'<p class="mock-note">当前稿没有可精确定位的原文，请自行选择相关经历；不会自动改写或替换整份简历。</p>'}<button class="btn btn-ghost" id="resumeTaskReturn">返回这道题重练</button>`;
   $('resumeTaskLocate')?.addEventListener('click',()=>{const el=$('resumeText'),start=el.value.indexOf(quote);if(start>=0){el.focus();el.setSelectionRange(start,start+quote.length);el.scrollIntoView({block:'center'});}});$('resumeTaskReturn').onclick=()=>{go('mock');practice(r,t.index,t.id);};
  }
  function saveSetup(){
   if(!ready||goalsBlocked)return false;parseJd();const s=readSetup();let g=activeGoal();
-  if(!g&&(s.jd.trim()||s.resume.trim()))g=createGoal(s,selectedJobAssociation('mockJob'));
+  if(!g&&(s.jd.trim()||s.resume.trim())){g=createGoal(s,selectedJobAssociation('mockJob'));if(!g)return false;}
   if(g&&!writeGoals({...goalState,goals:goalState.goals.map(x=>x.id===g.id?{...x,name:x.jobId?x.name:(s.jd.trim().split('\n')[0]||x.name).slice(0,200),working:s}:x)}))return false;
   updateControls();renderGoalCard();refreshHome();return true;
  }
@@ -298,18 +301,18 @@ window.FormalInterview=(()=>{
   $('mockJd').addEventListener('input',saveSetup);
   $('mockProfile').addEventListener('input',()=>{$('mockConfirmResume').checked=false;setupConfirmed='';resumeMeta={resumeSource:'manual',resumeVersionId:null,resumeLabel:'手动填写'};saveSetup();});
   $('mockConfirmResume').onchange=()=>{setupConfirmed=$('mockConfirmResume').checked?$('mockProfile').value.trim():'';renderGoalCard();};
-  $('mockUseResume').onclick=()=>{const notice=text=>{$('mockPlanMsg').textContent=text;$('mockResumeToolMsg').textContent=text;};if(resumeBlocked){notice('简历助手存储异常，请先导出检查。');return;}const accepted=currentAcceptedResume();if(!accepted){notice('请先在简历助手预览并确认整份新简历，再带入面试；也可以直接填写经历开练。');return;}const value=accepted.text;if(value.length>30000){notice('简历当前版本超过 30000 字，请先精简或仅粘贴相关经历。');return;}if(!value.trim()){notice('简历助手还没有正文，可先直接粘贴经历。');return;}
+  $('mockUseResume').onclick=()=>{const notice=text=>{$('mockPlanMsg').textContent=text;$('mockResumeToolMsg').textContent=text;};if(resumeBlocked){notice('简历助手存储异常，请先导出检查。');return;}const g=activeGoal(),accepted=resumeLibrary?resumeLibrary.acceptedFor(g?{id:g.id,jd:g.working.jd}:null):currentAcceptedResume();if(!accepted){notice('本目标还没有已确认的投递版。请到简历助手选择或复制一份简历、关联此目标，再预览确认；也可以直接填写经历开练。');return;}const value=accepted.text;if(value.length>30000){notice('简历当前版本超过 30000 字，请先精简或仅粘贴相关经历。');return;}if(!value.trim()){notice('简历助手还没有正文，可先直接粘贴经历。');return;}
    if($('mockProfile').value.trim()&&$('mockProfile').value.trim()!==value.trim()&&!confirm('用简历助手的当前版本替换本次准备材料？已保存的面试不变。'))return;
-   setResumeMetadata(value);
+   setResumeMetadata(value,accepted);
    $('mockProfile').value=value;if(!$('mockJd').value.trim())$('mockJd').value=accepted.jd;$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();notice('已带入已确认简历，请核对预览并确认。');$('mockResumeTools').open=false;};
-  $('mockResumeVersion').onchange=e=>{const v=resumeState.versions.find(v=>v.id===e.target.value);if(!v||mockAiBusy)return;if(v.text.length>30000){$('mockResumeToolMsg').textContent='该版本超过 30000 字，请先精简。';return;}setResumeMetadata(v.text,v);$('mockProfile').value=v.text;$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();$('mockResumeTools').open=false;};
+  $('mockResumeVersion').onchange=e=>{const v=(resumeLibrary?.versions()||resumeState.versions).find(v=>v.id===e.target.value);if(!v||mockAiBusy)return;if(v.text.length>30000){$('mockResumeToolMsg').textContent='该版本超过 30000 字，请先精简。';return;}setResumeMetadata(v.text,v);$('mockProfile').value=v.text;$('mockConfirmResume').checked=false;setupConfirmed='';saveSetup();$('mockResumeTools').open=false;};
   $('targetJd').oninput=()=>{
    if(goalsBlocked||mockAiBusy||mockPlanBusy)return;
    $('mockJd').value=$('targetJd').value;
    const saved=saveSetup();$('targetMsg').textContent=saved?'已自动保存，后续准备使用这个目标。':'未能保存，当前输入保留，请先导出备份。';
   };
   $('targetNew').onclick=()=>{if(goalsBlocked||mockAiBusy||mockPlanBusy)return;if(!saveSetup()){$('targetMsg').textContent='当前目标未能保存，请先导出备份。';return;}const g=createGoal();if(g){activateGoal(g.id);renderTarget();$('targetJd').focus();}};
-  $('targetResume').onclick=targetToResume;
+  $('targetResume').onclick=targetToResume;$('mockManageResumes')?.addEventListener('click',()=>{const g=activeGoal();go('resume');if(g)resumeLibrary?.forGoal({id:g.id,name:g.name,jd:g.working.jd});});
   $('targetMock').onclick=()=>{if(goalsBlocked||mockAiBusy||mockPlanBusy)return;if(!$('mockJd').value.trim()){$('targetMsg').textContent='先填写岗位名称与要求，再继续准备。';return;}if(!saveSetup()){$('targetMsg').textContent='目标未能保存，请先导出备份。';return;}go('mock');showSetup();};
   $('targetDefault').onclick=()=>{const g=activeGoal();if(mockAiBusy||mockPlanBusy||!g)return;if(writeGoals({...goalState,goals:goalState.goals.map(x=>x.id===g.id?{...x,working:readSetup(),defaults:readSetup()}:x)})){renderGoalCard();$('targetMsg').textContent='已保存当前目标的准备配置。';}};
   $('targetReset').onclick=()=>{const g=activeGoal();if(mockAiBusy||mockPlanBusy||!g)return;if(JSON.stringify(readSetup())!==JSON.stringify(g.defaults)&&!confirm('恢复已保存的准备配置？本场临时调整将被替换，已开始的面试不变。'))return;applySetup(g.defaults);if(saveSetup())$('targetMsg').textContent='已恢复当前目标的准备配置。';};
@@ -414,8 +417,8 @@ window.FormalInterview=(()=>{
  function resumeFacts(r){return reviewable(r).flatMap(index=>(r.formal.evaluations[index]?.result.review?.missingFacts||[]).map(f=>({...f,index})));}
  function resumeFactsHtml(r){return resumeFacts(r).length?'<details class="formal-resume-facts"><summary>需要把经历细节补进简历？（可选）</summary><p class="mock-note">如果点评提醒你补充的项目、个人行动或成果也需要写进简历，可回简历助手完善。只练口头表达时，可直接重答，无需修改简历。</p><button class="btn btn-ghost" data-formal-resume>去简历助手完善经历 ↗</button></details>':'';}
  function openResumeFacts(r){
-  if(mockAiBusy)return;const facts=resumeFacts(r);if(!facts.length)return;go('resume');let box=$('resumeTrainingHint');if(!box){box=document.createElement('aside');box.id='resumeTrainingHint';box.className='ai-feedback';$('resume').prepend(box);}
-  box.innerHTML='<h4>面试中可以补充的经历细节</h4><p>仅当这些细节也需要写进简历时，再选择相关经历进行修改。这里不会自动改写简历，本场材料、回答与点评均保留。</p><ul>'+facts.slice(0,6).map(f=>'<li><b>'+esc(r.questions[f.index].topic)+'</b>：'+esc(f.question)+'</li>').join('')+'</ul><button class="btn btn-ghost" id="resumeFactsReturn">返回本场复盘</button>';
+  if(mockAiBusy)return;const facts=resumeFacts(r);if(!facts.length)return;go('resume');resumeLibrary?.forReport(r);let box=$('resumeTrainingHint');if(!box){box=document.createElement('aside');box.id='resumeTrainingHint';box.className='ai-feedback';($('resumeEditorShell')&&!$('resumeEditorShell').hidden?$('resumeEditorShell'):$('resumeLibraryHome')||$('resume')).prepend(box);}
+  box.hidden=false;box.innerHTML='<h4>面试中可以补充的经历细节</h4><p>仅当这些细节也需要写进简历时，再选择相关经历进行修改。这里不会自动改写简历，本场材料、回答与点评均保留。</p><ul>'+facts.slice(0,6).map(f=>'<li><b>'+esc(r.questions[f.index].topic)+'</b>：'+esc(f.question)+'</li>').join('')+'</ul><button class="btn btn-ghost" id="resumeFactsReturn">返回本场复盘</button>';
   $('resumeFactsReturn').onclick=()=>go('mock');box.scrollIntoView({block:'center',behavior:reducedMotion()?'instant':'smooth'});
  }
  function paintFormalReview(r,message=''){
@@ -480,7 +483,7 @@ window.FormalInterview=(()=>{
   mockSession=session;mockQuestions=session.questions;mockAnswers=session.answers;mockIdx=0;mockSec=0;mockSelfRate='';mockFound=session.keywords.slice();mockRole=session.role;
   $('mockJd').value=session.jd;$('mockProfile').value=session.resume||'';$('mockJob').value=session.jobId||'';restoreControls(session);window.renderQuestion();renderMockHistory();return true;
  }
- return {init,showSetup,restoreControls,saveSetup,selectJob,useResume,context,homeState,renderTarget,rubricContext,criteriaHtml,syncControls,practiceHtml,bindPractice,completePractice,cancelPractice,unansweredHtml,bindUnanswered,continuationHtml,bindContinuation,practiceUnanswered,refreshPreparation:()=>{if(ready){if(!mockAiBusy&&!mockPlanBusy)showSetup();renderGoalCard();renderFocus();}},refreshHome,setStageMode,beginRoom,roomQuestionMotion,openRoomTools,closeRoomTools,renderQuestion,renderReport,reportHtml,bindReport,clock};
+ return {resumeGoals:()=>goalState.goals.map(g=>({id:g.id,name:g.name,jd:g.working.jd})),init,showSetup,restoreControls,saveSetup,selectJob,useResume,context,homeState,renderTarget,rubricContext,criteriaHtml,syncControls,practiceHtml,bindPractice,completePractice,cancelPractice,unansweredHtml,bindUnanswered,continuationHtml,bindContinuation,practiceUnanswered,refreshPreparation:()=>{if(ready){if(!mockAiBusy&&!mockPlanBusy)showSetup();renderGoalCard();renderFocus();}},refreshHome,setStageMode,beginRoom,roomQuestionMotion,openRoomTools,closeRoomTools,renderQuestion,renderReport,reportHtml,bindReport,clock};
 })();
 
 // Presentation state only. Answers, evaluations and voice fields retain their original nodes.

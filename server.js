@@ -181,7 +181,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
-      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word',true);
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'word',body.allowUnchanged!==true);
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="zhimian-resume.docx"',
@@ -203,7 +203,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       if(typeof body.sourceId !== 'string' || !body.sourceId.trim()) return sendJson(res,409,{code:'RESUME_SOURCE_REQUIRED',error:'请先导入原简历文件，才能按原模板导出。正文和改写已保留。'});
-      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf',true);
+      const buffer = await require('./resume-layout').createSourceStore(userDirectory).render(body.sourceId,body.text,'pdf',body.allowUnchanged!==true);
       res.writeHead(200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="zhimian-resume.pdf"',
@@ -305,7 +305,7 @@ const server = http.createServer(async (req, res) => {
   // 只发布明确允许的页面，配置、数据、源码和 Git 文件均不可读取。
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: '不支持的请求方法' });
   const rel = url === '/' ? '/app.html' : url;
-  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js', '/mock-voice.js', '/voice-recorder-worklet.js']);
+  const publicFiles = new Set(['/app.html', '/index.html', '/index-sidebar.html', '/skill-learning.js', '/account.html', '/account-session.js', '/model-settings.js', '/interview-policy.js', '/formal-interview.js', '/resume-navigation.js', '/resume-library.js', '/mock-voice.js', '/voice-recorder-worklet.js']);
   if (!publicFiles.has(rel)) return sendJson(res, 404, { error: '页面不存在' });
   const abs = path.resolve(ROOT, '.' + rel);
   let real;

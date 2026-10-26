@@ -155,7 +155,7 @@
   return !!r.blueprint&&Array.isArray(r.blueprint.competencies)&&Array.isArray(rows)&&rows.length<=2&&new Set(rows.map(x=>x?.criterionId)).size===rows.length&&rows.every(x=>x&&x.goalId===r.goalId&&bounded(x.taskId,200)&&bounded(x.recordId,100)&&bounded(x.reason,500)&&bounded(x.sourceQuote,500)&&bounded(x.previousQuestion,1000)&&['verified','needs_more','unknown','suggested','selected','practicing'].includes(x.previousOutcome)&&r.blueprint.competencies.some(a=>Array.isArray(a?.criteria)&&a.criteria.some(c=>c?.id===x.criterionId)));
  }
  function validResumeDocument(d){return !!d&&typeof d.id==='string'&&/^[a-f0-9]{32}$/.test(d.id)&&bounded(d.name,240)&&['.pdf','.docx'].includes(d.ext)&&(d.pages===undefined||d.pages===null||Number.isInteger(d.pages)&&d.pages>=1&&d.pages<=30);}
- function validSetup(s){return !!s&&bounded(s.jd,10000)&&bounded(s.resume,30000)&&['hr','business'].includes(s.interviewer)&&['formal','coaching'].includes(s.mode)&&bounded(s.roleSelection,100)&&['manual','resume-current','resume-version'].includes(s.resumeSource)&&(s.resumeVersionId===null||bounded(s.resumeVersionId,100))&&bounded(s.resumeLabel,200)&&(s.resumeDocument===undefined||validResumeDocument(s.resumeDocument));}
+ function validSetup(s){return !!s&&bounded(s.jd,10000)&&bounded(s.resume,30000)&&['hr','business'].includes(s.interviewer)&&['formal','coaching'].includes(s.mode)&&bounded(s.roleSelection,100)&&['manual','resume-current','resume-version'].includes(s.resumeSource)&&(s.resumeVersionId===null||bounded(s.resumeVersionId,100))&&bounded(s.resumeLabel,200)&&(s.resumeId===undefined||bounded(s.resumeId,100))&&(s.resumeDocument===undefined||validResumeDocument(s.resumeDocument));}
  function validGoals(s){
   if(!s||s.schemaVersion!==1||!Array.isArray(s.goals)||s.goals.length>1000||!(s.activeId===null||bounded(s.activeId,100)))return false;
   const ids=new Set(),jobs=new Set();
@@ -165,7 +165,7 @@
  function validPreparation(r){
   if(r.goalId!==undefined&&(!bounded(r.goalId,100)||!r.goalId))return false;
   const p=r.preparation;if(p===undefined)return true;
-  return !!p&&p.goalId===r.goalId&&bounded(p.goalName,200)&&['goal_default','session'].includes(p.origin)&&['manual','resume-current','resume-version'].includes(p.resumeSource)&&(p.resumeVersionId===null||bounded(p.resumeVersionId,100))&&bounded(p.resumeLabel,200)&&typeof p.confirmed==='boolean'&&(p.resumeDocument===undefined||validResumeDocument(p.resumeDocument));
+  return !!p&&p.goalId===r.goalId&&bounded(p.goalName,200)&&['goal_default','session'].includes(p.origin)&&['manual','resume-current','resume-version'].includes(p.resumeSource)&&(p.resumeVersionId===null||bounded(p.resumeVersionId,100))&&bounded(p.resumeLabel,200)&&(p.resumeId===undefined||bounded(p.resumeId,100))&&typeof p.confirmed==='boolean'&&(p.resumeDocument===undefined||validResumeDocument(p.resumeDocument));
  }
  function validFormal(record,envelope){
   if(!validPreparation(record)||!validPractice(record)||!validFocus(record))return false;
