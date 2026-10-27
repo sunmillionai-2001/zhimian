@@ -69,3 +69,50 @@ test('method-probe 不进入面试评价分支，不产出分数',async()=>{
   assert.equal(out.result.scores,undefined,'追问任务不应返回评分');
   assert.equal(out.meta.interviewer,undefined);
 });
+
+/* ===== 受限复核 method-review ===== */
+const WEAK='我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。我拿了两周灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门。';
+
+test('method-review 只在未达标时复核，已达标拒绝',async()=>{
+  const cfg=cfgOf({found:false,gap:'',quote:'',reason:''});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'yes',levelName:'是',gaps:['G1']},cfg),/只有未达标的回答才需要复核/);
+});
+
+test('method-review 指出被漏掉的证据时必须引用原文',async()=>{
+  const cfg=cfgOf({found:true,gap:'G4',quote:'对账时间从三天变成半天',reason:'这里已经有做前做后的量化对比'});
+  const out=await runAi('method-review',{answer:WEAK,level:'neutral',levelName:'中性',gaps:['G1','G4']},cfg);
+  assert.equal(out.result.found,true);
+  assert.equal(out.result.gap,'G4');
+  assert.equal(out.result.quote,'对账时间从三天变成半天');
+});
+
+test('method-review 拒绝编造原文，防止 AI 自己写一段当证据',async()=>{
+  const cfg=cfgOf({found:true,gap:'G4',quote:'我把对账时间从三天压到半天，效率提升了一倍',reason:'有量化'});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'neutral',levelName:'中性',gaps:['G4']},cfg),/复核依据不在回答原文中/);
+});
+
+test('method-review 拒绝复核范围外的缺口',async()=>{
+  const cfg=cfgOf({found:true,gap:'G3',quote:'对账时间从三天变成半天',reason:'x'});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'neutral',levelName:'中性',gaps:['G4']},cfg),/复核的缺口不在待复核范围内/);
+});
+
+test('method-review 拒绝过短证据，避免拿几个字当依据',async()=>{
+  const cfg=cfgOf({found:true,gap:'G4',quote:'成功',reason:'x'});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'neutral',levelName:'中性',gaps:['G4']},cfg),/复核依据过短/);
+});
+
+test('method-review 允许 found:false，表示规则判定没有漏',async()=>{
+  const cfg=cfgOf({found:false,gap:'',quote:'',reason:''});
+  const out=await runAi('method-review',{answer:WEAK,level:'no',levelName:'否',gaps:['G1','G2']},cfg);
+  assert.equal(out.result.found,false);
+});
+
+test('method-review 拒绝未知缺口编号，客户端传错不能过',async()=>{
+  const cfg=cfgOf({found:false,gap:'',quote:'',reason:''});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'no',levelName:'否',gaps:['G9']},cfg),/未知的缺口类型/);
+});
+
+test('method-review 没有待复核缺口时拒绝，避免空调用',async()=>{
+  const cfg=cfgOf({found:false,gap:'',quote:'',reason:''});
+  await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'no',levelName:'否',gaps:[]},cfg),/当前没有待复核的缺口/);
+});

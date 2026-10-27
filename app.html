@@ -172,6 +172,12 @@
   .md-block h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px}
   .md-evidence{border-left:3px solid var(--seal-soft);padding:8px 0 8px 13px;margin:8px 0;font-size:13.5px;color:var(--ink-soft);line-height:1.7}
   .md-evidence q{font-style:italic}
+  #mdReview{margin-top:18px;padding:16px 18px;border:1px solid rgba(47,93,93,.3);border-radius:14px;background:rgba(47,93,93,.05)}
+  #mdReview h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px;color:var(--teal)}
+  #mdReview .rv-quote{border-left:3px solid var(--teal);padding:6px 0 6px 12px;margin:10px 0;font-size:13.5px;color:var(--ink-soft);font-style:italic}
+  #mdReview .rv-reason{font-size:13.5px;line-height:1.7;color:var(--ink-soft)}
+  #mdReview .rv-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  #mdReview .rv-note{font-size:12px;color:var(--ink-faint);margin-top:8px}
   .md-next{padding:14px 16px;border-radius:12px;background:var(--seal-soft);color:var(--seal-deep);font-weight:600;font-size:14.5px;line-height:1.65}
   .md-gap{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:rgba(193,58,30,.08);color:var(--seal-deep);margin:0 7px 7px 0}
   .md-gap i{font-family:var(--latin);font-style:italic;font-size:11px;opacity:.75}
@@ -897,6 +903,7 @@
       <!-- 04 诊断 -->
       <section class="md-panel" id="mdPanelVerdict" hidden>
         <div id="mdVerdictBody"></div>
+        <div id="mdReview" hidden></div>
         <div class="paste-actions">
           <button class="btn btn-primary" id="mdAgain" type="button">再练一题</button>
           <button class="btn btn-ghost" id="mdSwapOpen" type="button">换位模式：你来当面试官</button>
@@ -2345,7 +2352,7 @@
   const MD = window.ZmMethod;
   const MD_KEY='zm_method_state_v1';
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
-  let mdProbeToken=0;
+  let mdProbeToken=0, mdReviewToken=0;
   // AI 只用于追问措辞润色。没有配置模型时自动退回规则底稿，功能不降级。
   const mdAiEnabled = location.protocol==='http:'||location.protocol==='https:';
 
@@ -2585,6 +2592,70 @@
     mdWrite(next);
     mdSetStep('verdict');
     mdMsg('');
+    mdMaybeReview(combined,v);
+  }
+
+  // 受限复核：只在规则判定未达标时，问 AI 有没有被漏掉的证据。
+  // 三条边界：不推翻规则、最多提一档、必须引用原文。
+  async function mdMaybeReview(answer,v){
+    const box=document.getElementById('mdReview');
+    if(!box)return;
+    box.hidden=true;box.innerHTML='';
+    // 已达标不复核——没有需要救回的误判。
+    if(!mdAiEnabled||v.alignment==='met')return;
+    if(!['strong_no','no','neutral'].includes(v.level))return;
+    if(!v.gaps.length)return;
+    const token=++mdReviewToken;
+    try{
+      const data=await requestAi('method-review',{
+        answer,level:v.level,levelName:v.levelName,gaps:v.gaps.map(g=>g.code)
+      },{openSettings:false,timeoutMs:20000});
+      const r=data?.result;
+      // 用户可能已经换题或离开：过期结果丢弃。
+      if(!r||!r.found||token!==mdReviewToken||mdStep!=='verdict')return;
+      const gap=v.gaps.find(g=>g.code===r.gap);
+      if(!gap)return;
+      box.hidden=false;
+      box.innerHTML=`<h4>AI 复核：这里可能漏了一条</h4>
+        <div class="rv-reason">系统判断这题缺「${esc(gap.label)}」，但你这段话里可能已经有证据：</div>
+        <div class="rv-quote">${esc(r.quote)}</div>
+        <div class="rv-reason">${esc(r.reason)}</div>
+        <div class="rv-actions">
+          <button class="btn btn-ghost" id="mdReviewAccept" type="button">这条确实是我说的，按它重算</button>
+          <button class="btn btn-ghost" id="mdReviewIgnore" type="button">忽略</button>
+        </div>
+        <p class="rv-note">规则判定不会被自动改写。你可以自己决定这段算不算数。</p>`;
+      document.getElementById('mdReviewIgnore').onclick=()=>{box.hidden=true;};
+      document.getElementById('mdReviewAccept').onclick=()=>{
+        // 采纳：把规则档位提一档（最多一档），并把这段证据记进本次诊断。
+        const order=['strong_no','no','neutral','yes','strong_yes'];
+        const cur=order.indexOf(v.level);
+        const lifted=order[Math.min(order.length-1,cur+1)];
+        const nx=structuredClone(mdState);
+        const last=nx.sessions[nx.sessions.length-1];
+        if(last){
+          last.verdict={...last.verdict,level:lifted,aiLifted:true,aiEvidence:r.quote,ruleLevel:v.level};
+          last.nextStep='已按你确认的证据上调一档。想再稳一点，可以补一句复盘。';
+          if(mdWrite(nx))mdRenderLifted(v,lifted,r,gap);
+        }
+        box.hidden=true;
+      };
+    }catch(e){
+      // 未配置 / 超时 / 校验失败：静默跳过复核，规则结论保持不变。
+    }
+  }
+
+  // 采纳复核后，把档位区域就地更新，并说明是 AI 复核上调的。
+  function mdRenderLifted(v,levelId,r,gap){
+    const top=document.querySelector('#mdVerdictBody .md-verdict-top');
+    if(!top)return;
+    const name=MD.levelName(levelId);
+    const req=MD.STAGE_REQUIRED[mdState.profile.jobStage];
+    const order=['strong_no','no','neutral','yes','strong_yes'];
+    const met=order.indexOf(levelId)>=req;
+    top.innerHTML=`<div class="md-level ${met?'met':''}">${esc(name)}</div>
+      <div class="md-verdict-sub">按「${esc(MD.stageName(mdState.profile.jobStage))}」标准评 · 这一档需要到「${esc(MD.levelName(MD.LEVEL_IDS[req]))}」才算达标 · ${met?'<b style="color:var(--teal)">已达标</b>':'<b style="color:var(--seal)">还差一点</b>'}
+      <br><span class="mock-note">由 AI 复核上调（规则原判「${esc(v.levelName)}」），依据：「${esc(r.quote)}」</span></div>`;
   }
 
   /* 换位模式 */
