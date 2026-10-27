@@ -185,6 +185,9 @@ const {spawn}=require('node:child_process');
   assert.equal(lifted.aiEvidence,'我拿了两周灰度数据给财务看','应保存证据原文');
 
   // 已达标时不发起复核（不应出现复核卡片）
+  // 先切到单题模式：一轮模式下答完一题会继续下一题，不适合验证单次判定
+  await page.evaluate(()=>document.querySelector('[data-md-mode="single"]').click());
+  await page.waitForTimeout(200);
   await page.unroute('**/api/ai/method-review');
   let reviewCalled=false;
   await page.route('**/api/ai/method-review',route=>{reviewCalled=true;route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({result:{found:false,gap:'',quote:'',reason:''}})});});
@@ -211,6 +214,9 @@ const {spawn}=require('node:child_process');
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
+  // 切单题模式再验维度切换（一轮模式下题目由轮次决定，不随维度切换）
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(200);
   // 默认 D2
   await page.click('#mdSaveProfile');
   await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
@@ -246,6 +252,8 @@ const {spawn}=require('node:child_process');
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(200);
   await page.click('#mdSaveProfile');
   await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
   const seen=new Set();
@@ -262,6 +270,57 @@ const {spawn}=require('node:child_process');
     seen.add(q);
   }
   assert.equal(seen.size,5,'五个维度应给出五道不同的题');
+
+  // 完整跑一轮：五个维度各一题，最后出整轮小结
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','5 年以上，带过团队');
+  // 默认就是「练一轮」
+  assert.equal(await page.locator('[data-md-mode="round"]').getAttribute('class'),'chip active','默认应是一轮模式');
+  assert.equal(await page.evaluate(()=>document.getElementById('mdDimField').hidden),true,'一轮模式不需要选维度');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 5 题/,'一轮应有进度');
+  const roundDims=[];
+  // 五道题依次答完，答案统一用一段有明显缺口的回答，确保每轮都能走到诊断
+  for(let i=0;i<5;i++){
+    roundDims.push(await page.locator('#mdQuestionDim').innerText());
+    if(i===0)assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 5 题/);
+    if(i===4)assert.match(await page.locator('#mdRoundBar').innerText(),/第 5 \/ 5 题/);
+    await page.locator('#mdAnswer').fill('我们团队一起做了个事情，中间有些困难，最后完成了，效果还不错。');
+    await page.locator('#mdSubmit').click();
+    await page.waitForTimeout(350);
+    if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+    await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+    // 一轮模式下诊断页主按钮是「下一题」，最后一题是「看整轮结果」
+    const btnText=await page.locator('#mdAgain').innerText();
+    if(i<4)assert.match(btnText,/下一题/,'第 '+(i+1)+' 题后应显示下一题，实际：'+btnText);
+    else assert.match(btnText,/整轮结果/,'最后一题后应显示看整轮结果，实际：'+btnText);
+    await page.locator('#mdAgain').click();
+    await page.waitForTimeout(350);
+  }
+  assert.equal(new Set(roundDims).size,5,'五个维度的题都应出现，实际：'+roundDims.join('/'));
+  // 小结页
+  await page.waitForFunction(()=>!document.getElementById('mdPanelSummary').hidden,{timeout:5000});
+  assert.equal(await page.locator('.md-sum-row').count(),5,'小结应列出五个维度');
+  const head=await page.locator('#mdSummaryHead').innerText();
+  assert.match(head,/\d+ \/ 5/,'小结应给出达标数，实际：'+head);
+  assert.match(head,/最该补/, '未全达标时应指出最该补的维度');
+  const weakRows=await page.locator('.md-sum-row.weak').count();
+  assert.equal(weakRows,1,'应标出一个最弱维度');
+  const saved2=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')));
+  assert.equal(saved2.sessions.length,5,'一轮应记录五条诊断');
+  assert.equal(saved2.metrics.rounds,1,'应记一轮');
+
+  // 只补最弱那一项：应切到单题模式并出对应维度的题
+  await page.locator('#mdSummaryWeak').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  assert.equal(await page.locator('[data-md-mode="single"]').getAttribute('class'),'chip active','应切到单题模式');
+  assert.equal(await page.evaluate(()=>document.getElementById('mdDimField').hidden),false,'单题模式要显示维度选择');
+  assert.equal(await page.evaluate(()=>document.getElementById('mdRoundBar').hidden),true,'单题模式不显示进度条');
 
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});

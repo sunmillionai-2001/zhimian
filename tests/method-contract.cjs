@@ -413,3 +413,80 @@ test('各维度下一步优先修自己的致命缺口',()=>{
     assert.match(r.nextStep,new RegExp(re),dim+' 下一步应指向致命缺口，实际：'+r.nextStep);
   }
 });
+
+/* ===== 一轮练习：组题与小结 ===== */
+test('一轮按五个维度各出一题，题目不重复',()=>{
+  assert.equal(M.ROUND_SIZE,5);
+  const round=M.buildRound('owner');
+  assert.equal(round.length,5);
+  assert.equal(new Set(round.map(r=>r.questionId)).size,5,'五个维度应给出五道不同的题');
+  assert.equal(new Set(round.map(r=>r.dimensionId)).size,5);
+  for(const r of round){
+    assert.ok(r.dimensionName&&r.questionId&&r.question&&r.hint,r.dimensionId+' 组题信息要完整');
+  }
+});
+
+test('一轮组题按档位变难',()=>{
+  const low=M.buildRound('executor').map(r=>r.questionId);
+  const high=M.buildRound('lead').map(r=>r.questionId);
+  assert.notDeepEqual(low,high,'不同档位应出不同的题');
+  assert.ok(low.every(q=>q.endsWith('-Q1')),'执行者档应全是最基础的 Q1');
+  assert.ok(high.every(q=>q.endsWith('-Q3')),'带人带事档应全是 Q3');
+});
+
+test('整轮小结给出达标数与最该补的维度',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'yes'},
+    {dimensionId:'D2',level:'neutral'},
+    {dimensionId:'D3',level:'no'},
+    {dimensionId:'D4',level:'yes'},
+    {dimensionId:'D5',level:'neutral'}
+  ],'owner');
+  assert.equal(sum.total,5);
+  assert.equal(sum.metCount,2,'yes 才算达标（owner 需要到「是」）');
+  assert.equal(sum.weakest.dimensionId,'D3','差距最大的应被标为最弱');
+  assert.match(sum.headline,/2 \/ 5/);
+  assert.match(sum.headline,/协作与冲突/);
+});
+
+test('同样差距时按权重挑最弱的，业务判断优先于压力稳定',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'no'},
+    {dimensionId:'D5',level:'no'}
+  ],'owner');
+  assert.equal(sum.weakest.dimensionId,'D1','权重 0.25 的业务判断应优先于 0.10 的压力稳定');
+});
+
+test('全部达标时给正向结论，不硬找最弱',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'strong_yes'},
+    {dimensionId:'D2',level:'strong_yes'}
+  ],'executor');
+  assert.equal(sum.metCount,2);
+  assert.match(sum.headline,/都达标/);
+});
+
+test('小结对空输入不崩',()=>{
+  const sum=M.roundSummary([],'owner');
+  assert.equal(sum.total,0);
+  assert.equal(sum.weakest,null);
+  assert.ok(sum.headline.length>0);
+});
+
+test('小结里每个维度的达标线按岗位档位算',()=>{
+  const rows=[{dimensionId:'D2',level:'neutral'}];
+  // 执行者到「中性」就算达标
+  assert.equal(M.roundSummary(rows,'executor').rows[0].met,true);
+  // 带人带事需要「强是」
+  assert.equal(M.roundSummary(rows,'lead').rows[0].met,false);
+  assert.equal(M.roundSummary(rows,'lead').rows[0].gap,2);
+});
+
+test('存档允许 rounds 计数，且兼容没有该字段的旧数据',()=>{
+  const st=M.empty();
+  assert.ok(M.validate(st),'新档应通过');
+  st.metrics.rounds=2;
+  assert.ok(M.validate(st),'带 rounds 应通过');
+  st.metrics.rounds=-1;
+  assert.equal(M.validate(st),false,'负数应拒绝');
+});

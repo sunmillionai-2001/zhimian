@@ -181,6 +181,18 @@
   .md-next{padding:14px 16px;border-radius:12px;background:var(--seal-soft);color:var(--seal-deep);font-weight:600;font-size:14.5px;line-height:1.65}
   .md-gap{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:rgba(193,58,30,.08);color:var(--seal-deep);margin:0 7px 7px 0}
   .md-gap i{font-family:var(--latin);font-style:italic;font-size:11px;opacity:.75}
+  .md-round-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .md-round-bar .rb-text{font-family:var(--latin);font-style:italic;font-size:13px;letter-spacing:.5px;color:var(--ink-faint)}
+  .md-round-dots{display:flex;gap:6px}
+  .md-round-dots i{width:26px;height:5px;border-radius:3px;background:var(--line);display:block}
+  .md-round-dots i.done{background:var(--teal)}
+  .md-round-dots i.now{background:var(--seal)}
+  .md-sum-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:13px 15px;border:1px solid var(--line-soft);border-radius:12px;margin-bottom:10px;background:var(--card-hi)}
+  .md-sum-row.weak{border-color:var(--seal);background:rgba(193,58,30,.04)}
+  .md-sum-row .nm{font-weight:700;font-size:14px}
+  .md-sum-row .lv{font-family:var(--serif);font-weight:900;font-size:16px}
+  .md-sum-row.met .lv{color:var(--teal)}
+  .md-sum-row .gd{font-size:12.5px;color:var(--ink-faint)}
   .md-swap-answer{margin:14px 0;padding:15px 17px;border-radius:12px;background:var(--paper-2);border-left:3px solid var(--teal);font-size:14.5px;line-height:1.75;white-space:pre-wrap}
   .md-swap-diff{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
   .md-swap-box{border:1px solid var(--line-soft);border-radius:12px;padding:14px;background:var(--card-hi)}
@@ -870,7 +882,11 @@
           <div class="field"><label for="mdRole">你在看什么岗位（选填）</label><input id="mdRole" maxlength="80" placeholder="如：产品经理 / 后端开发" /></div>
         </div>
         <div class="field"><label for="mdJd">岗位 JD（选填，填了诊断更准）</label><textarea id="mdJd" rows="4" maxlength="30000" placeholder="粘贴任职要求，用来判断这个岗位要什么人"></textarea></div>
-        <div class="field"><label>这次练哪个维度</label><div class="filter-row" id="mdDims"></div></div>
+        <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
+          <button type="button" class="chip active" data-md-mode="round">练一轮（五个维度各一题）</button>
+          <button type="button" class="chip" data-md-mode="single">只练一题</button>
+        </div></div>
+        <div class="field" id="mdDimField" hidden><label>练哪个维度</label><div class="filter-row" id="mdDims"></div></div>
         <div class="paste-actions">
           <button class="btn btn-primary" id="mdSaveProfile" type="button">确认标尺</button>
           <button class="btn btn-ghost" id="mdUseJob" type="button">从目标岗位带入</button>
@@ -880,6 +896,7 @@
 
       <!-- 02 答题 -->
       <section class="md-panel" id="mdPanelAnswer" hidden>
+        <div class="md-round-bar" id="mdRoundBar" hidden></div>
         <div class="md-q-head"><span class="tag" id="mdQuestionDim"></span><h3 id="mdQuestion"></h3></div>
         <p class="mock-note" id="mdQuestionHint"></p>
         <div class="field"><label for="mdAnswer">你的回答</label><textarea id="mdAnswer" rows="8" maxlength="30000" placeholder="像真的面试那样讲一遍，不用先想结构。"></textarea></div>
@@ -905,10 +922,23 @@
       <section class="md-panel" id="mdPanelVerdict" hidden>
         <div id="mdVerdictBody"></div>
         <div id="mdReview" hidden></div>
-        <div class="paste-actions">
+        <div class="paste-actions" id="mdVerdictActions">
           <button class="btn btn-primary" id="mdAgain" type="button">再练一题</button>
           <button class="btn btn-ghost" id="mdSwapOpen" type="button">换位模式：你来当面试官</button>
           <button class="btn btn-ghost" id="mdHistoryOpen" type="button">看诊断记录</button>
+        </div>
+      </section>
+
+      <!-- 整轮小结 -->
+      <section class="md-panel" id="mdPanelSummary" hidden>
+        <span class="eyebrow">Round</span>
+        <h3>这一轮的结果</h3>
+        <p class="mock-note" id="mdSummaryHead"></p>
+        <div id="mdSummaryBody"></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdSummaryAgain" type="button">再练一轮</button>
+          <button class="btn btn-ghost" id="mdSummaryWeak" type="button">只补最弱那一项</button>
+          <button class="btn btn-ghost" id="mdSummaryHistory" type="button">看诊断记录</button>
         </div>
       </section>
 
@@ -2353,6 +2383,8 @@
   const MD = window.ZmMethod;
   const MD_KEY='zm_method_state_v1';
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
+  // 一轮练习的状态：questions 是这一轮的题，results 逐题累计。
+  let mdMode='round', mdRound=null;
   let mdProbeToken=0, mdReviewToken=0, mdDimId='D2';
   // AI 只用于追问措辞润色。没有配置模型时自动退回规则底稿，功能不降级。
   const mdAiEnabled = location.protocol==='http:'||location.protocol==='https:';
@@ -2381,7 +2413,7 @@
   function mdSetStep(step,{scroll=true}={}){
     const prev=mdStep;
     mdStep=step;
-    const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory'};
+    const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory',summary:'mdPanelSummary'};
     for(const [k,id] of Object.entries(map)){
       const el=document.getElementById(id); if(el) el.hidden = k!==step;
     }
@@ -2479,11 +2511,54 @@
     mdStartAnswer();
   }
 
+  // 开始答题：单题模式出当前维度的题，一轮模式出五个维度各一题。
   function mdStartAnswer(){
     if(!mdState.profile){mdSetStep('profile');mdMsg('先确认标尺。');return;}
-    const dim=MD.dimension(mdDimId);
-    const q=MD.pickQuestion(mdState.profile.jobStage,mdDimId);
-    mdSession={questionId:q.id,question:q.q,turns:[],probeSeed:0,dimension:mdDimId};
+    if(mdMode==='round'){
+      mdRound={questions:MD.buildRound(mdState.profile.jobStage),results:[],index:0};
+      mdShowRoundQuestion();
+    }else{
+      mdRound=null;
+      mdShowSingle(mdDimId);
+    }
+  }
+
+  // 一轮模式：渲染当前这一题
+  function mdShowRoundQuestion(){
+    const it=mdRound.questions[mdRound.index];
+    if(!it){mdRenderSummary();return;}
+    const dim=MD.dimension(it.dimensionId);
+    mdSession={questionId:it.questionId,question:it.question,turns:[],probeSeed:0,dimension:it.dimensionId};
+    document.getElementById('mdQuestionDim').textContent=dim.name;
+    document.getElementById('mdQuestion').textContent=it.question;
+    const hintEl=document.getElementById('mdQuestionHint');
+    if(hintEl)hintEl.textContent=(it.hint||'')+'  不用先想结构，像真的面试那样讲一遍，系统会抓出缺的那一块再追问。';
+    mdRenderRoundBar();
+    document.getElementById('mdAnswer').value='';
+    document.getElementById('mdAnswerState').textContent='';
+    mdSetStep('answer');
+    mdMsg('');
+  }
+
+  function mdRenderRoundBar(){
+    const bar=document.getElementById('mdRoundBar');
+    if(!bar)return;
+    if(!mdRound){bar.hidden=true;return;}
+    bar.hidden=false;
+    const total=mdRound.questions.length;
+    const dots=mdRound.questions.map((_,i)=>{
+      const cls=i<mdRound.index?'done':(i===mdRound.index?'now':'');
+      return `<i class="${cls}"></i>`;
+    }).join('');
+    bar.innerHTML=`<span class="rb-text">第 ${mdRound.index+1} / ${total} 题</span><span class="md-round-dots">${dots}</span>`;
+  }
+
+  function mdShowSingle(dimId){
+    const dim=MD.dimension(dimId);
+    const q=MD.pickQuestion(mdState.profile.jobStage,dimId);
+    mdSession={questionId:q.id,question:q.q,turns:[],probeSeed:0,dimension:dimId};
+    const bar=document.getElementById('mdRoundBar');
+    if(bar)bar.hidden=true;
     document.getElementById('mdQuestionDim').textContent=dim.name;
     document.getElementById('mdQuestion').textContent=q.q;
     const hintEl=document.getElementById('mdQuestionHint');
@@ -2595,9 +2670,61 @@
     }]).slice(-200);
     next.metrics.completed++;
     mdWrite(next);
+    // 一轮模式：把这题结果记进本轮，并把按钮换成「下一题」
+    if(mdRound){
+      mdRound.results[mdRound.index]={dimensionId:dimId,dimensionName:dim.name,level:v.level,nextStep:v.nextStep};
+    }
+    mdRenderVerdictActions();
     mdSetStep('verdict');
     mdMsg('');
     mdMaybeReview(combined,v);
+  }
+
+  // 一轮模式下诊断页的主按钮是「下一题」，单题模式才是「再练一题」。
+  function mdRenderVerdictActions(){
+    const box=document.getElementById('mdVerdictActions');
+    const again=document.getElementById('mdAgain');
+    if(!box||!again)return;
+    if(mdRound){
+      const last=mdRound.index>=mdRound.questions.length-1;
+      again.textContent=last?'看整轮结果':'下一题（'+(mdRound.index+2)+'/'+mdRound.questions.length+'）';
+      again.dataset.mdRoundNext='1';
+    }else{
+      again.textContent='再练一题';
+      delete again.dataset.mdRoundNext;
+    }
+  }
+
+  // 一轮模式里点「下一题」：推进到下一题，或结束进入小结。
+  function mdRoundNext(){
+    if(!mdRound)return;
+    mdRound.index++;
+    if(mdRound.index>=mdRound.questions.length){mdRenderSummary();return;}
+    mdShowRoundQuestion();
+  }
+
+  // 整轮小结：五维对比，指出最该补的那一个。
+  function mdRenderSummary(){
+    if(!mdRound)return;
+    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage);
+    document.getElementById('mdSummaryHead').textContent=sum.headline;
+    document.getElementById('mdSummaryBody').innerHTML=sum.rows.map(r=>{
+      const isWeak=sum.weakest&&r.dimensionId===sum.weakest.dimensionId;
+      return `<div class="md-sum-row ${r.met?'met':''} ${isWeak&&!r.met?'weak':''}">
+        <div><div class="nm">${esc(r.dimensionName)}</div><div class="gd">${r.met?'已达标':'差 '+r.gap+' 档'}</div></div>
+        <div class="lv">${esc(r.levelName)}</div>
+        <div class="gd">需要「${esc(MD.levelName(MD.LEVEL_IDS[r.required]))}」</div>
+      </div>`;
+    }).join('');
+    const weakBtn=document.getElementById('mdSummaryWeak');
+    if(weakBtn){
+      weakBtn.hidden=!sum.weakest||sum.metCount===sum.total;
+      if(sum.weakest)weakBtn.textContent='只补「'+sum.weakest.dimensionName+'」';
+    }
+    const next=structuredClone(mdState);
+    next.metrics.rounds=(next.metrics.rounds||0)+1;
+    mdWrite(next);
+    mdSetStep('summary');
   }
 
   // 受限复核：只在规则判定未达标时，问 AI 有没有被漏掉的证据。
@@ -2733,6 +2860,23 @@
     }catch(e){mdMsg('读取目标岗位失败，可直接粘贴 JD。');}
   }
 
+  function mdRenderModes(){
+    const box=document.getElementById('mdModes');
+    const field=document.getElementById('mdDimField');
+    if(!box)return;
+    box.querySelectorAll('[data-md-mode]').forEach(b=>{
+      b.classList.toggle('active',b.dataset.mdMode===mdMode);
+      b.onclick=()=>{
+        mdMode=b.dataset.mdMode;
+        mdRound=null;
+        mdRenderModes();
+        if(mdState.profile)mdStartAnswer();
+      };
+    });
+    // 只有单题模式才需要选具体维度
+    if(field)field.hidden=(mdMode!=='single');
+  }
+
   function mdRenderDims(){
     const box=document.getElementById('mdDims');
     if(!box)return;
@@ -2748,6 +2892,7 @@
   // 初始化方法论诊断
   mdLoad();
   renderGrid();
+  mdRenderModes();
   mdRenderDims();
   mdRenderProfile();
   mdSetStep(mdState.profile?'answer':'profile');
@@ -2760,10 +2905,22 @@
   mdBind('mdSubmit',mdSubmit);
   mdBind('mdProbeSubmit',mdProbeSubmit);
   mdBind('mdProbeSkip',mdProbeSkip);
-  mdBind('mdAgain',mdStartAnswer);
+  mdBind('mdAgain',()=>{ if(mdRound&&document.getElementById('mdAgain').dataset.mdRoundNext)mdRoundNext(); else mdStartAnswer(); });
   mdBind('mdSwapOpen',mdOpenSwap);
   mdBind('mdSwapSubmit',mdSwapSubmit);
   mdBind('mdSwapBack',()=>mdSetStep('verdict'));
+  mdBind('mdSummaryAgain',()=>mdStartAnswer());
+  mdBind('mdSummaryWeak',()=>{
+    if(!mdRound)return;
+    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage);
+    if(!sum.weakest)return;
+    mdMode='single';
+    mdDimId=sum.weakest.dimensionId;
+    mdRound=null;
+    mdRenderModes();mdRenderDims();
+    mdStartAnswer();
+  });
+  mdBind('mdSummaryHistory',()=>{mdRenderHistory();mdSetStep('history');});
   mdBind('mdHistoryOpen',()=>{mdRenderHistory();mdSetStep('history');});
   mdBind('mdHistoryBack',()=>mdSetStep('verdict'));
   mdBind('mdExport',()=>downloadAsset(mdState,'zhimian-method.json'));

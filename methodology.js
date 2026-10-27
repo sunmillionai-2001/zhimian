@@ -809,6 +809,59 @@ function judgeByRule(rule,text,options){
   return judge(text,options);
 }
 
+/* ========== 一轮练习：组题与小结 ========== */
+// 单题诊断只能回答「这题答得怎样」，一轮才能回答「我哪个维度最弱」。
+// 后者才是用户真正需要的——它直接决定下一次练什么。
+const ROUND_SIZE=DIMENSIONS.length;
+
+// 按档位为每个维度各出一题，组成一轮。
+function buildRound(jobStage,dimIds){
+  const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:DIMENSIONS.map(d=>d.id);
+  return ids.map(id=>{
+    const d=dimension(id);
+    const q=pickQuestion(jobStage,id);
+    return {dimensionId:d.id,dimensionName:d.name,questionId:q.id,question:q.q,hint:q.hint};
+  });
+}
+
+// 整轮小结：按维度汇总档位，找出最该补的那一个。
+// 判定「最弱」不只看分数，还要看离达标差多少——差两档比差一档更紧急。
+function roundSummary(items,jobStage){
+  const rows=(items||[]).map(it=>{
+    const level=it.level||'strong_no';
+    const score=LEVEL_IDS.indexOf(level);
+    const required=STAGE_REQUIRED[jobStage]||3;
+    return {
+      dimensionId:it.dimensionId,
+      dimensionName:it.dimensionName||dimension(it.dimensionId).name,
+      level,
+      levelName:levelName(level),
+      score,
+      required,
+      gap:Math.max(0,required-score),
+      met:score>=required,
+      nextStep:it.nextStep||''
+    };
+  });
+  const metCount=rows.filter(r=>r.met).length;
+  // 排序：先按差距大的，再按权重高的（同样差一档，业务判断比压力稳定更值得先补）
+  const weakest=[...rows].sort((a,b)=>{
+    if(b.gap!==a.gap)return b.gap-a.gap;
+    return (dimension(b.dimensionId).weight_default||0)-(dimension(a.dimensionId).weight_default||0);
+  })[0]||null;
+  return {
+    rows,
+    total:rows.length,
+    metCount,
+    metRate:rows.length?metCount/rows.length:0,
+    weakest,
+    // 一句话结论：不给总分，只给「最该补什么」和「整体到什么程度」。
+    headline:rows.length?(metCount===rows.length
+      ?'这一轮五个维度都达标了。可以换更高的岗位标准再练一遍。'
+      :'这一轮 '+metCount+' / '+rows.length+' 个维度达标。最该补的是「'+weakest.dimensionName+'」。'):'还没有可汇总的题目。'
+  };
+}
+
 /* ========== 存储 ========== */
 function empty(){return {schemaVersion:1,profile:null,sessions:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
 
@@ -832,7 +885,10 @@ function validate(state){
     if(!STAGE_IDS.includes(s.verdict.jobStage))return false;
   }
   const m=state.metrics;
-  return isPlain(m)&&['started','completed','probeOffered','probeAccepted','swapDone'].every(k=>Number.isSafeInteger(m[k])&&m[k]>=0&&m[k]<=1e9);
+  if(!isPlain(m))return false;
+  if(!['started','completed','probeOffered','probeAccepted','swapDone'].every(k=>Number.isSafeInteger(m[k])&&m[k]>=0&&m[k]<=1e9))return false;
+  // rounds 是后加的字段，旧存档没有也要能读。
+  return m.rounds===undefined||(Number.isSafeInteger(m.rounds)&&m.rounds>=0&&m.rounds<=1e9);
 }
 
 /* ========== 对外接口 ========== */
@@ -843,6 +899,7 @@ return {
   analyze,detectGaps,nextProbe,pickUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
   starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
+  buildRound,roundSummary,ROUND_SIZE,
   empty,validate
 };
 });
