@@ -900,6 +900,7 @@
         <div class="paste-actions">
           <button class="btn btn-primary" id="mdAgain" type="button">再练一题</button>
           <button class="btn btn-ghost" id="mdSwapOpen" type="button">换位模式：你来当面试官</button>
+          <button class="btn btn-ghost" id="mdHistoryOpen" type="button">看诊断记录</button>
         </div>
       </section>
 
@@ -921,13 +922,15 @@
         <p class="mock-note" id="mdHistoryNote"></p>
         <div id="mdHistoryList"></div>
         <div class="paste-actions">
+          <button class="btn btn-ghost" id="mdHistoryBack" type="button">返回诊断</button>
           <button class="btn btn-ghost" id="mdExport" type="button">导出记录</button>
           <button class="btn btn-ghost" id="mdClear" type="button">清空记录</button>
         </div>
       </section>
 
-      <!-- 方法卡 -->
-      <section class="md-cards">
+      <!-- 方法卡：只在「定标尺」这一步展示；进入答题/追问/诊断/换位后收起，
+           否则它会占掉半屏，把新题目挤到视口外。 -->
+      <section class="md-cards" id="mdCards">
         <div class="section-head"><h2>方法卡<span class="num">60 秒一张</span></h2></div>
         <div class="method-grid" id="methodGrid"></div>
         <div id="methodEmpty" class="method-empty" style="display:none">
@@ -2364,7 +2367,11 @@
     catch(e){mdMsg('保存失败：浏览器存储不可用或空间不足。');return false;}
   }
 
-  function mdSetStep(step){
+  // 切换面板时把视图带到新面板顶部。
+  // 不滚动的话，从换位模式点「下一题」会停在页面下方（方法卡那一段），
+  // 用户得自己往上翻才能看到新题目——这是实际使用中会卡住人的地方。
+  function mdSetStep(step,{scroll=true}={}){
+    const prev=mdStep;
     mdStep=step;
     const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory'};
     for(const [k,id] of Object.entries(map)){
@@ -2377,7 +2384,36 @@
       p.classList.toggle('on',p.dataset.step===step);
       p.classList.toggle('done',i>=0&&at>=0&&i<at);
     });
-    if(step!=='verdict'&&step!=='swap'){const h=document.getElementById('mdPanelHistory');if(h)h.hidden=true;}
+    // 方法卡始终按原样展示，不随步骤隐藏——它和「换题后要滚回题目」是两个独立问题。
+    // 只在真的换了面板时滚动；同一面板内重渲染不打断用户阅读位置。
+    if(scroll&&prev!==step)mdScrollToPanel(map[step]);
+  }
+
+  // 把面板带到视口顶部（紧贴 sticky 顶栏下方）。
+  // 只做这一件事：换题后让用户立刻看到新题目。
+  // 方法卡保持原样显示在下方，不参与这个计算。
+  function mdScrollToPanel(id){
+    const el=document.getElementById(id);
+    if(!el||el.hidden)return;
+    const bar=document.querySelector('.topbar');
+    const barH=bar?bar.getBoundingClientRect().height:0;
+    const apply=()=>{
+      // 目标：面板顶部紧贴顶栏下方。
+      const panelTop=el.getBoundingClientRect().top+window.scrollY;
+      const target=Math.max(0,panelTop-barH-12);
+      window.scrollTo({top:target,behavior:'smooth'});
+    };
+    apply();
+    // 布局稳定后再校一次：字体、图片或内容高度变化会改变落点。
+    requestAnimationFrame(()=>{apply();});
+    setTimeout(apply,120);
+    if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','-1');
+    try{el.focus({preventScroll:true});}catch(e){}
+  }
+
+  // 换位模式内部换题：面板不变，但要回到题目顶部。
+  function mdScrollSwapTop(){
+    mdScrollToPanel('mdPanelSwap');
   }
 
   function mdRenderScale(scale){
@@ -2567,7 +2603,10 @@
       document.querySelectorAll('[data-md-pick]').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
     });
-    mdSetStep('swap');
+    // 第一题走 mdSetStep（会切面板并滚动）；后续换题面板不变，
+    // 必须自己滚回顶部，否则用户停在上一题的结果区。
+    if(mdStep==='swap')mdScrollSwapTop();
+    else mdSetStep('swap');
   }
   function mdSwapSubmit(){
     const picked=document.querySelector('[data-md-pick].active');
@@ -2636,6 +2675,8 @@
   mdBind('mdSwapOpen',mdOpenSwap);
   mdBind('mdSwapSubmit',mdSwapSubmit);
   mdBind('mdSwapBack',()=>mdSetStep('verdict'));
+  mdBind('mdHistoryOpen',()=>{mdRenderHistory();mdSetStep('history');});
+  mdBind('mdHistoryBack',()=>mdSetStep('verdict'));
   mdBind('mdExport',()=>downloadAsset(mdState,'zhimian-method.json'));
   mdBind('mdClear',()=>{
     if(!confirm('会清空本地的诊断记录（标尺会保留）。继续吗？'))return;

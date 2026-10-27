@@ -89,6 +89,41 @@ const {spawn}=require('node:child_process');
   assert.match(swap,/差在哪/);
   assert.match(swap,/形式完整/,'应给出一句话点破');
 
+  // 换位模式：点「下一题」后必须把视图带到新题，且不能影响方法卡的正常展示。
+  // 这两件事必须分开断言——之前把方法卡隐藏掉来"解决"滚动，是拿错方案换问题。
+  await page.locator('#mdSwapBack').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.locator('#mdSwapOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelSwap').hidden);
+  // 先把页面滚到下方（模拟用户读方法卡后点进来）
+  await page.evaluate(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'instant'}));
+  await page.waitForTimeout(200);
+  await page.locator('[data-md-pick="yes"]').click();
+  await page.locator('#mdSwapSubmit').click();
+  await page.waitForSelector('#mdSwapNext');
+  await page.locator('#mdSwapNext').click();
+  await page.waitForTimeout(900);
+  // 关键断言：新题标题要落在视口上半部分。
+  // 不比较 scrollY——页面总高度会随内容变化，scrollY 变大也可能只是文档变高了。
+  const pos=await page.evaluate(()=>{
+    const title=document.getElementById('mdSwapDim').getBoundingClientRect();
+    const cards=document.getElementById('mdCards');
+    return {titleTop:Math.round(title.top),vh:window.innerHeight,cardsHidden:cards.hidden,cardsTop:Math.round(cards.getBoundingClientRect().top)};
+  });
+  assert.ok(pos.titleTop>=0&&pos.titleTop<pos.vh*0.35,
+    '点下一题后新题标题应落在视口上半部分，实际 top='+pos.titleTop+' / vh='+pos.vh);
+  assert.equal(pos.cardsHidden,false,'方法卡必须保持展示，不能靠隐藏它来解决滚动问题');
+  assert.match(await page.locator('#mdSwapDim').innerText(),/2 \/ 3/,'应切到第二题');
+
+  // 历史记录入口可达（此前没有任何入口能打开这个面板）
+  await page.locator('#mdSwapBack').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.locator('#mdHistoryOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelHistory').hidden);
+  assert.ok((await page.locator('#mdHistoryList').innerText()).length>0,'应显示历史记录');
+  await page.locator('#mdHistoryBack').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+
   // 刷新后记录仍在（有档案时直接进答题，不再回到定标尺）
   await page.reload();
   await page.waitForSelector('#methodStart');
