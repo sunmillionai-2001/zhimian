@@ -461,12 +461,25 @@ const UTTERANCES={
   ]
 };
 function utteranceCount(){return Object.values(UTTERANCES).reduce((n,a)=>n+a.length,0);}
-// seed 让同一用户连续两次不撞同一句
-function pickUtterance(code,seed){
+// seed 让同一用户连续两次不撞同一句。
+// 只靠 seed 不够：用户每次新开一轮 seed 都从 0 开始，第二轮还会拿到第一句。
+// 所以再传一个 used 列表（该用户已经听过的句子），优先挑没听过的。
+function pickUtterance(code,seed,used){
   const pool=UTTERANCES[code];
   if(!pool||!pool.length)return '';
-  const i=Math.abs(Number(seed)||0)%pool.length;
-  return pool[i];
+  const heard=Array.isArray(used)?used:[];
+  const fresh=pool.filter(u=>!heard.includes(u));
+  // 全部听过就回到轮换，不能因为都听过就不给追问。
+  const from=fresh.length?fresh:pool;
+  const i=Math.abs(Number(seed)||0)%from.length;
+  return from[i];
+}
+
+// 记录已用话术，最多留最近 200 条，避免无限增长。
+function rememberUtterance(used,utterance){
+  const list=Array.isArray(used)?used.slice():[];
+  if(utterance&&!list.includes(utterance))list.push(utterance);
+  return list.slice(-200);
 }
 
 /* ========== 结构检查器（S/T/A/R） ========== */
@@ -965,8 +978,61 @@ function roundSummary(items,jobStage){
   };
 }
 
+/* ========== 方法卡：在用户卡住的那一刻给他需要的那一张 ========== */
+// 不做成课程目录。用户不需要知道一共有多少张卡，
+// 只在他正好需要的那一秒看到那一张——这是 OPM 那条结论的产品化：
+// 用户天然讨厌结构化，越系统地教他跑得越快。
+const CARDS=[
+  {
+    id:'C1',title:'STAR 是什么（30 秒版）',
+    when:'首次答完第一题',
+    body:'把一段经历切成四段：当时什么场景（S）、你要交付什么（T）、你具体做了什么（A）、结果如何（R）。重点在 A 要落到"我"，R 要能验证。'
+  },
+  {
+    id:'C2',title:'怎么把结果量化',
+    when:'连续两题结果没有数字',
+    body:'不用编数字。三个来源就够：做之前是什么水平、做完之后是什么水平、中间隔了多久。哪怕是"从三天变成半天"也比"效果很好"强。'
+  },
+  {
+    id:'C3',title:'被追问时怎么办',
+    when:'被追问后沉默超过 5 秒',
+    body:'先说"我想一下"，然后只补被问到的那一块，不要重讲整段。追问是在帮你补证据，不是在挑错。'
+  },
+  {
+    id:'C4',title:'怎么从平淡经历里挖素材',
+    when:'用户说想不出例子',
+    body:'不用非有大项目。想一想：哪件事让你不得不把同样的逻辑解释了两遍？哪个项目做到一半突然变了？哪些时刻你特别不想去开会？这些里面都藏着故事。'
+  },
+  {
+    id:'C5',title:'"我"和"我们"的边界',
+    when:'连续两题个人贡献不足',
+    body:'讲团队做的事时，"我们"可以保留背景，但每个关键节点都要说清：这个决定是谁拍的、这个动作是谁做的、出了问题谁承担。'
+  },
+  {
+    id:'C6',title:'怎么讲一个真实的失败',
+    when:'复盘维度被判强否',
+    body:'不要讲"追求完美"这类优点包装。挑一件真的搞砸过的事：说清代价、承认是自己的判断问题、说明后来改了什么做法。'
+  }
+];
+
+// 触发判定：只看当前状态，不看用户主动点击。
+// 返回最该弹的那一张；没有合适的就返回 null——不该弹的时候绝不弹。
+function pickCard(ctx){
+  const c=ctx||{};
+  const shown=Array.isArray(c.shown)?c.shown:[];
+  const ready=id=>!shown.includes(id);
+  // 优先级：卡住的那一刻 > 重复犯错 > 首次引导
+  if(c.silentMs>=5000&&ready('C3'))return CARDS.find(x=>x.id==='C3');
+  if(c.wantsExample&&ready('C4'))return CARDS.find(x=>x.id==='C4');
+  if(c.weaknessStrongNo&&ready('C6'))return CARDS.find(x=>x.id==='C6');
+  if((c.quantMissStreak||0)>=2&&ready('C2'))return CARDS.find(x=>x.id==='C2');
+  if((c.ownMissStreak||0)>=2&&ready('C5'))return CARDS.find(x=>x.id==='C5');
+  if((c.answeredCount||0)===1&&ready('C1'))return CARDS.find(x=>x.id==='C1');
+  return null;
+}
+
 /* ========== 存储 ========== */
-function empty(){return {schemaVersion:1,profile:null,sessions:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
+function empty(){return {schemaVersion:1,profile:null,sessions:[],usedUtterances:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
 
 const isPlain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const isStr=(v,max)=>typeof v==='string'&&v.length<=max;
@@ -987,6 +1053,11 @@ function validate(state){
     if(!isPlain(s.verdict)||!LEVEL_IDS.includes(s.verdict.level))return false;
     if(!STAGE_IDS.includes(s.verdict.jobStage))return false;
   }
+  // usedUtterances 是后加的字段，旧存档没有也要能读。
+  if(state.usedUtterances!==undefined){
+    if(!Array.isArray(state.usedUtterances)||state.usedUtterances.length>200)return false;
+    if(!state.usedUtterances.every(u=>isStr(u,300)))return false;
+  }
   const m=state.metrics;
   if(!isPlain(m))return false;
   if(!['started','completed','probeOffered','probeAccepted','swapDone'].every(k=>Number.isSafeInteger(m[k])&&m[k]>=0&&m[k]<=1e9))return false;
@@ -999,10 +1070,11 @@ return {
   STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
   stageName,stageIndex,inferSelfStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
-  analyze,detectGaps,nextProbe,pickUtterance,utteranceCount,
+  analyze,detectGaps,nextProbe,pickUtterance,rememberUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
   starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
   MOTIVE,MOTIVE_FLAGS,scanMotive,
+  CARDS,pickCard,
   buildRound,roundSummary,ROUND_SIZE,
   empty,validate
 };

@@ -602,3 +602,63 @@ test('没有动机题时小结照常工作',()=>{
   assert.equal(sum.motive,null);
   assert.equal(sum.total,1);
 });
+
+/* ===== H2 话术轮换 ===== */
+test('话术优先给没听过的，避免连续两轮撞同一句',()=>{
+  const used=['你刚才说的"我们"里，哪一部分是你亲自做的？'];
+  const next=M.pickUtterance('G1',0,used);
+  assert.notEqual(next,used[0],'已听过的句子不该再给');
+});
+
+test('全部听过时回到轮换，不能因为都听过就不给追问',()=>{
+  const all=M.UTTERANCES.G2.slice();
+  const r=M.pickUtterance('G2',0,all);
+  assert.ok(r&&r.length>0,'都听过也要给一句');
+  assert.ok(all.includes(r));
+});
+
+test('rememberUtterance 去重并限制长度',()=>{
+  let list=[];
+  list=M.rememberUtterance(list,'a');
+  list=M.rememberUtterance(list,'a');
+  assert.deepEqual(list,['a'],'重复不应追加');
+  for(let i=0;i<250;i++)list=M.rememberUtterance(list,'x'+i);
+  assert.equal(list.length,200,'最多保留 200 条');
+});
+
+test('存档接受 usedUtterances，且兼容没有该字段的旧数据',()=>{
+  const st=M.empty();
+  assert.ok(Array.isArray(st.usedUtterances),'新档应有空数组');
+  st.usedUtterances=['一句'];
+  assert.ok(M.validate(st));
+  st.usedUtterances='不是数组';
+  assert.equal(M.validate(st),false);
+  const old=M.empty();delete old.usedUtterances;
+  assert.ok(M.validate(old),'旧档没有该字段也要能读');
+});
+
+/* ===== F2 方法卡触发 ===== */
+test('方法卡六张，每张都有触发时机和正文',()=>{
+  assert.equal(M.CARDS.length,6);
+  for(const c of M.CARDS){
+    assert.ok(c.id&&c.title&&c.when&&c.body,c.id);
+    assert.ok(c.body.length>30,c.id+' 正文要够说明白');
+  }
+});
+
+test('方法卡按「卡住的那一刻」优先，不是按顺序',()=>{
+  // 同时满足沉默和首次引导时，应该先给「被追问时怎么办」
+  assert.equal(M.pickCard({silentMs:6000,answeredCount:1}).id,'C3');
+  // 同时满足两题无量化和其他条件时，先给量化
+  assert.equal(M.pickCard({answeredCount:3,quantMissStreak:2,ownMissStreak:2}).id,'C2');
+});
+
+test('方法卡不该弹的时候绝不弹',()=>{
+  assert.equal(M.pickCard({answeredCount:5}),null,'没有触发条件时不弹');
+  assert.equal(M.pickCard({}),null,'空状态不弹');
+});
+
+test('看过的卡不再重复弹',()=>{
+  assert.equal(M.pickCard({answeredCount:1,shown:['C1']}),null);
+  assert.equal(M.pickCard({silentMs:6000,shown:['C3']}),null);
+});

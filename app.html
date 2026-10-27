@@ -172,6 +172,10 @@
   .md-block h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px}
   .md-evidence{border-left:3px solid var(--seal-soft);padding:8px 0 8px 13px;margin:8px 0;font-size:13.5px;color:var(--ink-soft);line-height:1.7}
   .md-evidence q{font-style:italic}
+  #mdCardHint{margin-top:16px;padding:15px 17px;border:1px dashed rgba(47,93,93,.4);border-radius:12px;background:rgba(47,93,93,.04)}
+  #mdCardHint .ch-t{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--teal);margin-bottom:7px}
+  #mdCardHint .ch-b{font-size:13.5px;line-height:1.75;color:var(--ink-soft)}
+  #mdCardHint .ch-a{margin-top:10px}
   #mdReview{margin-top:18px;padding:16px 18px;border:1px solid rgba(47,93,93,.3);border-radius:14px;background:rgba(47,93,93,.05)}
   #mdReview h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px;color:var(--teal)}
   #mdReview .rv-quote{border-left:3px solid var(--teal);padding:6px 0 6px 12px;margin:10px 0;font-size:13.5px;color:var(--ink-soft);font-style:italic}
@@ -929,6 +933,7 @@
       <!-- 04 诊断 -->
       <section class="md-panel" id="mdPanelVerdict" hidden>
         <div id="mdVerdictBody"></div>
+        <div id="mdCardHint" hidden></div>
         <div id="mdReview" hidden></div>
         <div class="paste-actions" id="mdVerdictActions">
           <button class="btn btn-primary" id="mdAgain" type="button">再练一题</button>
@@ -2413,6 +2418,9 @@
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
   // 一轮练习的状态：questions 是这一轮的题，results 逐题累计。
   let mdMode='round', mdRound=null;
+  // 方法卡触发状态：连续失误计数 + 已展示过的卡（存本地，避免重复弹）
+  let mdCardCtx={answeredCount:0,quantMissStreak:0,ownMissStreak:0,shown:[]};
+  try{const raw=localStorage.getItem('zm_method_cards_v1');if(raw){const v=JSON.parse(raw);if(v&&Array.isArray(v.shown))mdCardCtx=v;}}catch(e){}
   let mdProbeToken=0, mdReviewToken=0, mdDimId='D2';
   // AI 只用于追问措辞润色。没有配置模型时自动退回规则底稿，功能不降级。
   const mdAiEnabled = location.protocol==='http:'||location.protocol==='https:';
@@ -2575,6 +2583,8 @@
     if(hintEl)hintEl.textContent=(it.hint||'')+'  不用先想结构，像真的面试那样讲一遍，系统会抓出缺的那一块再追问。';
     document.getElementById('mdAnswer').value='';
     document.getElementById('mdAnswerState').textContent='';
+    const ch=document.getElementById('mdCardHint');
+    if(ch){ch.hidden=true;ch.innerHTML='';}
     mdSetStep('answer');
     mdMsg('');
   }
@@ -2625,7 +2635,11 @@
     const probe=MD.nextProbe(gaps,mdSession.turns.length-1);
     if(!probe){mdRenderVerdict();return;}
     mdSession.probe=probe;
-    mdSession.probeText=MD.pickUtterance(probe.code,mdSession.probeSeed++);
+    mdSession.probeText=MD.pickUtterance(probe.code,mdSession.probeSeed++,mdState.usedUtterances);
+    // 记住这句话，下次同一缺口不再重复
+    const withUsed=structuredClone(mdState);
+    withUsed.usedUtterances=MD.rememberUtterance(withUsed.usedUtterances,mdSession.probeText);
+    mdWrite(withUsed);
     mdSession.aiProbe=null;
     const round=mdSession.turns.length;
     document.getElementById('mdProbeRound').textContent='追问 '+round+' / '+MD.MAX_TURNS;
@@ -2646,7 +2660,7 @@
     try{
       const history=mdSession.turns.filter(t=>t.probe).map(t=>t.probeText||'');
       const data=await requestAi('method-probe',{
-        gap:probe.code,base:MD.pickUtterance(probe.code,0),answer,history
+        gap:probe.code,base:mdSession.probeText,answer,history
       },{openSettings:false,timeoutMs:20000});
       const better=data?.result?.probe;
       // 用户可能已经离开追问、进入下一轮，或又发起了新的追问：过期结果一律丢弃。
@@ -2716,7 +2730,33 @@
     mdRenderVerdictActions();
     mdSetStep('verdict');
     mdMsg('');
+    mdUpdateCards(v,dimId);
     mdMaybeReview(combined,v);
+  }
+
+  // 按本次判定更新计数，再看该不该弹方法卡。
+  // 只在诊断页弹——用户刚看到自己的问题，此刻才听得进方法。
+  function mdUpdateCards(v,dimId){
+    mdCardCtx.answeredCount=(mdCardCtx.answeredCount||0)+1;
+    const noQuant=v.gaps.some(g=>g.code==='G4');
+    const noOwn=v.gaps.some(g=>g.code==='G1');
+    mdCardCtx.quantMissStreak=noQuant?(mdCardCtx.quantMissStreak||0)+1:0;
+    mdCardCtx.ownMissStreak=noOwn?(mdCardCtx.ownMissStreak||0)+1:0;
+    mdCardCtx.weaknessStrongNo=(dimId==='D4'&&v.level==='strong_no');
+    mdCardCtx.silentMs=0;
+    const card=MD.pickCard(mdCardCtx);
+    const box=document.getElementById('mdCardHint');
+    if(!box)return;
+    if(!card){box.hidden=true;box.innerHTML='';return;}
+    box.hidden=false;
+    box.innerHTML=`<div class="ch-t">顺手说一句：${esc(card.title)}</div>
+      <div class="ch-b">${esc(card.body)}</div>
+      <div class="ch-a"><button class="btn btn-ghost" id="mdCardOk" type="button">知道了</button></div>`;
+    const ok=document.getElementById('mdCardOk');
+    if(ok)ok.onclick=()=>{box.hidden=true;};
+    // 记住已经弹过，同一张不重复弹
+    if(!mdCardCtx.shown.includes(card.id))mdCardCtx.shown.push(card.id);
+    try{localStorage.setItem('zm_method_cards_v1',JSON.stringify(mdCardCtx));}catch(e){}
   }
 
   // 一轮模式下诊断页的主按钮是「下一题」，单题模式才是「再练一题」。

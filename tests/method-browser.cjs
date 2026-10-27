@@ -373,6 +373,36 @@ const {spawn}=require('node:child_process');
   assert.match(disc,/不构成录用判断/,'声明要说明不构成录用判断');
   assert.match(disc,/本机浏览器/,'声明要说明数据存储位置');
 
+  // 方法卡提示：首题诊断后应弹「STAR 是什么」，且只弹一次
+  await page.evaluate(()=>{localStorage.removeItem('zm_method_state_v1');localStorage.removeItem('zm_method_cards_v1');});
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','5 年以上，带过团队');
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(200);
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.locator('#mdAnswer').fill('我们团队一起做了个事情，最后完成了。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(400);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.waitForTimeout(400);
+  const cardShown=await page.evaluate(()=>!document.getElementById('mdCardHint').hidden);
+  assert.equal(cardShown,true,'首题诊断后应弹方法卡');
+  const cardText=await page.locator('#mdCardHint').innerText();
+  assert.match(cardText,/顺手说一句/,'方法卡应是轻提示，不是课程');
+  assert.match(cardText,/STAR/,'首题应给 STAR 那张');
+  // 点知道了就收起
+  await page.locator('#mdCardOk').click();
+  await page.waitForTimeout(200);
+  assert.equal(await page.evaluate(()=>document.getElementById('mdCardHint').hidden),true,'点知道了应收起');
+  // 已弹过的不再弹
+  const shown=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_cards_v1')).shown);
+  assert.ok(shown.includes('C1'),'应记住已弹过');
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);
