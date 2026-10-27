@@ -490,3 +490,69 @@ test('存档允许 rounds 计数，且兼容没有该字段的旧数据',()=>{
   st.metrics.rounds=-1;
   assert.equal(M.validate(st),false,'负数应拒绝');
 });
+
+/* ===== 动机题：风险扫描，不给分 ===== */
+test('动机题有三道高频题，每题带提示',()=>{
+  assert.equal(M.MOTIVE.questions.length,3);
+  for(const q of M.MOTIVE.questions){
+    assert.ok(q.q.length>5&&q.hint.length>10,q.id);
+  }
+});
+
+test('动机题只返回风险标记，绝不返回分数或档位',()=>{
+  const r=M.scanMotive('我上一份工作的领导水平不行，团队也混乱。');
+  assert.equal(r.level,undefined,'动机题不该有档位');
+  assert.equal(r.score,undefined,'动机题不该有分数');
+  assert.ok(Array.isArray(r.flags));
+  assert.ok(typeof r.riskCount==='number');
+  assert.ok(r.headline.length>0);
+});
+
+test('贬低前雇主会被标出来，并给出可行动建议',()=>{
+  const r=M.scanMotive('我上家公司领导不行，画饼严重，团队也混乱。');
+  const m1=r.flags.find(f=>f.code==='M1');
+  assert.ok(m1,'应命中 M1 贬低前雇主');
+  assert.ok(m1.advice.length>10,'每条红旗都要给改法');
+  assert.match(m1.advice,/事实/,'建议应指向「描述事实」');
+});
+
+test('全推外部、没提自己的选择会被标出来',()=>{
+  const r=M.scanMotive('公司业务调整，整个部门都被裁了。');
+  assert.ok(r.flags.some(f=>f.code==='M2'),'应命中 M2 归因外部');
+});
+
+test('只说不要什么、没说要什么会被标出来',()=>{
+  const r=M.scanMotive('我不想再做重复性的工作了。');
+  assert.ok(r.flags.some(f=>f.code==='M3'),'应命中 M3 说不出想要什么');
+});
+
+test('说不出岗位具体信息会被标成没做功课',()=>{
+  const r=M.scanMotive('我觉得贵公司平台大，发展前景好，所以想来试试。');
+  assert.ok(r.flags.some(f=>f.code==='M4'),'应命中 M4 没做功课');
+});
+
+test('健康回答不应误报任何红旗',()=>{
+  const good='上一份工作我负责内部工具，做了两年，我想转到面向用户的产品，所以开始看机会。我了解到你们正在做企业协作工具，这块和我之前的经验比较接近。';
+  const r=M.scanMotive(good);
+  assert.equal(r.riskCount,0,'健康回答不该有红旗，实际：'+r.flags.map(f=>f.code).join(','));
+  assert.match(r.headline,/没有明显风险/);
+});
+
+test('稳定性信号只在明确传入时才判定，不凭空猜测',()=>{
+  const text='我最近换了两份工作。';
+  assert.equal(M.scanMotive(text).flags.some(f=>f.code==='M5'),false,'没有上下文不该判 M5');
+  assert.equal(M.scanMotive(text,{shortStints:true}).flags.some(f=>f.code==='M5'),true,'有上下文才判');
+});
+
+test('主动解释了短期变动的回答不再判稳定性风险',()=>{
+  const text='最近两次变动是因为公司裁员，一次是业务线整体关停，一次是团队被合并。';
+  const r=M.scanMotive(text,{shortStints:true});
+  assert.equal(r.flags.some(f=>f.code==='M5'),false,'已给解释就不该再判 M5');
+});
+
+test('风险条数越多，结论语气越强',()=>{
+  const one=M.scanMotive('我不想再做重复性工作。');
+  const many=M.scanMotive('我上家公司领导不行，团队混乱，公司业务也有问题。');
+  assert.ok(many.riskCount>one.riskCount);
+  assert.notEqual(many.headline,one.headline);
+});

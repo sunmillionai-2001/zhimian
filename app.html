@@ -187,6 +187,12 @@
   .md-round-dots i{width:26px;height:5px;border-radius:3px;background:var(--line);display:block}
   .md-round-dots i.done{background:var(--teal)}
   .md-round-dots i.now{background:var(--seal)}
+  .md-motive-flag{border:1px solid var(--line-soft);border-left:3px solid var(--seal);border-radius:0 12px 12px 0;padding:13px 16px;margin:10px 0;background:var(--card-hi)}
+  .md-motive-flag .ft{font-weight:700;font-size:14px;color:var(--seal-deep);margin-bottom:5px}
+  .md-motive-flag .fl{font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .md-motive-flag .fa{margin-top:8px;font-size:13.5px;color:var(--teal);font-weight:600}
+  .md-motive-ok{border-left:3px solid var(--teal);padding:14px 16px;background:rgba(47,93,93,.05);border-radius:0 12px 12px 0;font-size:14px;line-height:1.7}
+  .md-motive-note{font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.65}
   .md-sum-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:13px 15px;border:1px solid var(--line-soft);border-radius:12px;margin-bottom:10px;background:var(--card-hi)}
   .md-sum-row.weak{border-color:var(--seal);background:rgba(193,58,30,.04)}
   .md-sum-row .nm{font-weight:700;font-size:14px}
@@ -203,6 +209,7 @@
   .md-hist .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink-faint)}
   .md-hist .lv{font-family:var(--serif);font-weight:900;font-size:16px;color:var(--seal)}
   .md-hist .q{font-size:13.5px;margin:6px 0 4px;line-height:1.6}
+  .md-disclaimer{margin:26px 0 10px;padding:15px 18px;border:1px solid var(--line-soft);border-radius:12px;background:var(--paper-2);font-size:12.5px;line-height:1.8;color:var(--ink-faint)}
   .md-cards{margin-top:8px}
   @media(max-width:720px){.md-grid2,.md-star,.md-swap-diff{grid-template-columns:1fr}}
 
@@ -885,6 +892,7 @@
         <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
           <button type="button" class="chip active" data-md-mode="round">练一轮（五个维度各一题）</button>
           <button type="button" class="chip" data-md-mode="single">只练一题</button>
+          <button type="button" class="chip" data-md-mode="motive">动机题（离职原因 / 为什么选我们）</button>
         </div></div>
         <div class="field" id="mdDimField" hidden><label>练哪个维度</label><div class="filter-row" id="mdDims"></div></div>
         <div class="paste-actions">
@@ -929,6 +937,19 @@
         </div>
       </section>
 
+      <!-- 动机题 -->
+      <section class="md-panel" id="mdPanelMotive" hidden>
+        <span class="eyebrow">Motive</span>
+        <h3 id="mdMotiveQ"></h3>
+        <p class="mock-note" id="mdMotiveHint"></p>
+        <div class="field"><label for="mdMotiveAnswer">你的回答</label><textarea id="mdMotiveAnswer" rows="7" maxlength="30000" placeholder="像真的面试那样说一遍。"></textarea></div>
+        <div class="paste-actions">
+          <button class="btn btn-primary" id="mdMotiveSubmit" type="button">看风险扫描</button>
+          <button class="btn btn-ghost" id="mdMotiveNext" type="button">换一题</button>
+        </div>
+        <div id="mdMotiveResult"></div>
+      </section>
+
       <!-- 整轮小结 -->
       <section class="md-panel" id="mdPanelSummary" hidden>
         <span class="eyebrow">Round</span>
@@ -966,8 +987,15 @@
         </div>
       </section>
 
-      <!-- 方法卡：只在「定标尺」这一步展示；进入答题/追问/诊断/换位后收起，
-           否则它会占掉半屏，把新题目挤到视口外。 -->
+      <!-- 合规声明：明确这是练习工具，不是录用判断 -->
+      <p class="md-disclaimer">
+        这里的所有结论只用于练习和复盘，不代表任何公司的招聘标准，也不构成录用判断。
+        诊断结果按公开的面试研究方法（行为锚定、结构化评分）生成，用于帮你看清表达里的缺口，
+        不是对你的能力或价值的评价。你的回答只保存在本机浏览器，不会自动上传；
+        调用 AI 时仅发送本次回答的必要片段。
+      </p>
+
+      <!-- 方法卡 -->
       <section class="md-cards" id="mdCards">
         <div class="section-head"><h2>方法卡<span class="num">60 秒一张</span></h2></div>
         <div class="method-grid" id="methodGrid"></div>
@@ -2413,7 +2441,7 @@
   function mdSetStep(step,{scroll=true}={}){
     const prev=mdStep;
     mdStep=step;
-    const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory',summary:'mdPanelSummary'};
+    const map={profile:'mdPanelProfile',answer:'mdPanelAnswer',probe:'mdPanelProbe',verdict:'mdPanelVerdict',swap:'mdPanelSwap',history:'mdPanelHistory',summary:'mdPanelSummary',motive:'mdPanelMotive'};
     for(const [k,id] of Object.entries(map)){
       const el=document.getElementById(id); if(el) el.hidden = k!==step;
     }
@@ -2703,6 +2731,54 @@
     mdShowRoundQuestion();
   }
 
+  /* ===== 动机题：风险扫描，不打分 ===== */
+  let mdMotiveIdx=0, mdMotiveCtx={};
+
+  function mdStartMotive(){
+    const q=MD.MOTIVE.questions[mdMotiveIdx%MD.MOTIVE.questions.length];
+    document.getElementById('mdMotiveQ').textContent=q.q;
+    document.getElementById('mdMotiveHint').textContent=q.hint;
+    document.getElementById('mdMotiveAnswer').value='';
+    document.getElementById('mdMotiveResult').innerHTML='';
+    // 从历史诊断里统计短期跳槽信号，供 M5 使用（没有就当作正常）
+    mdMotiveCtx={shortStints:false};
+    mdSetStep('motive');
+    mdMsg('');
+  }
+
+  function mdSubmitMotive(){
+    const text=document.getElementById('mdMotiveAnswer').value.trim();
+    if(text.length<10){mdMsg('先写一段真实回答。');return;}
+    const r=MD.scanMotive(text,mdMotiveCtx);
+    const box=document.getElementById('mdMotiveResult');
+    const flagsHtml=r.flags.map(f=>`<div class="md-motive-flag">
+      <div class="ft">${esc(f.name)}</div>
+      <div class="fl">${esc(f.label)}</div>
+      <div class="fa">怎么改：${esc(f.advice)}</div>
+    </div>`).join('');
+    box.innerHTML=`
+      <div class="md-block"><h4>风险扫描</h4>
+        ${r.riskCount===0?`<div class="md-motive-ok">${esc(r.headline)}</div>`:flagsHtml}
+        <p class="md-motive-note">动机题不给分数、不给档位。这里评的不是"你的动机好不好"（那是读心），
+        而是"这段话在面试官眼里有没有风险信号"。前者你改不了，后者可以改。</p>
+      </div>`;
+    // 记录到诊断历史，维度记为 M
+    const next=structuredClone(mdState);
+    next.sessions=next.sessions.concat([{
+      id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),
+      date:new Date().toISOString(),
+      questionId:MD.MOTIVE.questions[mdMotiveIdx%MD.MOTIVE.questions.length].id,
+      question:MD.MOTIVE.questions[mdMotiveIdx%MD.MOTIVE.questions.length].q,
+      jobStage:mdState.profile?mdState.profile.jobStage:'owner',
+      turns:[{answer:text}],
+      verdict:{level:'neutral',score:2,alignment:'met',jobStage:mdState.profile?mdState.profile.jobStage:'owner',motive:true,riskCount:r.riskCount},
+      nextStep:r.riskCount?r.flags[0].advice:'没有明显风险。'
+    }]).slice(-200);
+    next.metrics.completed++;
+    mdWrite(next);
+    mdMsg('');
+  }
+
   // 整轮小结：五维对比，指出最该补的那一个。
   function mdRenderSummary(){
     if(!mdRound)return;
@@ -2870,6 +2946,7 @@
         mdMode=b.dataset.mdMode;
         mdRound=null;
         mdRenderModes();
+        if(mdMode==='motive'){mdStartMotive();return;}
         if(mdState.profile)mdStartAnswer();
       };
     });
@@ -2909,6 +2986,8 @@
   mdBind('mdSwapOpen',mdOpenSwap);
   mdBind('mdSwapSubmit',mdSwapSubmit);
   mdBind('mdSwapBack',()=>mdSetStep('verdict'));
+  mdBind('mdMotiveSubmit',mdSubmitMotive);
+  mdBind('mdMotiveNext',()=>{mdMotiveIdx++;mdStartMotive();});
   mdBind('mdSummaryAgain',()=>mdStartAnswer());
   mdBind('mdSummaryWeak',()=>{
     if(!mdRound)return;

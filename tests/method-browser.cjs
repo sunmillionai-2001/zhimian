@@ -322,6 +322,45 @@ const {spawn}=require('node:child_process');
   assert.equal(await page.evaluate(()=>document.getElementById('mdDimField').hidden),false,'单题模式要显示维度选择');
   assert.equal(await page.evaluate(()=>document.getElementById('mdRoundBar').hidden),true,'单题模式不显示进度条');
 
+  // 动机题：风险扫描，不给分数
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  assert.equal(await page.locator('[data-md-mode="motive"]').count(),1,'应有动机题模式');
+  await page.locator('[data-md-mode="motive"]').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelMotive').hidden);
+  const motiveQ=await page.locator('#mdMotiveQ').innerText();
+  assert.ok(motiveQ.length>5,'应显示动机题');
+  assert.ok(/离开|选择|未来/.test(motiveQ),'应是动机类题目，实际：'+motiveQ);
+  // 一段有明显风险的回答
+  await page.locator('#mdMotiveAnswer').fill('我上一份工作的领导水平不行，团队也混乱，实在待不下去，所以想换个环境。');
+  await page.locator('#mdMotiveSubmit').click();
+  await page.waitForTimeout(400);
+  const motiveResult=await page.locator('#mdMotiveResult').innerText();
+  assert.match(motiveResult,/风险扫描/,'应显示风险扫描');
+  assert.ok(await page.locator('.md-motive-flag').count()>=2,'应标出多条红旗');
+  assert.match(motiveResult,/怎么改/,'每条红旗都要给改法');
+  assert.match(motiveResult,/不给分数/,'必须说明不给分数');
+  // 不能出现档位字样
+  assert.ok(!/强否|中性|强是/.test(motiveResult),'动机题不应出现行为锚点档位');
+  // 健康回答
+  await page.locator('#mdMotiveAnswer').fill('上一份工作我负责内部工具，做了两年，我想转到面向用户的产品，所以开始看机会。我了解到你们正在做企业协作工具，这块和我之前的经验比较接近。');
+  await page.locator('#mdMotiveSubmit').click();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator('.md-motive-ok').count(),1,'健康回答应给正向结论');
+  assert.equal(await page.locator('.md-motive-flag').count(),0,'健康回答不该有红旗');
+  // 换一题
+  const before=await page.locator('#mdMotiveQ').innerText();
+  await page.locator('#mdMotiveNext').click();
+  await page.waitForTimeout(300);
+  assert.notEqual(await page.locator('#mdMotiveQ').innerText(),before,'换一题应切换题目');
+  // 合规声明
+  assert.ok(await page.locator('.md-disclaimer').count()>=1,'应有合规声明');
+  const disc=await page.locator('.md-disclaimer').first().innerText();
+  assert.match(disc,/不代表任何公司的招聘标准/,'声明要说明不代表招聘标准');
+  assert.match(disc,/不构成录用判断/,'声明要说明不构成录用判断');
+  assert.match(disc,/本机浏览器/,'声明要说明数据存储位置');
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);

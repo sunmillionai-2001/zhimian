@@ -809,6 +809,87 @@ function judgeByRule(rule,text,options){
   return judge(text,options);
 }
 
+/* ========== 动机题：不走 BARS，走风险扫描 ========== */
+// 动机是内部状态，没有可观察的行为可锚定——硬套五档锚点会产出
+// 「你的动机只有 60 分」这种既无法验证也无法执行的话。
+// 所以这里评的不是「动机好不好」，而是「这段话在面试官眼里有没有风险信号」。
+// 前者是道德判断，后者是技术判断；只有后者能给出可行动的建议。
+const MOTIVE={
+  id:'M',
+  name:'动机与稳定性',
+  definition:'离职原因、岗位选择与稳定性——不评动机纯不纯，只看表达里有没有会被读成风险的地方。',
+  questions:[
+    {id:'M-Q1',q:'你为什么离开上一份工作？',hint:'想一想：说事实，不说人。把「受不了什么」换成「发生了什么」。'},
+    {id:'M-Q2',q:'你为什么选择我们这个岗位 / 公司？',hint:'想一想：能不能说出一个只有做过功课才知道的细节。'},
+    {id:'M-Q3',q:'你未来三年希望自己在什么位置上？',hint:'想一想：你想要的东西，这个岗位能不能给。'}
+  ]
+};
+
+// 每条红旗都配一条可行动建议——只说「有风险」而不说「怎么改」等于没说。
+const MOTIVE_FLAGS=[
+  {
+    code:'M1',priority:95,name:'贬低前雇主',
+    label:'听起来在说前公司或前领导的不是',
+    test:t=>/(?:领导|老板|上级|公司|团队)[^，。；！？\n]{0,12}(?:不行|烂|差|混乱|傻|坑|画饼|甩锅|不讲理|官僚|内斗|PUA)/.test(t),
+    advice:'改成描述事实：发生了什么、对你的工作造成了什么影响。不评价人。'
+  },
+  {
+    code:'M2',priority:80,name:'归因外部',
+    label:'离职原因全指向外部，没提自己的选择',
+    test:t=>{
+      const external=/(?:公司|领导|团队|业务|部门|老板)[^，。；！？\n]{0,10}(?:调整|变动|裁员|倒闭|不行|问题)/.test(t);
+      const self=/(?:我想|我希望|我决定|我判断|我选择|我主动)/.test(t);
+      return external&&!self;
+    },
+    advice:'补一句你自己的判断：你为什么选择离开，而不是只讲公司发生了什么。'
+  },
+  {
+    code:'M3',priority:75,name:'说不出想要什么',
+    label:'只说了不想怎样，没说要什么',
+    test:t=>{
+      const want=/(?:我想做|我希望|我看重|我想要|吸引我|我期待|能让我)/.test(t);
+      const notWant=/(?:不想|不希望|不想再|受不了|厌倦)/.test(t);
+      return notWant&&!want;
+    },
+    advice:'把「不想要什么」翻译成「想要什么」：你希望下一份工作给你什么。'
+  },
+  {
+    code:'M4',priority:85,name:'没做功课',
+    label:'看不出对这个岗位做过了解',
+    test:t=>{
+      const specific=/(?:贵司|咱们|你们|公司)[^，。；！？\n]{0,20}(?:产品|业务|技术|团队|方向|阶段|客户|线)/.test(t)
+        ||/(?:我看到|了解到|注意到|听说)[^，。；！？\n]{0,20}(?:在做|已经|正在|最近)/.test(t);
+      return !specific&&t.length>20;
+    },
+    advice:'补一个只有做过功课才知道的细节：他们在做什么业务、遇到什么问题。'
+  },
+  {
+    code:'M5',priority:90,name:'稳定性存疑',
+    label:'短期内多次跳槽，没有主动解释',
+    test:(t,ctx)=>{
+      if(!ctx||!ctx.shortStints)return false;
+      return !/(?:因为|原因是|当时|那段时间|特殊情况|公司(?:调整|裁员|倒闭))/.test(t);
+    },
+    advice:'主动给一个解释，别等面试官问。短期多次变动最容易被读成不稳定。'
+  }
+];
+
+// 风险扫描：返回命中的红旗 + 建议，不给分数、不给档位。
+function scanMotive(text,ctx){
+  const t=String(text||'');
+  const hits=MOTIVE_FLAGS.filter(f=>f.test(t,ctx||{}))
+    .map(f=>({code:f.code,name:f.name,label:f.label,advice:f.advice}));
+  return {
+    // 明确不给 level / score：动机题不该有档位。
+    flags:hits,
+    riskCount:hits.length,
+    // 一句话结论，只说风险等级，不说好坏。
+    headline:hits.length===0?'这段话没有明显风险信号。'
+      :hits.length<=1?'有 '+hits.length+' 处可能被读成风险，改掉更稳。'
+      :'有 '+hits.length+' 处可能被读成风险，建议逐条改。'
+  };
+}
+
 /* ========== 一轮练习：组题与小结 ========== */
 // 单题诊断只能回答「这题答得怎样」，一轮才能回答「我哪个维度最弱」。
 // 后者才是用户真正需要的——它直接决定下一次练什么。
@@ -899,6 +980,7 @@ return {
   analyze,detectGaps,nextProbe,pickUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
   starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
+  MOTIVE,MOTIVE_FLAGS,scanMotive,
   buildRound,roundSummary,ROUND_SIZE,
   empty,validate
 };
