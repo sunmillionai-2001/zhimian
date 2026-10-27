@@ -203,10 +203,11 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
-  assert.equal(await page.locator('#mdDims .chip').count(),2,'应有两个维度可选');
+  assert.equal(await page.locator('#mdDims .chip').count(),5,'应有五个维度可选');
   const dimNames=await page.locator('#mdDims .chip').allInnerTexts();
-  assert.ok(dimNames.some(n=>/推动与影响力/.test(n)),'应有推动与影响力');
-  assert.ok(dimNames.some(n=>/业务判断/.test(n)),'应有业务判断与决策');
+  for(const want of ['推动与影响力','业务判断与决策','协作与冲突','复盘与成长','压力与稳定性']){
+    assert.ok(dimNames.some(n=>n.includes(want)),'应有维度：'+want+'，实际：'+dimNames.join('/'));
+  }
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
@@ -237,6 +238,30 @@ const {spawn}=require('node:child_process');
   assert.match(verdictD1,/强否|否/,'没得选的回答应判低档，实际：'+verdictD1.slice(0,40));
   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')).sessions.at(-1));
   assert.match(saved.questionId,/^D1-/,'记录里应保存 D1 的题号，实际 '+saved.questionId);
+
+  // 五个维度逐个切过去，每题都要能出、且维度名与题目对得上
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','5 年以上，带过团队');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  const seen=new Set();
+  for(const [dimId,dimName] of [['D1','业务判断与决策'],['D2','推动与影响力'],['D3','协作与冲突'],['D4','复盘与成长'],['D5','压力与稳定性']]){
+    await page.locator('#methodStart').click();
+    await page.waitForFunction(()=>!document.getElementById('mdPanelProfile').hidden);
+    await page.locator(`#mdDims [data-md-dim="${dimId}"]`).click();
+    await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator('#mdQuestionDim').innerText(),dimName,dimId+' 维度名应对应');
+    const q=await page.locator('#mdQuestion').innerText();
+    assert.ok(q.length>10,dimId+' 应出题');
+    assert.ok(!seen.has(q),dimId+' 题目不应与其他维度重复：'+q);
+    seen.add(q);
+  }
+  assert.equal(seen.size,5,'五个维度应给出五道不同的题');
 
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});

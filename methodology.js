@@ -130,7 +130,91 @@ const D1={
   ]
 };
 
-const DIMENSIONS=[D1,D2];
+/* ========== 维度 D3：协作与冲突 ========== */
+// 最需要防的错：把冲突讲成「我是对的、他是错的」。
+// 成熟的做法是先承认对方的合理性，再讲你怎么推动共识。
+const D3={
+  id:'D3',
+  name:'协作与冲突',
+  definition:'在与同事、上级或跨部门出现分歧时，能理解对方立场、对事不对人地推进，并维持可继续合作的关系。',
+  weight_default:0.20,
+  questions:[
+    {id:'D3-Q1',minStage:'executor',
+     q:'讲一次你和同事意见不一致，最后把事情推进下去的经历。',
+     hint:'想一想：你和别人对怎么做有不同看法，可能还争过，但最后得一起把活干完。'},
+    {id:'D3-Q2',minStage:'owner',
+     q:'讲一次你和上级或强势的合作方有分歧，你没有简单服从、也没有硬顶的经历。',
+     hint:'想一想：你不认同上面的决定，但没有直接对抗，而是想办法让对方改变或折中。'},
+    {id:'D3-Q3',minStage:'lead',
+     q:'讲一次你处理团队里两个人长期不和的经历。',
+     hint:'想一想：不是你自己的冲突，而是你要让两个合不来的人继续合作。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'把分歧归因为对方能力或态度问题，自己只是受害者或旁观者。'},
+    {id:'no',text:'有处理动作，但只有"沟通了一下"，说不清分歧点在哪，也没说对方为何让步。'},
+    {id:'neutral',text:'说清了分歧和处理方式，但把对方写成完全不讲理，或结果只是"领导拍板"。'},
+    {id:'yes',text:'先承认对方立场中的合理部分，再用事实 / 目标 / 试点推动，关系未受损。'},
+    {id:'strong_yes',text:'不只解决这次分歧，还建立了减少同类冲突的机制（分工边界、决策规则、同步节奏）。'}
+  ]
+};
+
+/* ========== 维度 D4：复盘与成长 ========== */
+// 最需要防的错：凡尔赛式缺点（把优点包装成缺点）。
+// 真复盘必须包含「代价」和「改变」，缺一个都不算。
+const D4={
+  id:'D4',
+  name:'复盘与成长',
+  definition:'能诚实面对自己的失误，说清代价与原因，并把教训转化为可复用的做法。',
+  weight_default:0.20,
+  questions:[
+    {id:'D4-Q1',minStage:'executor',
+     q:'讲一次你做得不够好、后来改进了的经历。',
+     hint:'想一想：有件事结果不理想，你复盘过，之后遇到类似情况换了做法。'},
+    {id:'D4-Q2',minStage:'owner',
+     q:'讲一次你做的判断后来被证明是错的经历。',
+     hint:'想一想：你当时觉得对，结果不对，而且这个错是你自己的判断造成的，不是别人害的。'},
+    {id:'D4-Q3',minStage:'lead',
+     q:'讲一次你带的人或团队出了问题、你从中看到自己责任的经历。',
+     hint:'想一想：下属或团队出了状况，你复盘时发现根子在自己的决策、要求或节奏上。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'凡尔赛式缺点（追求完美 / 太拼 / 要求太高），或把责任全部推给外部。'},
+    {id:'no',text:'承认了失误，但说不出具体代价，也说不清后来改了什么。'},
+    {id:'neutral',text:'有具体失误和代价，改变停留在"以后会更注意"这类决心。'},
+    {id:'yes',text:'失误具体、代价具体，改变是某个可观察的做法，且说明后来验证过。'},
+    {id:'strong_yes',text:'不只自己改，还把教训变成团队可用的规则、清单或流程，并被他人复用。'}
+  ]
+};
+
+/* ========== 维度 D5：压力与稳定性 ========== */
+// 最需要防的错：把「硬扛」当成「抗压」。
+// 真正的稳定性是能识别压力、主动调整资源或预期，而不是一个人撑到崩。
+const D5={
+  id:'D5',
+  name:'压力与稳定性',
+  definition:'在时间紧、资源少或目标冲突时，能识别压力来源、主动调整做法或预期，并把事情交付出去。',
+  weight_default:0.10,
+  questions:[
+    {id:'D5-Q1',minStage:'executor',
+     q:'讲一次你在时间很紧的情况下把任务做完的经历。',
+     hint:'想一想：截止时间压得很死，你必须决定先做什么、后做什么。'},
+    {id:'D5-Q2',minStage:'owner',
+     q:'讲一次你同时扛了好几件事、最后做了取舍的经历。',
+     hint:'想一想：几件事都很急，你没法全做好，必须找人说清楚并放弃一部分。'},
+    {id:'D5-Q3',minStage:'lead',
+     q:'讲一次你发现团队已经扛不住、你做了调整的经历。',
+     hint:'想一想：你看出大家撑不住了，主动减范围、加人或改节奏，而不是继续压。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'把硬扛当美德（连续通宵 / 一个人顶住），或把压力全归为外部、自己没做任何调整。'},
+    {id:'no',text:'只说了"加班赶完"，没有说明怎么取舍、有没有求助或调整。'},
+    {id:'neutral',text:'有调整动作（减范围 / 求助 / 改节奏），但没说明判断依据，或结果是靠运气过关。'},
+    {id:'yes',text:'识别出压力来源，主动调整资源或预期，说清取舍依据，结果可验证。'},
+    {id:'strong_yes',text:'不只这次扛过去，还建立了预警或缓冲机制（提前暴露风险、留 buffer、分级响应），后来避免过同类问题。'}
+  ]
+};
+
+const DIMENSIONS=[D1,D2,D3,D4,D5];
 function dimension(id){return DIMENSIONS.find(d=>d.id===id)||D2;}
 
 function pickQuestion(jobStage,dimId){
@@ -183,7 +267,7 @@ const RE_FRICTION=/(?:困难|阻力|反对|不同意|不认可|不配合|质疑|
 const RE_DETAIL=/(?:因为|原因是|具体是|指的是|主要是|理由是|原因是)|(?:\d+\s*(?:个|人|天|周|月|万|千|百|%|％|倍))|(?:领导|老板|上级|总监|经理|产品|运营|设计|研发|销售|财务|法务|客户|甲方|乙方|供应商|部门|团队)(?:那边|这边|那边的人)?\s*(?:明确|直接|一开始|当场|死活)?\s*(?:反对|不同意|不认可|不配合|拒绝|质疑|坚持|担心|不同意|压|砍|卡)/;
 function hasFriction(text){const t=String(text||'');return RE_FRICTION.test(t)&&RE_DETAIL.test(t);}
 
-const RE_DECISION=/(?:因为|所以|于是|权衡|取舍|放弃|选择|决定|判断|优先|宁可|代价|换成|改成|替代|方案[AB12甲乙]|如果.{0,12}就|我倾向|我判断|我建议|我决定|说服|谈判|交换|换来|换取)/;
+const RE_DECISION=/(?:因为|所以|于是|权衡|取舍|放弃|选择|决定|判断|优先|宁可|代价|换成|改成|替代|方案[AB12甲乙]|如果.{0,12}就|我倾向|我判断|我建议|我决定|说服|谈判|交换|换来|换取|说了风险|说了|讲清|讲明|汇报|同步风险|提前暴露)/;
 function hasDecision(text){return RE_DECISION.test(String(text||''));}
 
 // 机制类信号：区分「是」和「强是」的唯一依据
@@ -197,10 +281,12 @@ function hasReflection(text){return RE_REFLECT.test(String(text||''));}
 const RE_VAGUE_ONLY=/(?:沟通|协调|对接|跟进|推动|配合|参与|协助|帮忙|支持|推进)/;
 // 具体动作必须挂在第一人称上。第三人称 / 无主语的「做了一套」「出了方案」
 // 无法证明是本人做的，不能算个人动作——否则流水账会被判成有具体动作。
-const VERBS='写|改|拉|拆|算|画|发|约|找|谈|列|定|推|建|梳理|对齐|说服|争取|拒绝|拍板|带着|拉通|拆解|列出|整理|搭|测|比|做|跑|落|上|搬|扛|谈下|拿下|要来|要到|申请|砍|删|压|换|优化|重构|简化|合并|拆分|降|提升|提高|缩短|减少|降低|重写|引入|接入|迁移|替换';
+const VERBS='写|改|拉|拆|算|画|发|约|找|谈|列|定|推|建|梳理|对齐|说服|争取|拒绝|拍板|带着|拉通|拆解|列出|整理|搭|测|比|做|跑|落|上|搬|扛|谈下|拿下|要来|要到|申请|砍|删|压|换|优化|重构|简化|合并|拆分|降|提升|提高|缩短|减少|降低|重写|引入|接入|迁移|替换|盘|摆|摊|给|展示|汇报|说明|解释|拆|算|盘了一下';
 // 「我们」是复数主语，不是第一人称动作。必须用 (?!们) 排掉，否则
 // 「我们团队一起做了个」会被当成「我做了」。
-const RE_CONCRETE=new RegExp('我(?!们)(?:这边|自己)?[^，。；！？\\n]{0,8}(?:'+VERBS+')');
+// 窗口放宽到 14 字：「我拿了两周的灰度数据给他看」中间隔了 9 个字，
+// 太窄会把真实的个人动作判成没有。
+const RE_CONCRETE=new RegExp('我(?!们)(?:这边|自己)?[^，。；！？\\n]{0,14}(?:'+VERBS+')');
 // 主动动作：我提出 / 我建议 / 我决定 / 我主动……这是区分「被指派」的关键。
 const RE_INITIATIVE=/我(?:主动|提出|建议|决定|判断|发现|想到|拍板|争取|要求|发起|牵头|提议)/;
 function hasInitiative(text){return RE_INITIATIVE.test(String(text||''));}
@@ -249,10 +335,28 @@ const GAPS_D1=[
   {code:'G7',priority:85,name:'代价',label:'没说你放弃了什么',test:(s,t)=>!RE_TRADEOFF.test(t)},
   {code:'G8',priority:88,name:'伪取舍',label:'听起来当时没得选，或选项优劣悬殊',test:(s,t)=>(RE_NO_CHOICE.test(t)&&!RE_OPTION.test(t))||(RE_OBVIOUS.test(t)&&!RE_TRADEOFF.test(t))}
 ];
-// 按维度组装缺口表：D1 在通用缺口基础上加入取舍三件套。
+// D3 专用：冲突里有没有承认对方合理、有没有把对方写成坏人
+const GAPS_D3=[
+  {code:'G9',priority:92,name:'对方立场',label:'没看出你理解对方的立场',test:(s,t)=>!RE_UNDERSTAND.test(t)},
+  {code:'G10',priority:86,name:'归因',label:'把分歧归成对方能力或态度问题',test:(s,t)=>RE_BLAME.test(t)&&!RE_UNDERSTAND.test(t)}
+];
+// D4 专用：凡尔赛式缺点、没说代价
+const GAPS_D4=[
+  {code:'G11',priority:96,name:'伪缺点',label:'这是优点包装，不是真缺点',test:(s,t)=>RE_HUMBLEBRAG.test(t)},
+  {code:'G12',priority:84,name:'责任',label:'没看出你承认这是自己的判断失误',test:(s,t)=>!RE_OWN_FAULT.test(t)&&RE_COST.test(t)}
+];
+// D5 专用：硬扛、没调整
+const GAPS_D5=[
+  {code:'G13',priority:94,name:'硬扛',label:'听起来是硬扛下来的，没有做任何调整',test:(s,t)=>RE_HARD_ENDURE.test(t)&&!RE_ADJUST.test(t)},
+  {code:'G14',priority:82,name:'调整',label:'没说清你做了什么调整或取舍',test:(s,t)=>!RE_ADJUST.test(t)}
+];
+
+const DIM_GAPS={D1:GAPS_D1,D3:GAPS_D3,D4:GAPS_D4,D5:GAPS_D5};
+// 按维度组装缺口表：通用缺口 + 该维度的专用缺口。
 function gapsFor(dimId){
-  if(dimId!=='D1')return GAPS;
-  return [...GAPS,...GAPS_D1].sort((a,b)=>b.priority-a.priority);
+  const extra=DIM_GAPS[dimId];
+  if(!extra)return GAPS;
+  return [...GAPS,...extra].sort((a,b)=>b.priority-a.priority);
 }
 
 // text 参与判定：G6–G8 需要看原文，不只是聚合信号。
@@ -321,6 +425,39 @@ const UTTERANCES={
     '当时真的没得选吗？还是其实有别的路但你没考虑？',
     '你说 A 明显更好——好在哪？当时是怎么判断的？',
     '如果当时选另一个，会差在哪里？'
+  ],
+  // D3 协作与冲突
+  G9:[
+    '他当时为什么坚持那个做法？他担心的是什么？',
+    '站在他的位置上，他的顾虑合理在哪？',
+    '你有没有先问过他为什么要这样？'
+  ],
+  G10:[
+    '这件事里对方有没有哪部分是对的？',
+    '如果换个角度看，他的做法解决了什么问题？',
+    '你刚才说的这些，有多少是立场不同造成的？'
+  ],
+  // D4 复盘与成长
+  G11:[
+    '这个"缺点"让你付出过什么代价？举一个具体的。',
+    '有没有哪次因为这个"缺点"真的搞砸了事？',
+    '换成你的同事，他会怎么评价你这个短板？'
+  ],
+  G12:[
+    '这件事里，哪一部分是你自己的判断出了问题？',
+    '如果当时你多想一步，会不一样吗？',
+    '除了外部原因，你自己哪里可以做得不同？'
+  ],
+  // D5 压力与稳定性
+  G13:[
+    '除了硬扛，当时有没有别的做法？比如砍范围或者找人？',
+    '如果再来一次，你还会选择一个人扛吗？',
+    '当时有没有提前跟人说过这个风险？'
+  ],
+  G14:[
+    '压力最大的时候，你具体调整了什么？',
+    '你放弃了哪部分，为什么是那部分？',
+    '有没有找谁帮忙，或者要求延期？'
   ]
 };
 function utteranceCount(){return Object.values(UTTERANCES).reduce((n,a)=>n+a.length,0);}
@@ -367,6 +504,12 @@ function judge(text,options){
   if(dimId==='D1'){
     // 业务判断维度按「取舍是否成立」判，不按「有没有阻力」判。
     score=judgeDecision(text).score;
+  }else if(dimId==='D3'){
+    score=judgeCollab(text).score;
+  }else if(dimId==='D4'){
+    score=judgeGrowth(text).score;
+  }else if(dimId==='D5'){
+    score=judgePressure(text).score;
   }else{
     // 强否：被指派且没有主动动作。「领导让我推」+「我按他说的做」= 全程被动，
     // 即使句子里有「做」也不算个人动作。
@@ -412,6 +555,11 @@ function evidenceFor(text,gaps){
     else if(g.code==='G6')quote=rows.find(r=>/方案|选项|选择|做/.test(r))||'';
     else if(g.code==='G7')quote=rows.find(r=>/选了|决定|采用/.test(r))||'';
     else if(g.code==='G8')quote=rows.find(r=>RE_NO_CHOICE.test(r)||RE_OBVIOUS.test(r))||'';
+    else if(g.code==='G9'||g.code==='G10')quote=rows.find(r=>RE_BLAME.test(r))||rows[0]||'';
+    else if(g.code==='G11')quote=rows.find(r=>RE_HUMBLEBRAG.test(r))||'';
+    else if(g.code==='G12')quote=rows.find(r=>RE_COST.test(r))||'';
+    else if(g.code==='G13')quote=rows.find(r=>RE_HARD_ENDURE.test(r))||'';
+    else if(g.code==='G14')quote=rows[0]||'';
     return {code:g.code,name:g.name,quote:quote.slice(0,120)};
   }).filter(e=>e.quote);
   for(const e of raw){
@@ -426,11 +574,18 @@ function evidenceFor(text,gaps){
 // 已达标时优先「推进」而不是继续挑毛病——否则用户会觉得怎么答都不对。
 // D1 维度里，「伪取舍」比人称更致命——如果当时根本没得选，
 // 把"我们"改成"我"也没有意义，整段故事仍然不成立。
-const D1_PRIORITY=['G8','G6','G7','G3','G1','G2','G4','G5'];
+// 每个维度都有「最致命」的缺口，要优先修，不能一律按通用优先级。
+const DIM_PRIORITY={
+  D1:['G8','G6','G7','G3','G1','G2','G4','G5'],
+  D3:['G10','G9','G3','G1','G2','G4','G5'],
+  D4:['G11','G12','G4','G5','G1','G2','G3'],
+  D5:['G13','G14','G3','G4','G1','G2','G5']
+};
 function nextStepFor(gaps,caps,alignment,dimId){
   if(caps.length)return caps[0].reason+'。先补一个"我亲自做了什么"的句子。';
-  if(dimId==='D1'&&gaps.length){
-    const order=D1_PRIORITY.map(c=>gaps.find(g=>g.code===c)).filter(Boolean);
+  const prio=DIM_PRIORITY[dimId];
+  if(prio&&gaps.length){
+    const order=prio.map(c=>gaps.find(g=>g.code===c)).filter(Boolean);
     if(order.length)gaps=[order[0],...order.slice(1)];
   }
   if(alignment==='met'){
@@ -448,7 +603,13 @@ function nextStepFor(gaps,caps,alignment,dimId){
       G5:'补一句复盘：如果重来，你会在哪一步做得不一样。',
       G6:'先把选项摆出来：当时有几个方案，分别是什么。',
       G7:'补一句代价：选了它，你放弃了什么。',
-      G8:'这个取舍可能不成立——当时是真的有别的选择吗？如果有，说清另一个为什么不行。'
+      G8:'这个取舍可能不成立——当时是真的有别的选择吗？如果有，说清另一个为什么不行。',
+      G9:'补一句对方当时担心什么：他为什么坚持那个做法。',
+      G10:'这段把对方写成了不讲理的人。补一句他哪部分是对的。',
+      G11:'这是优点包装。换一个真的让你付出过代价的短板。',
+      G12:'补一句你自己哪里判断错了，而不是只讲外部原因。',
+      G13:'这段听起来是硬扛。补一句你当时做的调整：砍了什么、找了谁、说了什么风险。',
+      G14:'补一句具体调整：你砍掉了什么、找谁帮了忙、或者跟谁说了风险。'
     };
     return map[gaps[0].code]||'';
   }
@@ -488,6 +649,79 @@ function judgeDecision(text){
   else score=2;
   if(score>=3&&hasMechanism(t))score=4;                    // 强是：判断标准被复用
   return {score,signals:s,hasOption,hasTradeoff,strongBasis};
+}
+
+/* ========== D3 专项判定：协作与冲突 ========== */
+// 核心不是「有没有解决」，而是「有没有承认对方合理」。
+// 把对方写成完全不讲理的人，即使结果做成了也不加分——这种人进团队会持续制造摩擦。
+// 覆盖面要够：「对方完全不讲理，水平也差」这类说法必须能识别，
+// 否则会把贬低对方的回答判成中性。
+const RE_BLAME=/(?:他|对方|那人)[^，。；！？\n]{0,10}(?:不专业|不懂|不行|瞎指挥|固执|不讲理|水平(?:差|不行|一般)|能力(?:差|不行)|不配合|沟通不了|没法沟通|莫名其妙|离谱|蠢|菜)/;
+const RE_UNDERSTAND=/(?:我理解|我能理解|他的顾虑|他的立场|站在他角度|换位|他担心|他压力|他的 KPI|他也有道理|确实有道理|他的出发点)/;
+const RE_ESCALATE=/(?:领导拍板|让领导定|上报|交给上级|最后领导|老板决定)/;
+const RE_MECH_COLLAB=/(?:分工边界|职责边界|决策规则|谁拍板|升级机制|同步节奏|例会|对齐机制|接口人|SLA|协作规范)/;
+
+function judgeCollab(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  let score;
+  const understands=RE_UNDERSTAND.test(t);
+  const blame=RE_BLAME.test(t);
+  const escalated=RE_ESCALATE.test(t)&&!hasSelfAction(t);
+  if(blame&&!understands)score=0;                        // 强否：把对方写成坏人
+  else if(s.vagueOnly)score=1;                            // 否：只有"沟通了一下"
+  else if(escalated)score=2;                              // 中性：靠领导拍板解决
+  else if(understands&&s.concrete&&hasDecision(t))score=3; // 是：先理解再用事实推动
+  else if(s.concrete)score=2;                             // 中性：有动作但没体现理解对方
+  else score=1;
+  if(score>=3&&RE_MECH_COLLAB.test(t))score=4;            // 强是：建立了减少冲突的机制
+  return {score,signals:s,understands,blame};
+}
+
+/* ========== D4 专项判定：复盘与成长 ========== */
+// 复用缺点题的凡尔赛识别；这里额外要求「代价 + 改变」两个都具体。
+// 「预估不足」「想当然」都是自认失误的常见说法，原表里漏了。
+// 「我」和自认失误的动词之间常夹着别的字（我有一次低估了…），
+// 所以留 6 字窗口，不能要求紧跟。
+const RE_OWN_FAULT=/(?:我[^，。；！？\n]{0,6}(?:判断错|估计错|决定错|低估|高估|没想到|疏忽|漏了|错在|以为|预估不足|想当然|大意|看错|太乐观|过于乐观|太自信|过于自信)|是我(?:的)?(?:问题|责任|失误)|(?:我)?预估(?:不足|错了))/;
+const RE_SPECIFIC_CHANGE=/(?:后来我(?:改成|建立|加|固定|开始)|现在我会|我加了个|我定了|我要求|我改成|下次遇到.{0,10}我)/;
+
+function judgeGrowth(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  let score;
+  if(RE_HUMBLEBRAG.test(t))score=0;                        // 强否：凡尔赛式缺点
+  else if(!RE_COST.test(t))score=1;                        // 否：承认失误但说不出代价
+  else if(!RE_OWN_FAULT.test(t))score=1;                   // 否：代价说了但不认为是自己的判断
+  else if(!RE_SPECIFIC_CHANGE.test(t))score=2;             // 中性：有代价有责任，改变只是"会更注意"
+  else if(hasSelfAction(t))score=3;                        // 是：具体可观察的改变
+  else score=2;
+  if(score>=3&&hasMechanism(t))score=4;                    // 强是：教训变成团队可用的规则
+  return {score,signals:s};
+}
+
+/* ========== D5 专项判定：压力与稳定性 ========== */
+// 最需要防的错：把「硬扛」当「抗压」。
+// 连续通宵、一个人顶住，在成熟团队里反而是风险信号——说明他不会提前暴露问题。
+const RE_HARD_ENDURE=/(?:连续(?:加班|通宵)|通宵|熬了(?:几|好)?(?:天|夜)|一个人(?:扛|顶)|硬扛|咬牙|撑下来|没日没夜|几乎没睡)/;
+// 「说」本身不算调整——「从没跟领导说过压力」也含"跟领导说"，
+// 会被误判成做了调整。必须是实质动作：砍范围、加人、改排期、求助。
+const RE_ADJUST=/(?:砍掉|缩减|减(?:少)?范围|降级|推迟|延后|加人|借调|求助|找(?:人|资源)(?:帮忙|支持)|调整(?:范围|预期|节奏|排期)|重新排期|分阶段|先做核心|先保核心|提前暴露|同步风险|说了风险|报了风险)/;
+
+function judgePressure(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  let score;
+  const adjusts=RE_ADJUST.test(t);
+  const hardEndure=RE_HARD_ENDURE.test(t);
+  // 硬扛优先：只要出现「通宵 / 一个人扛」且没有实质调整动作，就是风险信号。
+  // 注意不能靠 decision 判断——「跟领导说了压力」里的"说了"会误触发决策词。
+  if(hardEndure&&!adjusts)score=0;                         // 强否：只有硬扛，没有任何调整
+  else if(!adjusts)score=1;                                // 否：说了加班赶完，没说怎么取舍
+  else if(!hasDecision(t))score=2;                         // 中性：有调整但没说明依据
+  else score=3;                                            // 是：识别压力来源并主动调整
+  if(score>=3&&RE_MECH_COLLAB.test(t))score=4;             // 强是：建立预警或缓冲机制
+  return {score,signals:s,adjusts,hardEndure};
 }
 
 /* ========== 换位模式（极轻版 3 题） ========== */
@@ -569,6 +803,9 @@ function judgeByRule(rule,text,options){
   if(rule==='weakness')return wrap(judgeWeakness(text));
   if(rule==='result')return wrap(judgeResult(text));
   if(rule==='decision')return wrap(judgeDecision(text));
+  if(rule==='collab')return wrap(judgeCollab(text));
+  if(rule==='growth')return wrap(judgeGrowth(text));
+  if(rule==='pressure')return wrap(judgePressure(text));
   return judge(text,options);
 }
 
@@ -605,7 +842,7 @@ return {
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
-  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,gapsFor,evidenceFor,
+  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
   empty,validate
 };
 });

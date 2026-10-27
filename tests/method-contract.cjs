@@ -103,9 +103,9 @@ test('每轮只问一条、最多两轮、全通过不追问',()=>{
 
 test('话术库覆盖全部缺口且每类至少 3 条，同一 seed 不撞句',()=>{
   // G1–G5 通用 + G6–G8 是 D1 专用的取舍三件套
-  assert.equal(M.utteranceCount(),31);
+  assert.equal(M.utteranceCount(),49);
   for(const code of ['G1','G2','G3','G4','G5'])assert.ok(M.UTTERANCES[code].length>=4,code);
-  for(const code of ['G6','G7','G8'])assert.ok(M.UTTERANCES[code].length>=3,code);
+  for(const code of ['G6','G7','G8','G9','G10','G11','G12','G13','G14'])assert.ok(M.UTTERANCES[code].length>=3,code);
   const a=M.pickUtterance('G1',0),b=M.pickUtterance('G1',1);
   assert.notEqual(a,b);
 });
@@ -212,7 +212,7 @@ test('app.html 引入 methodology.js 且视图与导航已接线',()=>{
 
 /* ===== D1 业务判断与决策 ===== */
 test('D1 与 D2 是两个独立维度，各有三题五锚点',()=>{
-  assert.equal(M.DIMENSIONS.length,2);
+  assert.equal(M.DIMENSIONS.length,5);
   for(const d of M.DIMENSIONS){
     assert.equal(d.questions.length,3,d.id);
     assert.equal(d.anchors.length,5,d.id);
@@ -312,4 +312,104 @@ test('证据去重不影响不同原话的多条证据',()=>{
   assert.ok(r.evidence.length>=2,'不同原话应保留多条证据');
   const quotes=r.evidence.map(e=>e.quote);
   assert.equal(new Set(quotes).size,quotes.length,'不应出现重复引用');
+});
+
+/* ===== D3 协作与冲突 ===== */
+test('D3 判定核心是「有没有承认对方合理」，不是「有没有解决」',()=>{
+  const rows=[
+    ['他就是不专业，瞎指挥，最后我没办法只能听他的。','strong_no'],
+    ['我们有分歧，后来让领导拍板解决了。','neutral'],
+    ['我理解他担心的是排期风险，因为他的 KPI 挂在交付上。我拿了两周的灰度数据给他看，说明分阶段上线风险可控，他同意先试一个模块。','yes']
+  ];
+  for(const [text,level] of rows)assert.equal(M.judge(text,{jobStage:'owner',dimension:'D3'}).level,level,text.slice(0,24));
+});
+
+test('D3 把对方写成坏人是强否，即使结果做成了',()=>{
+  const text='对方完全不讲理，水平也差，最后我硬推着做完了，效果很好。';
+  const r=M.judge(text,{jobStage:'owner',dimension:'D3'});
+  assert.equal(r.level,'strong_no','贬低对方应压到最低档，不能因为结果好就给分');
+});
+
+test('D3 专用缺口 G9 立场 / G10 归因',()=>{
+  const blame='他就是不专业，瞎指挥。';
+  const codes=M.detectGaps(M.analyze(blame),blame,'D3').map(g=>g.code);
+  assert.ok(codes.includes('G9'),'没体现理解对方应触发 G9');
+  assert.ok(codes.includes('G10'),'贬低对方应触发 G10');
+  const good='我理解他担心排期风险。我拿灰度数据给他看，说明风险可控，他同意先试一个模块。';
+  const goodCodes=M.detectGaps(M.analyze(good),good,'D3').map(g=>g.code);
+  assert.ok(!goodCodes.includes('G10'),'已体现理解对方不应触发 G10');
+});
+
+/* ===== D4 复盘与成长 ===== */
+test('D4 判定核心是「代价 + 自认责任 + 具体改变」',()=>{
+  const rows=[
+    ['我最大的缺点就是太追求完美。','strong_no'],
+    ['我有一次预估不足，导致项目延期两周。','neutral'],
+    ['我有一次低估了复杂度，导致项目延期两周，返工了一轮。后来我改成每个需求先做技术评审，留三天 buffer。','yes']
+  ];
+  for(const [text,level] of rows)assert.equal(M.judge(text,{jobStage:'owner',dimension:'D4'}).level,level,text.slice(0,24));
+});
+
+test('D4 凡尔赛式缺点一律强否，不管包装得多好',()=>{
+  for(const t of ['我最大的缺点就是太追求完美。','我的缺点是对自己要求太高，经常加班。','我太拼了，经常忽略休息。']){
+    assert.equal(M.judge(t,{jobStage:'owner',dimension:'D4'}).level,'strong_no',t);
+  }
+});
+
+test('D4 只说外部原因不给分',()=>{
+  // 有代价，但不承认是自己判断失误
+  const text='项目延期了两周，因为需求一直在变，公司流程也有问题。';
+  const r=M.judge(text,{jobStage:'owner',dimension:'D4'});
+  assert.ok(r.score<=1,'把责任全推外部应判低档，实际 '+r.levelName);
+});
+
+/* ===== D5 压力与稳定性 ===== */
+test('D5 判定核心是「主动调整」，不是「硬扛」',()=>{
+  const rows=[
+    ['项目很急，我连续通宵三天，一个人扛下来，最后按时上线了。','strong_no'],
+    ['时间很紧，我加班赶完了。','no'],
+    ['时间很紧，我盘了一下发现做不完，就跟领导说了风险，砍掉了两个非核心功能，先保核心链路，最后按时上线。','yes']
+  ];
+  for(const [text,level] of rows)assert.equal(M.judge(text,{jobStage:'owner',dimension:'D5'}).level,level,text.slice(0,24));
+});
+
+test('D5 硬扛是风险信号，不该被当成抗压加分',()=>{
+  const hardEndure='我连续通宵一周，一个人顶住了整个项目，从没跟领导说过压力。';
+  const adjusted='我发现进度有风险，提前跟领导说了，砍掉两个非核心功能，还借调了一个人。';
+  const a=M.judge(hardEndure,{jobStage:'owner',dimension:'D5'});
+  const b=M.judge(adjusted,{jobStage:'owner',dimension:'D5'});
+  assert.equal(a.level,'strong_no','只有硬扛应判强否');
+  assert.ok(b.score>a.score,'主动调整的得分必须高于硬扛');
+});
+
+test('五个维度各有三题五锚点，题目都带找例子的提示',()=>{
+  assert.deepEqual(M.DIMENSIONS.map(d=>d.id),['D1','D2','D3','D4','D5']);
+  for(const d of M.DIMENSIONS){
+    assert.equal(d.questions.length,3,d.id);
+    assert.equal(d.anchors.length,5,d.id);
+    for(const q of d.questions){
+      assert.ok(q.hint&&q.hint.length>10,d.id+' 每题要有提示');
+      assert.ok(!/需要(推动|改变)/.test(q.q),d.id+' 不能用假设语气');
+    }
+  }
+});
+
+test('每个维度都有专用缺口与优先级表',()=>{
+  for(const dim of ['D1','D3','D4','D5']){
+    const codes=M.gapsFor(dim).map(g=>g.code);
+    assert.ok(codes.length>5,dim+' 应有专用缺口，实际 '+codes.length);
+  }
+  assert.equal(M.gapsFor('D2').length,5,'D2 只用通用五类缺口');
+});
+
+test('各维度下一步优先修自己的致命缺口',()=>{
+  const cases=[
+    ['D3','他就是不专业，瞎指挥。','对方|合理|担心'],
+    ['D4','我最大的缺点就是太追求完美。','优点包装|真的让你付出'],
+    ['D5','我连续通宵三天，一个人扛下来。','调整|砍|找了谁']
+  ];
+  for(const [dim,text,re] of cases){
+    const r=M.judge(text,{jobStage:'owner',dimension:dim});
+    assert.match(r.nextStep,new RegExp(re),dim+' 下一步应指向致命缺口，实际：'+r.nextStep);
+  }
 });
