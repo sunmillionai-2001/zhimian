@@ -199,6 +199,45 @@ const {spawn}=require('node:child_process');
   assert.equal(reviewCalled,false,'已达标时不应发起 AI 复核');
   assert.equal(await page.evaluate(()=>document.getElementById('mdReview').hidden),true,'已达标时不应显示复核卡片');
 
+  // 维度切换：D1 与 D2 出不同的题，切回 D1 题目要变
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  assert.equal(await page.locator('#mdDims .chip').count(),2,'应有两个维度可选');
+  const dimNames=await page.locator('#mdDims .chip').allInnerTexts();
+  assert.ok(dimNames.some(n=>/推动与影响力/.test(n)),'应有推动与影响力');
+  assert.ok(dimNames.some(n=>/业务判断/.test(n)),'应有业务判断与决策');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','5 年以上，带过团队');
+  // 默认 D2
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  const qD2=await page.locator('#mdQuestion').innerText();
+  const dimD2=await page.locator('#mdQuestionDim').innerText();
+  assert.match(dimD2,/推动与影响力/,'默认应是推动与影响力');
+  // 切到 D1：维度选择器在定标尺面板里，先回去
+  await page.locator('#methodStart').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProfile').hidden);
+  await page.locator('#mdDims [data-md-dim="D1"]').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(300);
+  const qD1=await page.locator('#mdQuestion').innerText();
+  const dimD1=await page.locator('#mdQuestionDim').innerText();
+  assert.match(dimD1,/业务判断/,'切换后应是业务判断与决策');
+  assert.notEqual(qD1,qD2,'两个维度应出不同的题');
+  assert.match(qD1,/取舍|判断|不该做/,'D1 的题应问取舍或判断');
+  // D1 走完一题，判定按取舍口径
+  await page.locator('#mdAnswer').fill('领导定的方案，我们只能这么做，后来执行得不错。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(400);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  const verdictD1=await page.locator('#mdVerdictBody').innerText();
+  assert.match(verdictD1,/强否|否/,'没得选的回答应判低档，实际：'+verdictD1.slice(0,40));
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')).sessions.at(-1));
+  assert.match(saved.questionId,/^D1-/,'记录里应保存 D1 的题号，实际 '+saved.questionId);
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);

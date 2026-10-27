@@ -101,9 +101,11 @@ test('每轮只问一条、最多两轮、全通过不追问',()=>{
   assert.equal(M.MAX_TURNS,2);
 });
 
-test('话术库覆盖 G1–G5 且每类至少 4 条，同一 seed 不撞句',()=>{
-  assert.equal(M.utteranceCount(),22);
+test('话术库覆盖全部缺口且每类至少 3 条，同一 seed 不撞句',()=>{
+  // G1–G5 通用 + G6–G8 是 D1 专用的取舍三件套
+  assert.equal(M.utteranceCount(),31);
   for(const code of ['G1','G2','G3','G4','G5'])assert.ok(M.UTTERANCES[code].length>=4,code);
+  for(const code of ['G6','G7','G8'])assert.ok(M.UTTERANCES[code].length>=3,code);
   const a=M.pickUtterance('G1',0),b=M.pickUtterance('G1',1);
   assert.notEqual(a,b);
 });
@@ -206,4 +208,108 @@ test('app.html 引入 methodology.js 且视图与导航已接线',()=>{
   assert.ok(html.includes('data-view="method"'));
   assert.ok(html.includes('id="method"'));
   assert.ok(html.includes("'method':'面试方法论'"));
+});
+
+/* ===== D1 业务判断与决策 ===== */
+test('D1 与 D2 是两个独立维度，各有三题五锚点',()=>{
+  assert.equal(M.DIMENSIONS.length,2);
+  for(const d of M.DIMENSIONS){
+    assert.equal(d.questions.length,3,d.id);
+    assert.equal(d.anchors.length,5,d.id);
+    for(const q of d.questions)assert.ok(q.hint&&q.hint.length>10,d.id+' 每题都要有找例子的提示');
+  }
+  assert.equal(M.dimension('D1').name,'业务判断与决策');
+  assert.equal(M.dimension('不存在').id,'D2','未知维度回落到 D2');
+});
+
+test('D1 按档位出题，最高档复用最难那题',()=>{
+  assert.equal(M.pickQuestion('executor','D1').id,'D1-Q1');
+  assert.equal(M.pickQuestion('owner','D1').id,'D1-Q2');
+  assert.equal(M.pickQuestion('lead','D1').id,'D1-Q3');
+  assert.equal(M.pickQuestion('strategy','D1').id,'D1-Q3');
+});
+
+test('D1 判定核心是取舍是否成立，不是有没有阻力',()=>{
+  const rows=[
+    ['领导定的方案，我们只能这么做。','strong_no'],
+    ['A 方案明显更好，当然选 A，没什么好纠结的。','no'],
+    ['我们选了一个方案，最后做成了。','no'],
+    ['两个方案各有好处，我选了 A，放弃了 B，当时凭感觉觉得 A 更好。','no'],
+    ['两个方案：A 上线快但功能少，B 功能全但要两个月。我测算过 A 能提前三周拿到数据，所以先做 A，放弃 B，上线后转化提升 12%。','yes'],
+    ['两个方案：A 上线快，B 功能全。我测算过 A 能提前三周拿到数据，所以先做 A，放弃 B。上线后转化提升 12%。之后我把这套测算方式固化成了评审模板，团队一直在用。','strong_yes']
+  ];
+  for(const [text,level] of rows){
+    assert.equal(M.judge(text,{jobStage:'owner',dimension:'D1'}).level,level,text.slice(0,30));
+  }
+});
+
+test('同一段回答在 D1 和 D2 下可能得到不同结论',()=>{
+  // 这段有真实阻力（D2 看重）但没有取舍（D1 看重）
+  const text='我推动三个部门配合，财务明确反对，因为口径要变。我拿两周灰度数据说服他先试一个部门。';
+  const d1=M.judge(text,{jobStage:'owner',dimension:'D1'});
+  const d2=M.judge(text,{jobStage:'owner',dimension:'D2'});
+  assert.notEqual(d1.score,d2.score,'两个维度应按各自标准判定，实际 D1='+d1.score+' D2='+d2.score);
+});
+
+test('D1 专用缺口 G6 选项 / G7 代价 / G8 伪取舍',()=>{
+  const none='领导定的方案，我们只能这么做。';
+  const codes=M.detectGaps(M.analyze(none),none,'D1').map(g=>g.code);
+  assert.ok(codes.includes('G6'),'没说选项应触发 G6');
+  assert.ok(codes.includes('G7'),'没说代价应触发 G7');
+  assert.ok(codes.includes('G8'),'没得选应触发 G8');
+  // D2 不应出现这三个缺口
+  const d2codes=M.detectGaps(M.analyze(none),none,'D2').map(g=>g.code);
+  assert.ok(!d2codes.some(c=>['G6','G7','G8'].includes(c)),'D2 不应出现取舍三件套');
+});
+
+test('取舍齐全时不触发 G6/G7，也不误报 G8',()=>{
+  const good='两个方案：A 上线快但功能少，B 功能全但要两个月。我测算过 A 能提前三周拿到数据，所以先做 A，放弃 B，上线后转化提升 12%。';
+  const codes=M.detectGaps(M.analyze(good),good,'D1').map(g=>g.code);
+  assert.ok(!codes.includes('G6'),'已说清选项不应触发 G6');
+  assert.ok(!codes.includes('G7'),'已说清代价不应触发 G7');
+  assert.ok(!codes.includes('G8'),'有真实取舍不应误报 G8');
+});
+
+test('D1 缺口有对应的追问话术和下一步建议',()=>{
+  for(const code of ['G6','G7','G8']){
+    assert.ok(M.UTTERANCES[code]&&M.UTTERANCES[code].length>=3,code+' 至少三条话术');
+  }
+  const bad='领导定的方案，我们只能这么做。';
+  const r=M.judge(bad,{jobStage:'owner',dimension:'D1'});
+  assert.ok(r.nextStep.length>0);
+  // 下一步应针对最高优先级缺口给出可执行动作
+  assert.ok(!/^$/.test(r.nextStep));
+});
+
+test('D1 的证据引用必须来自原文',()=>{
+  const text='领导定的方案，我们只能这么做。';
+  const r=M.judge(text,{jobStage:'owner',dimension:'D1'});
+  for(const e of r.evidence)assert.ok(text.includes(e.quote),'证据必须是原文片段：'+e.quote);
+});
+
+test('证据去重：多个缺口引用同一句时只保留一条并合并缺口名',()=>{
+  const short='领导定的方案，我们只能这么做。';
+  const r=M.judge(short,{jobStage:'lead',dimension:'D1'});
+  assert.equal(r.evidence.length,1,'短回答里多个缺口引用同一句，应合并成一条');
+  assert.ok(r.evidence[0].name.includes('/'),'合并后应显示多个缺口名：'+r.evidence[0].name);
+  assert.ok(short.includes(r.evidence[0].quote),'引用必须是原文片段：'+r.evidence[0].quote);
+});
+
+test('D1 的下一步优先指向伪取舍，而不是人称',()=>{
+  // 这段同时缺人称和取舍，但"当时没得选"才是致命问题：
+  // 把"我们"改成"我"也救不了这个故事。
+  const text='领导定的方案，我们只能这么做，后来执行得不错。';
+  const d1=M.judge(text,{jobStage:'lead',dimension:'D1'});
+  assert.match(d1.nextStep,/取舍|别的选择/,'D1 应先修取舍，实际：'+d1.nextStep);
+  // D2 同样的话仍应先修人称
+  const d2=M.judge(text,{jobStage:'lead',dimension:'D2'});
+  assert.match(d2.nextStep,/"我们"|"我"/,'D2 仍应先修人称，实际：'+d2.nextStep);
+});
+
+test('证据去重不影响不同原话的多条证据',()=>{
+  const text='我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。我拿了两周灰度数据给财务看。';
+  const r=M.judge(text,{jobStage:'owner',dimension:'D2'});
+  assert.ok(r.evidence.length>=2,'不同原话应保留多条证据');
+  const quotes=r.evidence.map(e=>e.quote);
+  assert.equal(new Set(quotes).size,quotes.length,'不应出现重复引用');
 });

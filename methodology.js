@@ -102,9 +102,41 @@ const D2={
     {id:'strong_yes',text:'在无授权甚至被反对时，主动建立可复用的推动机制（固定例会、共同 KPI、流程改造），结果可量化。'}
   ]
 };
-function pickQuestion(jobStage){
-  const idx=Math.min(stageIndex(jobStage),D2.questions.length-1);
-  return D2.questions[idx];
+/* ========== 维度 D1：业务判断与决策 ========== */
+// 和 D2 的关键差异：D2 的证据是「对方改变了立场」，D1 的证据是「你放弃了什么」。
+// 最需要防的错是「伪取舍」——用户讲了一个选择，但细看当时根本没得选。
+const D1={
+  id:'D1',
+  name:'业务判断与决策',
+  definition:'在信息不全、目标冲突或资源受限的情况下，能拆解问题、识别关键约束、做出可解释的取舍，并推动落地。',
+  weight_default:0.25,
+  questions:[
+    {id:'D1-Q1',minStage:'executor',
+     q:'讲一次你在信息不全的情况下做了判断，后来证明这个判断是对的经历。',
+     hint:'想一想：当时拿不到完整数据或需求还没定，你必须先做决定，不能一直等。'},
+    {id:'D1-Q2',minStage:'owner',
+     q:'讲一次你在两个都有道理的选择之间做了取舍的经历。',
+     hint:'想一想：两个方案各有好处，选了一个就得放弃另一个，或者资源只够做一件。'},
+    {id:'D1-Q3',minStage:'lead',
+     q:'讲一次你判断某件事不该做、并说服别人放弃它的经历。',
+     hint:'想一想：有人要做一件你觉得不划算的事（做功能、投渠道、接客户），你说服他们停下来。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'只是执行了别人的决定，或把"当时只能这样"说成判断。'},
+    {id:'no',text:'有选择动作，但说不清选项是什么、放弃了什么，或事后才总结出理由。'},
+    {id:'neutral',text:'说清了选项和取舍，但依据是直觉或"感觉这样更好"，没有可验证的支撑。'},
+    {id:'yes',text:'说清选项与放弃的代价，取舍依据是数据 / 约束 / 目标优先级，结果可验证。'},
+    {id:'strong_yes',text:'在信息不全时主动建立判断标准，取舍被结果验证，且这套标准后来被复用。'}
+  ]
+};
+
+const DIMENSIONS=[D1,D2];
+function dimension(id){return DIMENSIONS.find(d=>d.id===id)||D2;}
+
+function pickQuestion(jobStage,dimId){
+  const d=dimension(dimId||'D2');
+  const idx=Math.min(stageIndex(jobStage),d.questions.length-1);
+  return d.questions[idx];
 }
 
 /* ========== 文本分析：句子切分与信号 ========== */
@@ -202,6 +234,7 @@ function analyze(text){
 /* ========== 缺口检测（G1–G5，按诊断价值排序） ========== */
 // G1 人称 > G2 摩擦力 > G3 决策 > G4 量化 > G5 反思
 // 排序理由：不知道他做了什么，后面全是空的；故事不成立，问下去也没意义。
+// 通用缺口（两个维度共用）
 const GAPS=[
   {code:'G1',priority:100,name:'人称',label:'"我们"太多，看不出你做了什么',test:s=>s.ownRatio<0.4},
   {code:'G2',priority:90,name:'摩擦力',label:'故事里没有真实的障碍',test:s=>!s.friction},
@@ -209,9 +242,26 @@ const GAPS=[
   {code:'G4',priority:70,name:'量化',label:'结果没有数字',test:s=>s.quantDensity<0.3},
   {code:'G5',priority:50,name:'反思',label:'没有复盘',test:s=>!s.reflection}
 ];
+// D1 专用缺口：业务判断维度问的是「取舍」，光有决策词不够，
+// 还要说清选项、代价，以及这个取舍是不是真的成立。
+const GAPS_D1=[
+  {code:'G6',priority:95,name:'选项',label:'没说清当时有哪几个选项',test:(s,t)=>!RE_OPTION.test(t)},
+  {code:'G7',priority:85,name:'代价',label:'没说你放弃了什么',test:(s,t)=>!RE_TRADEOFF.test(t)},
+  {code:'G8',priority:88,name:'伪取舍',label:'听起来当时没得选，或选项优劣悬殊',test:(s,t)=>(RE_NO_CHOICE.test(t)&&!RE_OPTION.test(t))||(RE_OBVIOUS.test(t)&&!RE_TRADEOFF.test(t))}
+];
+// 按维度组装缺口表：D1 在通用缺口基础上加入取舍三件套。
+function gapsFor(dimId){
+  if(dimId!=='D1')return GAPS;
+  return [...GAPS,...GAPS_D1].sort((a,b)=>b.priority-a.priority);
+}
 
-function detectGaps(signals){
-  return GAPS.filter(g=>g.test(signals)).sort((a,b)=>b.priority-a.priority).map(g=>({code:g.code,name:g.name,label:g.label,priority:g.priority}));
+// text 参与判定：G6–G8 需要看原文，不只是聚合信号。
+function detectGaps(signals,text,dimId){
+  const src=String(text||'');
+  return gapsFor(dimId)
+    .filter(g=>g.test(signals,src))
+    .sort((a,b)=>b.priority-a.priority)
+    .map(g=>({code:g.code,name:g.name,label:g.label,priority:g.priority}));
 }
 
 /* 每轮只问 1 条；命中多个取最高优先级；最多 2 轮。
@@ -255,6 +305,22 @@ const UTTERANCES={
     '这件事之后，你改变了什么做法？',
     '你从这个项目里学到的最反直觉的一件事是什么？',
     '当时有没有人提醒过你？你为什么没听？'
+  ],
+  // D1 专用：追问取舍的三件套
+  G6:[
+    '当时你手上有几个选项？分别是什么？',
+    '除了这个方案，还有别的做法吗？',
+    '如果当时不做这件事，会有什么后果？'
+  ],
+  G7:[
+    '选了它，你放弃了什么？',
+    '为了做这件事，你牺牲了哪一块？',
+    '这个决定的代价是什么？'
+  ],
+  G8:[
+    '当时真的没得选吗？还是其实有别的路但你没考虑？',
+    '你说 A 明显更好——好在哪？当时是怎么判断的？',
+    '如果当时选另一个，会差在哪里？'
   ]
 };
 function utteranceCount(){return Object.values(UTTERANCES).reduce((n,a)=>n+a.length,0);}
@@ -294,17 +360,23 @@ function starCheck(text){
 // 三个横向信号作为调节因子封顶，不单独计分。
 function judge(text,options){
   const opt=options||{};
+  const dimId=opt.dimension||'D2';
   const s=analyze(text);
-  const gaps=detectGaps(s);
+  const gaps=detectGaps(s,text,dimId);
   let score;
-  // 强否：被指派且没有主动动作。「领导让我推」+「我按他说的做」= 全程被动，
-  // 即使句子里有「做」也不算个人动作。
-  if(s.passive&&!hasInitiative(text))score=0;
-  else if(s.vagueOnly)score=1;                       // 否：只有空泛动词
-  else if(s.concrete&&s.friction)score=s.decision?3:2; // 有具体动作+阻力：中性；再加取舍：是
-  else if(s.concrete)score=2;                        // 有动作但故事没有真实障碍
-  else score=1;
-  if(score>=3&&s.mechanism)score=4;                  // 是 → 强是：需要机制证据
+  if(dimId==='D1'){
+    // 业务判断维度按「取舍是否成立」判，不按「有没有阻力」判。
+    score=judgeDecision(text).score;
+  }else{
+    // 强否：被指派且没有主动动作。「领导让我推」+「我按他说的做」= 全程被动，
+    // 即使句子里有「做」也不算个人动作。
+    if(s.passive&&!hasInitiative(text))score=0;
+    else if(s.vagueOnly)score=1;                       // 否：只有空泛动词
+    else if(s.concrete&&s.friction)score=s.decision?3:2; // 有具体动作+阻力：中性；再加取舍：是
+    else if(s.concrete)score=2;                        // 有动作但故事没有真实障碍
+    else score=1;
+    if(score>=3&&s.mechanism)score=4;                  // 是 → 强是：需要机制证据
+  }
   const caps=[];
   if(s.ownRatio<0.4&&score>2){score=2;caps.push({code:'X-OWN',reason:'"我们"太多，个人贡献无法确认，封顶「中性」'});}
   if(s.quantDensity<0.3&&score>3){score=3;caps.push({code:'X-QUANT',reason:'结果没有数字，封顶「是」'});}
@@ -320,28 +392,47 @@ function judge(text,options){
     signals:s,gaps,caps,
     star:starCheck(text),
     evidence:evidenceFor(text,gaps),
-    nextStep:nextStepFor(gaps,caps,alignment)
+    nextStep:nextStepFor(gaps,caps,alignment,dimId)
   };
 }
 
 // 每条缺口挂一句用户原话，让判定可核对（"因为你说过这句话"）
+// 证据去重：多个缺口常常引用同一句话（回答很短时尤其明显）。
+// 同一句原文只保留一条，缺口名合并，否则界面上会出现五行一模一样的引用。
 function evidenceFor(text,gaps){
   const rows=sentences(text);
-  return gaps.map(g=>{
+  const seen=new Map();
+  const raw=gaps.map(g=>{
     let quote='';
     if(g.code==='G1')quote=rows.find(r=>RE_PLURAL.test(r)&&!RE_SELF.test(r))||rows[0]||'';
     else if(g.code==='G2')quote=rows.find(r=>/困难|挑战|难|问题/.test(r))||'';
     else if(g.code==='G3')quote=rows.find(r=>/然后|后来|就|于是/.test(r))||'';
     else if(g.code==='G4')quote=rows.find(r=>RE_R.test(r)&&!RE_NUM.test(r))||'';
     else if(g.code==='G5')quote=rows[rows.length-1]||'';
+    else if(g.code==='G6')quote=rows.find(r=>/方案|选项|选择|做/.test(r))||'';
+    else if(g.code==='G7')quote=rows.find(r=>/选了|决定|采用/.test(r))||'';
+    else if(g.code==='G8')quote=rows.find(r=>RE_NO_CHOICE.test(r)||RE_OBVIOUS.test(r))||'';
     return {code:g.code,name:g.name,quote:quote.slice(0,120)};
   }).filter(e=>e.quote);
+  for(const e of raw){
+    const hit=seen.get(e.quote);
+    if(hit){if(!hit.names.includes(e.name))hit.names.push(e.name);}
+    else seen.set(e.quote,{code:e.code,name:e.name,names:[e.name],quote:e.quote});
+  }
+  return [...seen.values()].map(e=>({code:e.code,name:e.names.join(' / '),quote:e.quote}));
 }
 
 // 每次只给 1 条可执行动作（给 5 条用户一条都记不住）。
 // 已达标时优先「推进」而不是继续挑毛病——否则用户会觉得怎么答都不对。
-function nextStepFor(gaps,caps,alignment){
+// D1 维度里，「伪取舍」比人称更致命——如果当时根本没得选，
+// 把"我们"改成"我"也没有意义，整段故事仍然不成立。
+const D1_PRIORITY=['G8','G6','G7','G3','G1','G2','G4','G5'];
+function nextStepFor(gaps,caps,alignment,dimId){
   if(caps.length)return caps[0].reason+'。先补一个"我亲自做了什么"的句子。';
+  if(dimId==='D1'&&gaps.length){
+    const order=D1_PRIORITY.map(c=>gaps.find(g=>g.code===c)).filter(Boolean);
+    if(order.length)gaps=[order[0],...order.slice(1)];
+  }
   if(alignment==='met'){
     if(!gaps.length)return '这题的结构和证据都够，可以换下一题。';
     const bonus={G5:'已经达标。想更稳可以再补一句复盘：如果重来，你会在哪一步做得不一样。'};
@@ -354,11 +445,49 @@ function nextStepFor(gaps,caps,alignment){
       G2:'补一句具体的障碍：谁反对、反对什么、当时最坏会怎样。',
       G3:'补一句你的取舍：当时有几个选项，你为什么选这个。',
       G4:'补一个数字：做之前是什么水平，做完之后是多少。',
-      G5:'补一句复盘：如果重来，你会在哪一步做得不一样。'
+      G5:'补一句复盘：如果重来，你会在哪一步做得不一样。',
+      G6:'先把选项摆出来：当时有几个方案，分别是什么。',
+      G7:'补一句代价：选了它，你放弃了什么。',
+      G8:'这个取舍可能不成立——当时是真的有别的选择吗？如果有，说清另一个为什么不行。'
     };
     return map[gaps[0].code]||'';
   }
   return '结构已经完整。但这个岗位要求「'+levelName(LEVEL_IDS[STAGE_REQUIRED.owner])+'」以上的证据，你需要再补一个"把这件事变成机制"的细节。';
+}
+
+/* ========== D1 专项判定：真取舍 vs 伪取舍 ========== */
+// 这个维度最需要防的错是「伪取舍」：用户讲了一个选择，但细看当时根本没得选。
+// 三种典型：
+//   ① 只有一个选项（"我们就这一个方案"）
+//   ② 选项优劣悬殊（"A 明显更好，当然选 A"）
+//   ③ 事后编理由（"后来想想可能是因为……"）
+const RE_NO_CHOICE=/(?:只能|不得不|没办法|没有其他选择|就这一个|唯一(?:的)?(?:选择|方案)|非做不可|上面定的|领导定的|必须)/;
+const RE_OBVIOUS=/(?:显然|明显(?:更好|更优)|当然选|肯定选|不用说|毫无悬念|想都不用想)/;
+const RE_RETRO=/(?:后来想|事后想|回过头看|现在想想|当时没想那么多|凭感觉|直觉|说不上来)/;
+// 取舍的正面证据：说清选项 + 说清放弃的代价
+// 选项标记要容忍标点：「方案：A」「方案 A」「A 和 B」都算。
+const RE_OPTION=/(?:方案\s*[:：]?\s*[AB甲乙12]|[AB甲乙]\s*方案|一个方案|另一个|要么|两种|三条路|备选|选项|替代方案|[AB]\s*和\s*[AB])/;
+const RE_TRADEOFF=/(?:放弃|牺牲|代价|换来|换取|不做|砍掉|舍掉|先不做|推到下一期|优先级|取舍|权衡)/;
+// 判断依据的质量
+const RE_BASIS_STRONG=/(?:数据|指标|测算|ROI|成本|转化率|留存|样本|调研|验证|试点|灰度|A\/B|对比|实验)/;
+const RE_BASIS_WEAK=/(?:感觉|觉得|应该|大概|差不多|经验判断|直觉)/;
+
+function judgeDecision(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  let score;
+  const hasOption=RE_OPTION.test(t);
+  const hasTradeoff=RE_TRADEOFF.test(t);
+  const strongBasis=RE_BASIS_STRONG.test(t);
+  const weakBasis=RE_BASIS_WEAK.test(t);
+  if(RE_NO_CHOICE.test(t)&&!hasOption)score=0;             // 强否：当时没得选
+  else if(RE_OBVIOUS.test(t)&&!hasTradeoff)score=1;        // 否：选项优劣悬殊，不算判断
+  else if(!hasOption||!hasTradeoff)score=1;                // 否：没说清选项或没付出代价
+  else if(RE_RETRO.test(t)||weakBasis&&!strongBasis)score=2; // 中性：有取舍但依据是直觉
+  else if(strongBasis&&hasSelfAction(t))score=3;           // 是：有数据依据 + 个人动作
+  else score=2;
+  if(score>=3&&hasMechanism(t))score=4;                    // 强是：判断标准被复用
+  return {score,signals:s,hasOption,hasTradeoff,strongBasis};
 }
 
 /* ========== 换位模式（极轻版 3 题） ========== */
@@ -436,8 +565,10 @@ function judgeResult(text){
 
 // 按 rule 分派，供换位模式与未来扩维度时复用
 function judgeByRule(rule,text,options){
-  if(rule==='weakness'){const r=judgeWeakness(text);return Object.assign(judge(text,options),{score:r.score,level:levelByScore(r.score).id,levelName:levelByScore(r.score).name});}
-  if(rule==='result'){const r=judgeResult(text);return Object.assign(judge(text,options),{score:r.score,level:levelByScore(r.score).id,levelName:levelByScore(r.score).name});}
+  const wrap=r=>Object.assign(judge(text,options),{score:r.score,level:levelByScore(r.score).id,levelName:levelByScore(r.score).name});
+  if(rule==='weakness')return wrap(judgeWeakness(text));
+  if(rule==='result')return wrap(judgeResult(text));
+  if(rule==='decision')return wrap(judgeDecision(text));
   return judge(text,options);
 }
 
@@ -469,12 +600,12 @@ function validate(state){
 
 /* ========== 对外接口 ========== */
 return {
-  STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D2,GAPS,UTTERANCES,SWAP,MAX_TURNS,
+  STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
   stageName,stageIndex,inferSelfStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
-  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,evidenceFor,
+  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,gapsFor,evidenceFor,
   empty,validate
 };
 });
