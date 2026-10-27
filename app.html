@@ -2551,17 +2551,28 @@
     }
   }
 
-  // 一轮模式：渲染当前这一题
+  // 一轮模式：渲染当前这一题。动机题走风险扫描，不进档位判定。
   function mdShowRoundQuestion(){
     const it=mdRound.questions[mdRound.index];
     if(!it){mdRenderSummary();return;}
+    mdRenderRoundBar();
+    if(it.kind==='motive'){
+      mdSession={questionId:it.questionId,question:it.question,turns:[],probeSeed:0,dimension:'M',kind:'motive'};
+      document.getElementById('mdMotiveQ').textContent=it.question;
+      document.getElementById('mdMotiveHint').textContent=it.hint;
+      document.getElementById('mdMotiveAnswer').value='';
+      document.getElementById('mdMotiveResult').innerHTML='';
+      mdMotiveCtx={shortStints:false};
+      mdSetStep('motive');
+      mdMsg('');
+      return;
+    }
     const dim=MD.dimension(it.dimensionId);
     mdSession={questionId:it.questionId,question:it.question,turns:[],probeSeed:0,dimension:it.dimensionId};
     document.getElementById('mdQuestionDim').textContent=dim.name;
     document.getElementById('mdQuestion').textContent=it.question;
     const hintEl=document.getElementById('mdQuestionHint');
     if(hintEl)hintEl.textContent=(it.hint||'')+'  不用先想结构，像真的面试那样讲一遍，系统会抓出缺的那一块再追问。';
-    mdRenderRoundBar();
     document.getElementById('mdAnswer').value='';
     document.getElementById('mdAnswerState').textContent='';
     mdSetStep('answer');
@@ -2776,6 +2787,16 @@
     }]).slice(-200);
     next.metrics.completed++;
     mdWrite(next);
+    // 一轮模式下，动机题结果记进本轮，并在结果下方给「下一题 / 看整轮结果」
+    if(mdRound&&mdSession&&mdSession.kind==='motive'){
+      mdRound.results[mdRound.index]={dimensionId:'M',dimensionName:MD.MOTIVE.name,riskCount:r.riskCount,nextStep:r.riskCount?r.flags[0].advice:''};
+      const last=mdRound.index>=mdRound.questions.length-1;
+      box.insertAdjacentHTML('beforeend',`<div class="paste-actions" style="margin-top:16px">
+        <button class="btn btn-primary" id="mdMotiveRoundNext" type="button">${last?'看整轮结果':'下一题（'+(mdRound.index+2)+'/'+mdRound.questions.length+'）'}</button>
+      </div>`);
+      const nb=document.getElementById('mdMotiveRoundNext');
+      if(nb)nb.onclick=mdRoundNext;
+    }
     mdMsg('');
   }
 
@@ -2784,6 +2805,11 @@
     if(!mdRound)return;
     const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage);
     document.getElementById('mdSummaryHead').textContent=sum.headline;
+    const motiveHtml=sum.motive?`<div class="md-sum-row motive ${sum.motive.riskCount>0?'weak':''}">
+      <div><div class="nm">${esc(sum.motive.dimensionName)}</div><div class="gd">${sum.motive.riskCount>0?'可能被读成风险 '+sum.motive.riskCount+' 处':'没有明显风险'}</div></div>
+      <div class="lv">${sum.motive.riskCount>0?'待改':'OK'}</div>
+      <div class="gd">动机题不计档位</div>
+    </div>`:'';
     document.getElementById('mdSummaryBody').innerHTML=sum.rows.map(r=>{
       const isWeak=sum.weakest&&r.dimensionId===sum.weakest.dimensionId;
       return `<div class="md-sum-row ${r.met?'met':''} ${isWeak&&!r.met?'weak':''}">
@@ -2791,7 +2817,7 @@
         <div class="lv">${esc(r.levelName)}</div>
         <div class="gd">需要「${esc(MD.levelName(MD.LEVEL_IDS[r.required]))}」</div>
       </div>`;
-    }).join('');
+    }).join('')+motiveHtml;
     const weakBtn=document.getElementById('mdSummaryWeak');
     if(weakBtn){
       weakBtn.hidden=!sum.weakest||sum.metCount===sum.total;

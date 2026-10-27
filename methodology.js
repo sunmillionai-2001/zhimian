@@ -893,22 +893,34 @@ function scanMotive(text,ctx){
 /* ========== 一轮练习：组题与小结 ========== */
 // 单题诊断只能回答「这题答得怎样」，一轮才能回答「我哪个维度最弱」。
 // 后者才是用户真正需要的——它直接决定下一次练什么。
-const ROUND_SIZE=DIMENSIONS.length;
+// 一轮 = 五个行为维度 + 一道动机题。
+// 动机题放在最后：它不参与达标统计，但社招最常挂在这里，
+// 放在末尾能确保前面五个维度先练完，不会因为动机题卡住就放弃整轮。
+const ROUND_SIZE=DIMENSIONS.length+1;
 
 // 按档位为每个维度各出一题，组成一轮。
 function buildRound(jobStage,dimIds){
   const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:DIMENSIONS.map(d=>d.id);
-  return ids.map(id=>{
+  const round=ids.map(id=>{
     const d=dimension(id);
     const q=pickQuestion(jobStage,id);
-    return {dimensionId:d.id,dimensionName:d.name,questionId:q.id,question:q.q,hint:q.hint};
+    return {dimensionId:d.id,dimensionName:d.name,questionId:q.id,question:q.q,hint:q.hint,kind:'behavior'};
   });
+  // 只在完整一轮（没指定维度子集）时追加动机题
+  if(!Array.isArray(dimIds)||!dimIds.length){
+    const mq=MOTIVE.questions[0];
+    round.push({dimensionId:'M',dimensionName:MOTIVE.name,questionId:mq.id,question:mq.q,hint:mq.hint,kind:'motive'});
+  }
+  return round;
 }
 
 // 整轮小结：按维度汇总档位，找出最该补的那一个。
 // 判定「最弱」不只看分数，还要看离达标差多少——差两档比差一档更紧急。
 function roundSummary(items,jobStage){
-  const rows=(items||[]).map(it=>{
+  const all=items||[];
+  // 动机题没有档位，单独拆出来：不进达标统计，但要在小结里占一行。
+  const motive=all.find(it=>it.dimensionId==='M')||null;
+  const rows=all.filter(it=>it.dimensionId!=='M').map(it=>{
     const level=it.level||'strong_no';
     const score=LEVEL_IDS.indexOf(level);
     const required=STAGE_REQUIRED[jobStage]||3;
@@ -930,16 +942,26 @@ function roundSummary(items,jobStage){
     if(b.gap!==a.gap)return b.gap-a.gap;
     return (dimension(b.dimensionId).weight_default||0)-(dimension(a.dimensionId).weight_default||0);
   })[0]||null;
+  const motiveRow=motive?{
+    dimensionId:'M',
+    dimensionName:MOTIVE.name,
+    riskCount:Number.isInteger(motive.riskCount)?motive.riskCount:0,
+    nextStep:motive.nextStep||''
+  }:null;
+  const base=rows.length?(metCount===rows.length
+    ?'这一轮 '+rows.length+' 个维度都达标了。可以换更高的岗位标准再练一遍。'
+    :'这一轮 '+metCount+' / '+rows.length+' 个维度达标。最该补的是「'+weakest.dimensionName+'」。'):'还没有可汇总的题目。';
+  // 动机题有风险时补一句——行为维度都过了但离职原因讲了前公司坏话，是社招最常见的挂法。
+  const motiveNote=motiveRow&&motiveRow.riskCount>0
+    ?'另外，动机题有 '+motiveRow.riskCount+' 处可能被读成风险，建议先改这一块。':'';
   return {
     rows,
     total:rows.length,
     metCount,
     metRate:rows.length?metCount/rows.length:0,
     weakest,
-    // 一句话结论：不给总分，只给「最该补什么」和「整体到什么程度」。
-    headline:rows.length?(metCount===rows.length
-      ?'这一轮五个维度都达标了。可以换更高的岗位标准再练一遍。'
-      :'这一轮 '+metCount+' / '+rows.length+' 个维度达标。最该补的是「'+weakest.dimensionName+'」。'):'还没有可汇总的题目。'
+    motive:motiveRow,
+    headline:base+motiveNote
   };
 }
 

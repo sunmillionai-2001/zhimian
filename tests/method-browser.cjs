@@ -283,37 +283,49 @@ const {spawn}=require('node:child_process');
   assert.equal(await page.evaluate(()=>document.getElementById('mdDimField').hidden),true,'一轮模式不需要选维度');
   await page.click('#mdSaveProfile');
   await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
-  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 5 题/,'一轮应有进度');
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 6 题/,'一轮应是六题（五维度 + 动机）');
   const roundDims=[];
-  // 五道题依次答完，答案统一用一段有明显缺口的回答，确保每轮都能走到诊断
+  // 前五道行为题
   for(let i=0;i<5;i++){
     roundDims.push(await page.locator('#mdQuestionDim').innerText());
-    if(i===0)assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 5 题/);
-    if(i===4)assert.match(await page.locator('#mdRoundBar').innerText(),/第 5 \/ 5 题/);
+    if(i===0)assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 6 题/);
     await page.locator('#mdAnswer').fill('我们团队一起做了个事情，中间有些困难，最后完成了，效果还不错。');
     await page.locator('#mdSubmit').click();
     await page.waitForTimeout(350);
     if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
     await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
-    // 一轮模式下诊断页主按钮是「下一题」，最后一题是「看整轮结果」
     const btnText=await page.locator('#mdAgain').innerText();
-    if(i<4)assert.match(btnText,/下一题/,'第 '+(i+1)+' 题后应显示下一题，实际：'+btnText);
-    else assert.match(btnText,/整轮结果/,'最后一题后应显示看整轮结果，实际：'+btnText);
+    assert.match(btnText,/下一题/,'第 '+(i+1)+' 题后应显示下一题，实际：'+btnText);
     await page.locator('#mdAgain').click();
     await page.waitForTimeout(350);
   }
-  assert.equal(new Set(roundDims).size,5,'五个维度的题都应出现，实际：'+roundDims.join('/'));
+  assert.equal(new Set(roundDims).size,5,'五个行为维度的题都应出现，实际：'+roundDims.join('/'));
+  // 第 6 题是动机题：走风险扫描，不出档位
+  await page.waitForFunction(()=>!document.getElementById('mdPanelMotive').hidden);
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 6 \/ 6 题/,'第 6 题应是动机题');
+  assert.match(await page.locator('#mdMotiveQ').innerText(),/离开|选择|未来/,'第 6 题应是动机题');
+  await page.locator('#mdMotiveAnswer').fill('我上一份工作的领导水平不行，团队也混乱，实在待不下去。');
+  await page.locator('#mdMotiveSubmit').click();
+  await page.waitForTimeout(400);
+  assert.ok(await page.locator('.md-motive-flag').count()>=2,'动机题应给风险扫描');
+  const roundBtn=await page.locator('#mdMotiveRoundNext').innerText();
+  assert.match(roundBtn,/整轮结果/,'最后一题后应显示看整轮结果，实际：'+roundBtn);
+  await page.locator('#mdMotiveRoundNext').click();
+  await page.waitForTimeout(400);
   // 小结页
   await page.waitForFunction(()=>!document.getElementById('mdPanelSummary').hidden,{timeout:5000});
-  assert.equal(await page.locator('.md-sum-row').count(),5,'小结应列出五个维度');
+  assert.equal(await page.locator('.md-sum-row').count(),6,'小结应列出五个维度 + 动机题');
+  assert.equal(await page.locator('.md-sum-row.motive').count(),1,'动机题应单独一行');
   const head=await page.locator('#mdSummaryHead').innerText();
-  assert.match(head,/\d+ \/ 5/,'小结应给出达标数，实际：'+head);
+  assert.match(head,/\d+ \/ 5/,'达标数只统计五个行为维度，实际：'+head);
   assert.match(head,/最该补/, '未全达标时应指出最该补的维度');
-  const weakRows=await page.locator('.md-sum-row.weak').count();
-  assert.equal(weakRows,1,'应标出一个最弱维度');
+  assert.match(head,/动机题有/, '动机题有风险时结论要点出来');
   const saved2=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')));
-  assert.equal(saved2.sessions.length,5,'一轮应记录五条诊断');
+  assert.equal(saved2.sessions.length,6,'一轮应记录六条（五行为 + 一动机）');
   assert.equal(saved2.metrics.rounds,1,'应记一轮');
+  const motiveSession=saved2.sessions.at(-1);
+  assert.equal(motiveSession.questionId,'M-Q1','最后一条应是动机题');
+  assert.equal(motiveSession.verdict.motive,true,'动机题记录应标记 motive');
 
   // 只补最弱那一项：应切到单题模式并出对应维度的题
   await page.locator('#mdSummaryWeak').click();

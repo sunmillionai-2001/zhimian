@@ -415,20 +415,23 @@ test('各维度下一步优先修自己的致命缺口',()=>{
 });
 
 /* ===== 一轮练习：组题与小结 ===== */
-test('一轮按五个维度各出一题，题目不重复',()=>{
-  assert.equal(M.ROUND_SIZE,5);
+test('一轮是五个行为维度加一道动机题，题目不重复',()=>{
+  assert.equal(M.ROUND_SIZE,6);
   const round=M.buildRound('owner');
-  assert.equal(round.length,5);
-  assert.equal(new Set(round.map(r=>r.questionId)).size,5,'五个维度应给出五道不同的题');
-  assert.equal(new Set(round.map(r=>r.dimensionId)).size,5);
+  assert.equal(round.length,6);
+  assert.equal(new Set(round.map(r=>r.questionId)).size,6,'六道题都不重复');
+  assert.equal(new Set(round.map(r=>r.dimensionId)).size,6);
+  assert.equal(round.filter(r=>r.kind==='behavior').length,5);
+  assert.equal(round.at(-1).kind,'motive','动机题放最后，避免卡住整轮');
+  assert.equal(round.at(-1).dimensionId,'M');
   for(const r of round){
     assert.ok(r.dimensionName&&r.questionId&&r.question&&r.hint,r.dimensionId+' 组题信息要完整');
   }
 });
 
 test('一轮组题按档位变难',()=>{
-  const low=M.buildRound('executor').map(r=>r.questionId);
-  const high=M.buildRound('lead').map(r=>r.questionId);
+  const low=M.buildRound('executor').filter(r=>r.kind==='behavior').map(r=>r.questionId);
+  const high=M.buildRound('lead').filter(r=>r.kind==='behavior').map(r=>r.questionId);
   assert.notDeepEqual(low,high,'不同档位应出不同的题');
   assert.ok(low.every(q=>q.endsWith('-Q1')),'执行者档应全是最基础的 Q1');
   assert.ok(high.every(q=>q.endsWith('-Q3')),'带人带事档应全是 Q3');
@@ -555,4 +558,47 @@ test('风险条数越多，结论语气越强',()=>{
   const many=M.scanMotive('我上家公司领导不行，团队混乱，公司业务也有问题。');
   assert.ok(many.riskCount>one.riskCount);
   assert.notEqual(many.headline,one.headline);
+});
+
+test('指定维度子集时不追加动机题，只组行为题',()=>{
+  const r=M.buildRound('owner',['D1','D3']);
+  assert.equal(r.length,2);
+  assert.ok(r.every(x=>x.kind==='behavior'));
+});
+
+test('小结里动机题单独一行，不计入达标统计',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'yes'},
+    {dimensionId:'D2',level:'yes'},
+    {dimensionId:'M',riskCount:2,nextStep:'改成描述事实'}
+  ],'owner');
+  assert.equal(sum.total,2,'动机题不应计入行为维度总数');
+  assert.equal(sum.metCount,2);
+  assert.ok(sum.motive,'应单独返回动机行');
+  assert.equal(sum.motive.riskCount,2);
+  assert.equal(sum.rows.some(r=>r.dimensionId==='M'),false,'动机题不应混进行为维度行');
+});
+
+test('行为维度全达标但动机题有风险时，结论要点出来',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'yes'},{dimensionId:'D2',level:'yes'},
+    {dimensionId:'M',riskCount:3}
+  ],'owner');
+  assert.match(sum.headline,/都达标/);
+  assert.match(sum.headline,/动机题有 3 处/,'行为维度全过也要提醒动机风险');
+});
+
+test('动机题没风险时不啰嗦',()=>{
+  const sum=M.roundSummary([
+    {dimensionId:'D1',level:'yes'},
+    {dimensionId:'M',riskCount:0}
+  ],'owner');
+  assert.ok(!/动机题有/.test(sum.headline),'没有风险就不该提');
+  assert.equal(sum.motive.riskCount,0);
+});
+
+test('没有动机题时小结照常工作',()=>{
+  const sum=M.roundSummary([{dimensionId:'D1',level:'no'}],'owner');
+  assert.equal(sum.motive,null);
+  assert.equal(sum.total,1);
 });
