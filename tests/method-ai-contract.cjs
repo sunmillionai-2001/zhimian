@@ -116,3 +116,88 @@ test('method-review 没有待复核缺口时拒绝，避免空调用',async()=>{
   const cfg=cfgOf({found:false,gap:'',quote:'',reason:''});
   await assert.rejects(()=>runAi('method-review',{answer:WEAK,level:'no',levelName:'否',gaps:[]},cfg),/当前没有待复核的缺口/);
 });
+
+/* ===== 回答改写 method-rewrite ===== */
+const RW_ANSWER='我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。我拿了两周的灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门。';
+const rwCfg=payload=>{
+  const cfg={baseUrl:'https://example.test/v1',model:'fake',apiKey:'k',timeoutMs:5000};
+  cfg.transport=async()=>({model:'fake',choices:[{message:{content:JSON.stringify(payload)}}]});
+  return cfg;
+};
+
+test('改写只重排原话时通过，并给出覆盖率',async()=>{
+  const out=await runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:['取舍']},rwCfg({
+    rewritten:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门。这是跨部门项目，中间遇到很多困难，最后成功了。',
+    sentences:[
+      {text:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门。',from:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门'},
+      {text:'这是跨部门项目，中间遇到很多困难，最后成功了。',from:'我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了'}
+    ]
+  }));
+  assert.ok(out.result.coverage>0.8,'正常重排覆盖率应较高');
+  assert.equal(out.result.rewritten.includes('40%'),false);
+});
+
+test('改写里出现原文没有的数字必须拒绝',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我拿了两周灰度数据，效率提升了 40%。',
+    sentences:[{text:'我拿了两周灰度数据，效率提升了 40%。',from:''}]
+  })),/改写出现原文没有的数字/);
+});
+
+test('改写里出现原文没有的英文名词必须拒绝',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我用 Tableau 做了看板。',
+    sentences:[{text:'我用 Tableau 做了看板。',from:''}]
+  })),/改写出现原文没有的名词/);
+});
+
+test('改写里出现原文没有的中文数量必须拒绝',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我主导了三次跨部门评审。',
+    sentences:[{text:'我主导了三次跨部门评审。',from:''}]
+  })),/改写出现原文没有的数量/);
+});
+
+test('模型伪造原文引用必须拒绝',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我主导了整个跨部门项目。',
+    sentences:[{text:'我主导了整个跨部门项目。',from:'我主导了整个跨部门项目'}]
+  })),/改写引用了原文中不存在的内容/);
+});
+
+test('不编数字名词、只编事实时，靠覆盖率兜底拦住',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天。他当场拍板，还主动要求把这个方案推广到全公司所有业务线，并且写进了年度规划。',
+    sentences:[
+      {text:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天。',from:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天'},
+      {text:'他当场拍板，还主动要求把这个方案推广到全公司所有业务线，并且写进了年度规划。',from:''}
+    ]
+  })),/覆盖率/);
+});
+
+test('未知事实用占位符表达时允许通过',async()=>{
+  const out=await runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天。【待补充：当时财务具体担心什么】',
+    sentences:[
+      {text:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天。',from:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天'},
+      {text:'【待补充：当时财务具体担心什么】',from:''}
+    ]
+  }));
+  assert.match(out.result.rewritten,/待补充/);
+});
+
+test('逐句说明必须与改写内容一致，防止模型漏报句子',async()=>{
+  await assert.rejects(()=>runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我拿了两周的灰度数据给财务看。另外我还推动了组织变革。',
+    sentences:[{text:'我拿了两周的灰度数据给财务看。',from:'我拿了两周的灰度数据给财务看'}]
+  })),/逐句说明与改写不一致/);
+});
+
+test('改写不产出评分或档位',async()=>{
+  const out=await runAi('method-rewrite',{answer:RW_ANSWER,level:'no',gaps:[]},rwCfg({
+    rewritten:'我拿了两周的灰度数据给财务看。',
+    sentences:[{text:'我拿了两周的灰度数据给财务看。',from:'我拿了两周的灰度数据给财务看'}]
+  }));
+  assert.equal(out.result.scores,undefined);
+  assert.equal(out.result.level,undefined);
+});

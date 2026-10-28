@@ -268,6 +268,58 @@ async function runAi(task,body,cfg){
       if(quote.length<6)throw fail('复核依据过短，不足以作为证据',502);
       return {found:true,gap,quote,reason};
     };
+  }else if(task==='method-rewrite'){
+    // 回答改写：只允许重组用户已经说过的话，不允许新增任何事实。
+    // 这是整个模块里最容易编造的一步——模型很自然会「帮用户补一个数字」，
+    // 而那个数字一旦进了面试稿，用户就会在真面试里说出来。
+    const answer=text(body.answer,'回答',12000);
+    const level=text(body.level,'档位',20);
+    const gapsInput=body.gaps??[];
+    if(!Array.isArray(gapsInput)||gapsInput.length>8)throw fail('缺口列表格式异常');
+    const gaps=gapsInput.map(g=>text(g,'缺口',60));
+    data={answer,level,gaps};
+    instruction='把这段行为面试回答重排成更清楚的结构，但绝对不能新增事实。'
+      +'规则：只使用原文已经出现的信息；可以调整顺序、补连接词、把"我们"改成"我"（仅当原文能确定是本人时）；'
+      +'原文没有的信息必须写成占位符【待补充：具体要补什么】，不要猜测或编造。'
+      +'不得新增任何数字、公司名、产品名、技术名词、人名或指标；原文有的可以保留。'
+      +'输出不超过原文两倍长度。返回 {rewritten:改写后的完整回答,sentences:[{text:改写中的一句,from:对应的原文逐字片段或空字符串}]}。'
+      +'sentences 必须覆盖 rewritten 的全部内容，每句都要给出 from（来自原文）或空（自己补的连接语，且不含任何事实）。';
+    validate=v=>{
+      const rewritten=text(v?.rewritten,'改写',6000);
+      if(!Array.isArray(v?.sentences)||v.sentences.length<1||v.sentences.length>40)throw fail('改写缺少逐句说明',502);
+      const sentences=v.sentences.map(x=>{
+        const t=text(x?.text,'改写句子',2000);
+        const from=typeof x?.from==='string'?x.from.trim():'';
+        if(!rewritten.includes(t))throw fail('逐句说明与改写不一致',502);
+        // from 非空时必须能在原文里逐字找到——模型不能自己造引用
+        if(from&&!answer.includes(from))throw fail('改写引用了原文中不存在的内容',502);
+        return {text:t,from};
+      });
+      // 逐句说明必须覆盖改写的全部内容：否则模型可以漏报一句，把编造内容藏在里面。
+      const bare=s=>s.replace(/[\s\p{P}\p{S}]/gu,'');
+      const joined=sentences.map(x=>bare(x.text)).join('');
+      if(joined!==bare(rewritten))throw fail('逐句说明与改写不一致：有内容未被说明',502);
+      // 规则一：改写里出现的数字必须在原文出现过
+      const nums=s=>s.match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[];
+      const knownNums=new Set(nums(answer));
+      for(const n of nums(rewritten))if(!knownNums.has(n))throw fail('改写出现原文没有的数字：'+n,502);
+      // 规则二：中文数字带量词同样受限（「三天」不能凭空变成「三周」）
+      const cn=s=>s.match(/[一二两三四五六七八九十半]+\s*(?:个|人|天|周|月|年|小时|分钟|次|条|倍|成)/g)||[];
+      const knownCn=new Set(cn(answer));
+      for(const n of cn(rewritten))if(!knownCn.has(n))throw fail('改写出现原文没有的数量：'+n,502);
+      // 规则三：英文与专有名词必须来自原文
+      const latin=s=>s.match(/[A-Za-z][A-Za-z0-9+#._-]{1,}/g)||[];
+      const knownLatin=new Set(latin(answer).map(x=>x.toLowerCase()));
+      for(const w of latin(rewritten))if(!knownLatin.has(w.toLowerCase()))throw fail('改写出现原文没有的名词：'+w,502);
+      // 规则四：二元组覆盖率——防「用原文的词编出新的事实」
+      const strip=s=>s.replace(/【待补充[：:][^】]*】/g,'').replace(/[\s\p{P}\p{S}]/gu,'');
+      const bigrams=s=>{const t=strip(s),out=new Set();for(let i=0;i<t.length-1;i++)out.add(t.slice(i,i+2));return out;};
+      const srcBig=bigrams(answer),newBig=bigrams(rewritten);
+      let hit=0;for(const b of newBig)if(srcBig.has(b))hit++;
+      const coverage=newBig.size?hit/newBig.size:1;
+      if(coverage<0.45)throw fail('改写新增了过多原文没有的内容，覆盖率 '+(coverage*100).toFixed(0)+'%',502);
+      return {rewritten,sentences,coverage:Number(coverage.toFixed(2))};
+    };
   }else throw fail('未知 AI 任务',404);
   if(focus.length)instruction+=' focus 是用户本轮主动选择的训练重点。用同能力的新角度验证，不照抄 previousQuestion；既往片段不能作为本题已经回答的证据，不因此给高分或假设已掌握。';
   const messages=[{role:'system',content:BASE+'\n'+(task.startsWith('interview')?interviewer.instruction+'\n':'')+instruction},{role:'user',content:JSON.stringify(data)}];

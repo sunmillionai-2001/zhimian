@@ -464,6 +464,60 @@ const {spawn}=require('node:child_process');
   const q3=await page.locator('#mdQuestion').innerText();
   assert.ok(!/你带的人/.test(q3),'没带过人时不该问「你带的人」，实际：'+q3);
 
+  // 回答改写：只重排原话，占位符高亮，失败不影响规则结论
+  await page.evaluate(()=>{localStorage.removeItem('zm_method_state_v1');localStorage.removeItem('zm_method_cards_v1');});
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','');
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(200);
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.locator('#mdAnswer').fill('我们团队一起做了个跨部门项目，中间遇到很多困难。我拿了两周的灰度数据给财务看，对账时间从三天变成半天。');
+  await page.route('**/api/ai/method-rewrite',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    result:{rewritten:'我拿了两周的灰度数据给财务看，对账时间从三天变成半天。【待补充：财务当时具体担心什么】这是跨部门项目，中间遇到很多困难。',sentences:[],coverage:0.82},
+    meta:{model:'fake'}
+  })}));
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(350);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  assert.equal(await page.locator('#mdRewriteBtn').count(),1,'诊断页应有「看改写示例」');
+  const levelBefore=await page.locator('#mdVerdictBody .md-level').first().innerText();
+  await page.locator('#mdRewriteBtn').click();
+  await page.waitForFunction(()=>!document.getElementById('mdRewriteBox').hidden);
+  await page.waitForTimeout(500);
+  const rwText=await page.locator('#mdRewriteBox').innerText();
+  assert.match(rwText,/改写示例/);
+  assert.match(rwText,/待补充/,'应展示占位符');
+  assert.equal(await page.locator('#mdRewriteBox mark').count(),1,'占位符应高亮');
+  assert.match(rwText,/不是标准答案/,'必须说明这不是标准答案');
+  assert.match(rwText,/需要你自己补真实事实/,'必须提示占位符要自己补');
+  assert.match(rwText,/没有出现你原话之外的数字、名词或事实/,'必须说明做过校验');
+  // 改写不影响规则判定
+  assert.equal(await page.locator('#mdVerdictBody .md-level').first().innerText(),levelBefore,'改写不应改变档位');
+
+  // 改写失败时保留规则结论，只提示改写不可用
+  await page.unroute('**/api/ai/method-rewrite');
+  await page.route('**/api/ai/method-rewrite',route=>route.fulfill({status:502,contentType:'application/json',body:JSON.stringify({error:'改写新增了过多原文没有的内容'})}));
+  await page.evaluate(()=>document.getElementById('mdAgain').click());
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.locator('#mdAnswer').fill('我们团队一起做了个事情，最后完成了。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(350);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  const level2=await page.locator('#mdVerdictBody .md-level').first().innerText();
+  await page.locator('#mdRewriteBtn').click();
+  await page.waitForTimeout(600);
+  const failText=await page.locator('#mdRewriteBox').innerText();
+  assert.match(failText,/没能生成改写/,'失败应给出提示');
+  assert.match(failText,/规则诊断结果不受影响/,'失败不能影响规则结论');
+  assert.equal(await page.locator('#mdVerdictBody .md-level').first().innerText(),level2,'失败后档位不变');
+  await page.unroute('**/api/ai/method-rewrite');
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);
