@@ -751,3 +751,50 @@ test('存档接受 round 与 reports，并兼容旧数据',()=>{
   old.profile={years:'y1',jd:'',selfStage:'owner',jobStage:'owner',stageSource:'inferred'};
   assert.ok(M.validate(old),'旧存档没有新字段也要能读');
 });
+
+/* ===== 画像守卫：静态检查，不需要浏览器 ===== */
+test('凡需要带人的题都必须配不带人版，且替代问法里不能再出现管理措辞',()=>{
+  const MGMT=/你带的人|你的下属|你管理的团队|你带的团队/;
+  const need=[];
+  for(const d of M.DIMENSIONS){
+    for(const q of d.questions){
+      if(!q.needsReports)continue;
+      need.push(q.id);
+      assert.ok(q.alt&&q.alt.length>10,q.id+' 需要带人，必须提供 alt 替代问法');
+      assert.ok(q.altHint&&q.altHint.length>10,q.id+' 的替代问法也要有找例子的提示');
+      assert.ok(!MGMT.test(q.alt),q.id+' 的替代问法里不该再出现管理措辞：'+q.alt);
+    }
+  }
+  assert.deepEqual(need.sort(),['D3-Q3','D4-Q3','D5-Q3'],'目前只有这三题假设带人，新增时要同步补 alt');
+});
+
+test('没带过人时这三题全部换成平级问法',()=>{
+  const MGMT=/你带的人|你的下属|你管理的团队|你带的团队/;
+  for(const id of ['D3-Q3','D4-Q3','D5-Q3']){
+    const dim=id.split('-')[0];
+    const q=M.pickQuestion('lead',dim,{hasReports:false});
+    assert.equal(q.id,id);
+    assert.ok(!MGMT.test(q.q),id+' 换成平级版后不该有管理措辞：'+q.q);
+    assert.equal(q.usingAlt,true,id+' 应标记用了替代版本');
+  }
+});
+
+test('六种画像组合下，题目都不含不该有的管理措辞',()=>{
+  const MGMT=/你带的人|你的下属|你管理的团队|你带的团队/;
+  for(const round of ['all','hr','business']){
+    for(const hasReports of [true,false]){
+      const qs=M.buildRound('lead',null,{round,hasReports});
+      if(hasReports)continue;  // 带过人时允许出现管理版
+      for(const q of qs){
+        if(q.kind==='motive')continue;
+        assert.ok(!MGMT.test(q.question),`${round}/${hasReports} 的 ${q.dimensionId} 出现了管理措辞：${q.question}`);
+      }
+    }
+  }
+});
+
+test('带过人时保留管理版问法，不做无谓替换',()=>{
+  const qs=M.buildRound('lead',null,{round:'all',hasReports:true});
+  const d4=qs.find(q=>q.dimensionId==='D4');
+  assert.match(d4.question,/你带的人/,'带过团队应保留管理版问法');
+});
