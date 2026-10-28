@@ -185,6 +185,8 @@
   .md-next{padding:14px 16px;border-radius:12px;background:var(--seal-soft);color:var(--seal-deep);font-weight:600;font-size:14.5px;line-height:1.65}
   .md-gap{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:rgba(193,58,30,.08);color:var(--seal-deep);margin:0 7px 7px 0}
   .md-gap i{font-family:var(--latin);font-style:italic;font-size:11px;opacity:.75}
+  .md-scale-line{font-size:12.5px;color:var(--ink-faint);margin:0 0 12px;padding:8px 12px;background:var(--paper-2);border-radius:9px;line-height:1.65}
+  .md-scale-line b{color:var(--seal-deep);font-weight:700}
   .md-round-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
   .md-round-bar .rb-text{font-family:var(--latin);font-style:italic;font-size:13px;letter-spacing:.5px;color:var(--ink-faint)}
   .md-round-dots{display:flex;gap:6px}
@@ -893,8 +895,12 @@
           <div class="field"><label for="mdRole">你在看什么岗位（选填）</label><input id="mdRole" maxlength="80" placeholder="如：产品经理 / 后端开发" /></div>
         </div>
         <div class="field"><label for="mdJd">岗位 JD（选填，填了诊断更准）</label><textarea id="mdJd" rows="4" maxlength="30000" placeholder="粘贴任职要求，用来判断这个岗位要什么人"></textarea></div>
+        <div class="field"><label>这次面哪一轮</label><div class="filter-row" id="mdRounds"></div></div>
+        <div class="field"><label>你带过人吗</label><div class="filter-row" id="mdReports"></div>
+          <p class="mock-note" style="margin-top:6px">年限看不出有没有带过人。没带过也能练，题目会换成平级版本。</p>
+        </div>
         <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
-          <button type="button" class="chip active" data-md-mode="round">练一轮（五个维度各一题）</button>
+          <button type="button" class="chip active" data-md-mode="round">练一轮（按轮次组题）</button>
           <button type="button" class="chip" data-md-mode="single">只练一题</button>
           <button type="button" class="chip" data-md-mode="motive">动机题（离职原因 / 为什么选我们）</button>
         </div></div>
@@ -909,6 +915,7 @@
       <!-- 02 答题 -->
       <section class="md-panel" id="mdPanelAnswer" hidden>
         <div class="md-round-bar" id="mdRoundBar" hidden></div>
+        <p class="md-scale-line" id="mdScaleLine" hidden></p>
         <div class="md-q-head"><span class="tag" id="mdQuestionDim"></span><h3 id="mdQuestion"></h3></div>
         <p class="mock-note" id="mdQuestionHint"></p>
         <div class="field"><label for="mdAnswer">你的回答</label><textarea id="mdAnswer" rows="8" maxlength="30000" placeholder="像真的面试那样讲一遍，不用先想结构。"></textarea></div>
@@ -2417,7 +2424,7 @@
   const MD_KEY='zm_method_state_v1';
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
   // 一轮练习的状态：questions 是这一轮的题，results 逐题累计。
-  let mdMode='round', mdRound=null;
+  let mdMode='round', mdRound=null, mdRoundId='all', mdReports='team';
   // 方法卡触发状态：连续失误计数 + 已展示过的卡（存本地，避免重复弹）
   let mdCardCtx={answeredCount:0,quantMissStreak:0,ownMissStreak:0,shown:[]};
   try{const raw=localStorage.getItem('zm_method_cards_v1');if(raw){const v=JSON.parse(raw);if(v&&Array.isArray(v.shown))mdCardCtx=v;}}catch(e){}
@@ -2523,6 +2530,9 @@
     if(sel)sel.innerHTML=MD.YEARS.map(y=>`<option value="${y.id}">${esc(y.label)}</option>`).join('');
     const p=mdState.profile;
     if(p){
+      if(p.round&&MD.ROUND_IDS.includes(p.round))mdRoundId=p.round;
+      if(p.reports&&MD.REPORTS_IDS.includes(p.reports))mdReports=p.reports;
+      mdRenderRounds();mdRenderReports();
       if(sel)sel.value=p.years;
       const role=document.getElementById('mdRole'); if(role)role.value=p.role||'';
       const jd=document.getElementById('mdJd'); if(jd)jd.value=p.jd||'';
@@ -2538,9 +2548,9 @@
     const years=document.getElementById('mdYears').value;
     const role=document.getElementById('mdRole').value.trim();
     const jd=document.getElementById('mdJd').value.trim();
-    const scale=MD.resolveScale({years,jd,roleName:role});
+    const scale=MD.resolveScale({years,jd,roleName:role,reports:mdReports});
     const next=structuredClone(mdState);
-    next.profile={years,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred'};
+    next.profile={years,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred',round:mdRoundId,reports:mdReports};
     if(!mdWrite(next))return;
     mdRenderScale(scale);
     mdMsg(scale.jobSource==='fallback'?'已按你的年限定标准。填 JD 会更准。':'标尺已确认，可以开始答题了。');
@@ -2551,7 +2561,7 @@
   function mdStartAnswer(){
     if(!mdState.profile){mdSetStep('profile');mdMsg('先确认标尺。');return;}
     if(mdMode==='round'){
-      mdRound={questions:MD.buildRound(mdState.profile.jobStage),results:[],index:0};
+      mdRound={questions:MD.buildRound(mdState.profile.jobStage,null,{round:mdRoundId,hasReports:mdReports!=='none'}),results:[],index:0};
       mdShowRoundQuestion();
     }else{
       mdRound=null;
@@ -2585,8 +2595,23 @@
     document.getElementById('mdAnswerState').textContent='';
     const ch=document.getElementById('mdCardHint');
     if(ch){ch.hidden=true;ch.innerHTML='';}
+    mdRenderScaleLine();
     mdSetStep('answer');
     mdMsg('');
+  }
+
+  // 答题页保留一行标尺说明：确认后如果看不到「按什么标准评」，用户会不知道自己被怎么判。
+  function mdRenderScaleLine(){
+    const el=document.getElementById('mdScaleLine');
+    if(!el)return;
+    const p=mdState.profile;
+    if(!p){el.hidden=true;return;}
+    const selfIdx=MD.stageIndex(p.selfStage),jobIdx=MD.stageIndex(p.jobStage);
+    const flag=jobIdx>selfIdx?'stretch':(jobIdx<selfIdx?'below':'match');
+    const extra=flag==='stretch'?' · 这个岗位比你的年限高一档，会被按更高标准追问'
+      :flag==='below'?' · 这个岗位低于你的经验，别答得太"轻"':'';
+    el.hidden=false;
+    el.innerHTML=`按 <b>「${esc(MD.stageName(p.jobStage))}」</b> 的标准评你${esc(extra)}`;
   }
 
   function mdRenderRoundBar(){
@@ -2604,7 +2629,7 @@
 
   function mdShowSingle(dimId){
     const dim=MD.dimension(dimId);
-    const q=MD.pickQuestion(mdState.profile.jobStage,dimId);
+    const q=MD.pickQuestion(mdState.profile.jobStage,dimId,{hasReports:mdReports!=='none'});
     mdSession={questionId:q.id,question:q.q,turns:[],probeSeed:0,dimension:dimId};
     const bar=document.getElementById('mdRoundBar');
     if(bar)bar.hidden=true;
@@ -2614,6 +2639,7 @@
     if(hintEl)hintEl.textContent=(q.hint||'')+'  不用先想结构，像真的面试那样讲一遍，系统会抓出缺的那一块再追问。';
     document.getElementById('mdAnswer').value='';
     document.getElementById('mdAnswerState').textContent='';
+    mdRenderScaleLine();
     mdSetStep('answer');
     mdMsg('');
   }
@@ -3002,6 +3028,36 @@
     }catch(e){mdMsg('读取目标岗位失败，可直接粘贴 JD。');}
   }
 
+  function mdRenderRounds(){
+    const box=document.getElementById('mdRounds');
+    if(!box)return;
+    box.innerHTML=MD.INTERVIEW_ROUNDS.map(r=>`<button type="button" class="chip ${r.id===mdRoundId?'active':''}" data-md-round="${r.id}" title="${esc(r.desc)}">${esc(r.name)}</button>`).join('');
+    box.querySelectorAll('[data-md-round]').forEach(b=>b.onclick=()=>{
+      mdRoundId=b.dataset.mdRound;
+      mdRenderRounds();
+      // 轮次变了，一轮的题也变了，重新组卷。
+      // 但如果用户还在定标尺这一步，只记设置、不要抢跑——他还没确认年限。
+      if(mdState.profile){
+        mdState.profile.round=mdRoundId;mdWrite(mdState);
+        if(mdStep!=='profile')mdStartAnswer();
+      }
+    });
+  }
+
+  function mdRenderReports(){
+    const box=document.getElementById('mdReports');
+    if(!box)return;
+    box.innerHTML=MD.REPORTS.map(r=>`<button type="button" class="chip ${r.id===mdReports?'active':''}" data-md-reports="${r.id}">${esc(r.label)}</button>`).join('');
+    box.querySelectorAll('[data-md-reports]').forEach(b=>b.onclick=()=>{
+      mdReports=b.dataset.mdReports;
+      mdRenderReports();
+      if(mdState.profile){
+        mdState.profile.reports=mdReports;mdWrite(mdState);
+        if(mdStep!=='profile')mdStartAnswer();
+      }
+    });
+  }
+
   function mdRenderModes(){
     const box=document.getElementById('mdModes');
     const field=document.getElementById('mdDimField');
@@ -3012,7 +3068,10 @@
         mdMode=b.dataset.mdMode;
         mdRound=null;
         mdRenderModes();
+        // 动机题不依赖档位，任何时候点都能直接开始
         if(mdMode==='motive'){mdStartMotive();return;}
+        // 其他模式还在定标尺就别抢跑，等用户点「确认标尺」
+        if(mdStep==='profile')return;
         if(mdState.profile)mdStartAnswer();
       };
     });
@@ -3035,6 +3094,8 @@
   // 初始化方法论诊断
   mdLoad();
   renderGrid();
+  mdRenderRounds();
+  mdRenderReports();
   mdRenderModes();
   mdRenderDims();
   mdRenderProfile();

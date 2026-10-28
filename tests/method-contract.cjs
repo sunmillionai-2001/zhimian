@@ -662,3 +662,92 @@ test('看过的卡不再重复弹',()=>{
   assert.equal(M.pickCard({answeredCount:1,shown:['C1']}),null);
   assert.equal(M.pickCard({silentMs:6000,shown:['C3']}),null);
 });
+
+/* ===== 面试轮次 ===== */
+test('三个轮次各含不同维度，动机题只进 HR 面',()=>{
+  assert.deepEqual(M.ROUND_IDS,['all','hr','business']);
+  assert.deepEqual(M.dimensionsForRound('all'),['D1','D2','D3','D4','D5']);
+  assert.deepEqual(M.dimensionsForRound('hr'),['D3','D4','D5']);
+  assert.deepEqual(M.dimensionsForRound('business'),['D1','D2','D3','D4']);
+  assert.equal(M.roundHasMotive('hr'),true);
+  assert.equal(M.roundHasMotive('business'),false,'业务面不会问离职原因');
+});
+
+test('未知轮次回落到「都要练」，不崩也不给空卷',()=>{
+  assert.deepEqual(M.dimensionsForRound('不存在'),['D1','D2','D3','D4','D5']);
+  assert.ok(M.roundHasMotive('不存在'));
+});
+
+test('各轮次题数正确：HR 四题、业务面四题、都要练六题',()=>{
+  assert.equal(M.roundSize('hr'),4);
+  assert.equal(M.roundSize('business'),4);
+  assert.equal(M.roundSize('all'),6);
+  assert.equal(M.buildRound('owner',null,{round:'hr'}).length,4);
+  assert.equal(M.buildRound('owner',null,{round:'business'}).length,4);
+});
+
+test('HR 轮不出业务判断题，业务轮不出动机题',()=>{
+  const hr=M.buildRound('owner',null,{round:'hr'}).map(r=>r.dimensionId);
+  assert.ok(!hr.includes('D1'),'HR 面不考业务判断');
+  assert.ok(hr.includes('M'),'HR 面要考动机');
+  const biz=M.buildRound('owner',null,{round:'business'}).map(r=>r.dimensionId);
+  assert.ok(biz.includes('D1'),'业务面要考业务判断');
+  assert.ok(!biz.includes('M'),'业务面不考动机');
+});
+
+/* ===== 带人状态 ===== */
+test('没带过人时自我档位封顶在独当一面，岗位要求仍可更高',()=>{
+  const noReports=M.resolveScale({years:'y2',jd:'',reports:'none'});
+  assert.equal(noReports.selfStage,'owner','8 年没带过人不应算带人带事');
+  const withTeam=M.resolveScale({years:'y2',jd:'',reports:'team'});
+  assert.equal(withTeam.selfStage,'lead');
+  // 岗位要求高于封顶值 → 冲高提示
+  const stretch=M.resolveScale({years:'y2',jd:'带过团队，5 年以上',reports:'none'});
+  assert.equal(stretch.selfStage,'owner');
+  assert.equal(stretch.jobStage,'lead');
+  assert.equal(stretch.flag,'stretch','没带过人但投管理岗应提示冲高');
+});
+
+test('没带过人时，三道管理题自动换成平级版本',()=>{
+  for(const [dim,oldWord] of [['D3','两个团队'],['D4','参与的项目'],['D5','手上的事情']]){
+    const alt=M.pickQuestion('lead',dim,{hasReports:false});
+    assert.ok(alt.q.includes(oldWord),dim+' 应换成平级问法，实际：'+alt.q);
+    assert.equal(alt.usingAlt,true,dim+' 应标记用了替代版本');
+    assert.ok(alt.hint.length>10,dim+' 替代版本也要有找例子的提示');
+  }
+});
+
+test('带过人时仍用原题，不做无谓替换',()=>{
+  const q=M.pickQuestion('lead','D4',{hasReports:true});
+  assert.match(q.q,/你带的人/, '带过人应保留管理版问法');
+  assert.ok(!q.usingAlt);
+  // 不传 hasReports 时也按原题（档位本身已暗示带人）
+  assert.match(M.pickQuestion('lead','D4').q,/你带的人/);
+});
+
+test('替代版本只影响需要带人的那三题，其他题不受影响',()=>{
+  const a=M.pickQuestion('lead','D1',{hasReports:false});
+  const b=M.pickQuestion('lead','D1',{hasReports:true});
+  assert.equal(a.q,b.q,'业务判断的 Q3 本来就不假设带人，不该被替换');
+  const c=M.pickQuestion('owner','D4',{hasReports:false});
+  assert.match(c.q,/判断后来被证明是错的/,'独当一面档的题不该被替换');
+});
+
+test('组卷时带人状态会传递到每一题',()=>{
+  const round=M.buildRound('lead',null,{round:'all',hasReports:false});
+  const d4=round.find(r=>r.dimensionId==='D4');
+  assert.match(d4.question,/参与的项目/,'没带过人时组卷应使用平级版本');
+});
+
+test('存档接受 round 与 reports，并兼容旧数据',()=>{
+  const st=M.empty();
+  st.profile={years:'y1',jd:'',selfStage:'owner',jobStage:'owner',stageSource:'inferred',round:'hr',reports:'none'};
+  assert.ok(M.validate(st));
+  st.profile.round='不存在';
+  assert.equal(M.validate(st),false);
+  st.profile.round='hr';st.profile.reports='乱填';
+  assert.equal(M.validate(st),false);
+  const old=M.empty();
+  old.profile={years:'y1',jd:'',selfStage:'owner',jobStage:'owner',stageSource:'inferred'};
+  assert.ok(M.validate(old),'旧存档没有新字段也要能读');
+});

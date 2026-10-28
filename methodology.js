@@ -20,10 +20,39 @@ const YEARS=[
   {id:'y2',label:'6–10 年',stage:'lead'},
   {id:'y3',label:'10 年以上',stage:'strategy'}
 ];
+// 面试轮次：HR 面和业务面考的东西不一样，不能出同一套题。
+const INTERVIEW_ROUNDS=[
+  {id:'all',name:'都要练',desc:'六个维度全上'},
+  {id:'hr',name:'HR 初面',desc:'动机、稳定性、协作'},
+  {id:'business',name:'业务面',desc:'项目、判断、推动'}
+];
+const ROUND_IDS=INTERVIEW_ROUNDS.map(r=>r.id);
+
+// 带人状态：年限推不出「有没有带过人」。
+// 8 年的资深工程师、设计师很可能一直是个人贡献者，从没带过下属。
+const REPORTS=[
+  {id:'none',label:'没有，一直是个人贡献者'},
+  {id:'small',label:'带过 1–3 人 / 小组'},
+  {id:'team',label:'带过团队或部门'}
+];
+const REPORTS_IDS=REPORTS.map(r=>r.id);
+
 // 每个档位「合格」对应的锚点等级：执行者=中性(2)、独当一面=是(3)、带人带事/定战略=强是(4)
 const STAGE_REQUIRED={executor:2,owner:3,lead:4,strategy:4};
 
 function stageName(id){return (STAGES.find(s=>s.id===id)||STAGES[0]).name;}
+
+// 各轮次考哪些维度。动机题只进 HR 面——业务面不会问你为什么离职。
+const ROUND_DIMENSIONS={
+  all:['D1','D2','D3','D4','D5'],
+  hr:['D3','D4','D5'],
+  business:['D1','D2','D3','D4']
+};
+const ROUND_HAS_MOTIVE={all:true,hr:true,business:false};
+function dimensionsForRound(round){
+  return (ROUND_DIMENSIONS[round]||ROUND_DIMENSIONS.all).slice();
+}
+function roundHasMotive(round){return ROUND_HAS_MOTIVE[round]!==false;}
 function stageIndex(id){const i=STAGE_IDS.indexOf(id);return i<0?1:i;}
 
 /* 年限 → 你的档位（推断表 A） */
@@ -48,8 +77,11 @@ function inferJobStage(jd,roleName){
 
 /* 标尺永远用「岗位要求的档位」，不是「用户自己的档位」。
    JD 没填时用年限兜底，并标记来源，界面据此提示「填 JD 可提高精度」。 */
-function resolveScale({years,jd,roleName,manualSelf,manualJob}){
-  const selfStage=manualSelf&&STAGE_IDS.includes(manualSelf)?manualSelf:inferSelfStage(years);
+function resolveScale({years,jd,roleName,manualSelf,manualJob,reports}){
+  let selfStage=manualSelf&&STAGE_IDS.includes(manualSelf)?manualSelf:inferSelfStage(years);
+  // 没带过人，自我档位封顶在「独当一面」：年限再长也不能算「带人带事」。
+  // 岗位要求仍可高于此——那是「冲高」，由 flag 提示。
+  if(reports==='none'&&stageIndex(selfStage)>stageIndex('owner'))selfStage='owner';
   const inferredJob=inferJobStage(jd,roleName);
   const jobStage=manualJob&&STAGE_IDS.includes(manualJob)?manualJob:(inferredJob||selfStage);
   const jobSource=manualJob?'manual':(inferredJob?'jd':'fallback');
@@ -145,9 +177,12 @@ const D3={
     {id:'D3-Q2',minStage:'owner',
      q:'讲一次你和上级或强势的合作方有分歧，你没有简单服从、也没有硬顶的经历。',
      hint:'想一想：你不认同上面的决定，但没有直接对抗，而是想办法让对方改变或折中。'},
-    {id:'D3-Q3',minStage:'lead',
+    {id:'D3-Q3',minStage:'lead',needsReports:true,
      q:'讲一次你处理团队里两个人长期不和的经历。',
-     hint:'想一想：不是你自己的冲突，而是你要让两个合不来的人继续合作。'}
+     hint:'想一想：不是你自己的冲突，而是你要让两个合不来的人继续合作。',
+     // 没带过人的用户走这版：矛盾可以发生在平级或跨团队之间
+     alt:'讲一次你处理两个团队（或两位平级同事）之间长期矛盾的经历。',
+     altHint:'想一想：两边各有立场、互相不配合，你夹在中间或者主动去协调。'}
   ],
   anchors:[
     {id:'strong_no',text:'把分歧归因为对方能力或态度问题，自己只是受害者或旁观者。'},
@@ -173,9 +208,11 @@ const D4={
     {id:'D4-Q2',minStage:'owner',
      q:'讲一次你做的判断后来被证明是错的经历。',
      hint:'想一想：你当时觉得对，结果不对，而且这个错是你自己的判断造成的，不是别人害的。'},
-    {id:'D4-Q3',minStage:'lead',
+    {id:'D4-Q3',minStage:'lead',needsReports:true,
      q:'讲一次你带的人或团队出了问题、你从中看到自己责任的经历。',
-     hint:'想一想：下属或团队出了状况，你复盘时发现根子在自己的决策、要求或节奏上。'}
+     hint:'想一想：下属或团队出了状况，你复盘时发现根子在自己的决策、要求或节奏上。',
+     alt:'讲一次你参与的项目出了问题、你复盘时发现自己哪一步判断错了的经历。',
+     altHint:'想一想：不怪别人，是你当时某个判断或安排埋下了坑。'}
   ],
   anchors:[
     {id:'strong_no',text:'凡尔赛式缺点（追求完美 / 太拼 / 要求太高），或把责任全部推给外部。'},
@@ -201,9 +238,11 @@ const D5={
     {id:'D5-Q2',minStage:'owner',
      q:'讲一次你同时扛了好几件事、最后做了取舍的经历。',
      hint:'想一想：几件事都很急，你没法全做好，必须找人说清楚并放弃一部分。'},
-    {id:'D5-Q3',minStage:'lead',
+    {id:'D5-Q3',minStage:'lead',needsReports:true,
      q:'讲一次你发现团队已经扛不住、你做了调整的经历。',
-     hint:'想一想：你看出大家撑不住了，主动减范围、加人或改节奏，而不是继续压。'}
+     hint:'想一想：你看出大家撑不住了，主动减范围、加人或改节奏，而不是继续压。',
+     alt:'讲一次你发现手上的事情已经扛不住、你主动调整了范围或排期的经历。',
+     altHint:'想一想：你判断按原计划做不完，主动砍范围、要资源或者跟人摊牌。'}
   ],
   anchors:[
     {id:'strong_no',text:'把硬扛当美德（连续通宵 / 一个人顶住），或把压力全归为外部、自己没做任何调整。'},
@@ -217,10 +256,18 @@ const D5={
 const DIMENSIONS=[D1,D2,D3,D4,D5];
 function dimension(id){return DIMENSIONS.find(d=>d.id===id)||D2;}
 
-function pickQuestion(jobStage,dimId){
+// 选题：档位决定难度，带人状态决定用哪个版本。
+// 没带过人的资深用户不该被问「你带的人出了什么问题」——那不是他的经历。
+function pickQuestion(jobStage,dimId,opts){
   const d=dimension(dimId||'D2');
   const idx=Math.min(stageIndex(jobStage),d.questions.length-1);
-  return d.questions[idx];
+  const q=d.questions[idx];
+  // 只有明确说了「没带过人」才换版本；没说就按原题（档位本身已暗示带人）。
+  const noReports=opts&&opts.hasReports===false;
+  if(q.needsReports&&noReports&&q.alt){
+    return Object.assign({},q,{q:q.alt,hint:q.altHint||q.hint,usingAlt:true});
+  }
+  return q;
 }
 
 /* ========== 文本分析：句子切分与信号 ========== */
@@ -910,17 +957,23 @@ function scanMotive(text,ctx){
 // 动机题放在最后：它不参与达标统计，但社招最常挂在这里，
 // 放在末尾能确保前面五个维度先练完，不会因为动机题卡住就放弃整轮。
 const ROUND_SIZE=DIMENSIONS.length+1;
+// 一轮实际题数随轮次变化：HR 面四题、业务面四题、都要练六题。
+function roundSize(round){
+  return dimensionsForRound(round).length+(roundHasMotive(round)?1:0);
+}
 
 // 按档位为每个维度各出一题，组成一轮。
-function buildRound(jobStage,dimIds){
-  const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:DIMENSIONS.map(d=>d.id);
+function buildRound(jobStage,dimIds,opts){
+  const o=opts||{};
+  const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:dimensionsForRound(o.round);
   const round=ids.map(id=>{
     const d=dimension(id);
-    const q=pickQuestion(jobStage,id);
+    const q=pickQuestion(jobStage,id,{hasReports:o.hasReports});
     return {dimensionId:d.id,dimensionName:d.name,questionId:q.id,question:q.q,hint:q.hint,kind:'behavior'};
   });
-  // 只在完整一轮（没指定维度子集）时追加动机题
-  if(!Array.isArray(dimIds)||!dimIds.length){
+  // 动机题只在完整一轮且该轮包含动机时追加（业务面不问离职原因）
+  const full=!Array.isArray(dimIds)||!dimIds.length;
+  if(full&&roundHasMotive(o.round)){
     const mq=MOTIVE.questions[0];
     round.push({dimensionId:'M',dimensionName:MOTIVE.name,questionId:mq.id,question:mq.q,hint:mq.hint,kind:'motive'});
   }
@@ -1044,6 +1097,9 @@ function validate(state){
     if(!isPlain(p)||!isStr(p.years,20)||!isStr(p.jd,30000)||!isStr(p.selfStage,20)||!isStr(p.jobStage,20))return false;
     if(!STAGE_IDS.includes(p.selfStage)||!STAGE_IDS.includes(p.jobStage))return false;
     if(!['inferred','manual'].includes(p.stageSource))return false;
+    // round / reports 是后加的字段，旧存档没有也要能读。
+    if(p.round!==undefined&&!ROUND_IDS.includes(p.round))return false;
+    if(p.reports!==undefined&&!REPORTS_IDS.includes(p.reports))return false;
   }
   if(!Array.isArray(state.sessions)||state.sessions.length>500)return false;
   for(const s of state.sessions){
@@ -1068,6 +1124,7 @@ function validate(state){
 /* ========== 对外接口 ========== */
 return {
   STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
+  INTERVIEW_ROUNDS,ROUND_IDS,REPORTS,REPORTS_IDS,dimensionsForRound,roundHasMotive,
   stageName,stageIndex,inferSelfStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,rememberUtterance,utteranceCount,
@@ -1075,7 +1132,7 @@ return {
   starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
   MOTIVE,MOTIVE_FLAGS,scanMotive,
   CARDS,pickCard,
-  buildRound,roundSummary,ROUND_SIZE,
+  buildRound,roundSummary,ROUND_SIZE,roundSize,
   empty,validate
 };
 });

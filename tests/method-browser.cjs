@@ -403,6 +403,67 @@ const {spawn}=require('node:child_process');
   const shown=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_cards_v1')).shown);
   assert.ok(shown.includes('C1'),'应记住已弹过');
 
+  // 面试轮次与带人状态
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  assert.equal(await page.locator('#mdRounds .chip').count(),3,'应有三个轮次可选');
+  assert.equal(await page.locator('#mdReports .chip').count(),3,'应有三个带人状态可选');
+  // 选「HR 初面」+「没带过人」+ 6–10 年，应封顶在独当一面
+  await page.locator('#mdRounds [data-md-round="hr"]').click();
+  await page.locator('#mdReports [data-md-reports="none"]').click();
+  await page.selectOption('#mdYears','y2');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  const hrScale=await page.locator('#mdScale').innerText();
+  assert.match(hrScale,/独当一面/,'8 年但没带过人，标准应封顶在独当一面，实际：'+hrScale);
+  // 答题页要保留一行标尺说明，否则用户不知道自己被按什么标准判
+  assert.equal(await page.evaluate(()=>document.getElementById('mdScaleLine').hidden),false,'答题页应显示标尺行');
+  assert.match(await page.locator('#mdScaleLine').innerText(),/独当一面/,'标尺行应写明按什么标准评');
+  // HR 轮四题：三个维度 + 动机
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 4 题/,'HR 轮应是四题');
+  const hrDims=[];
+  for(let i=0;i<3;i++){
+    hrDims.push(await page.locator('#mdQuestionDim').innerText());
+    await page.locator('#mdAnswer').fill('我们团队一起做了个事情，最后完成了。');
+    await page.locator('#mdSubmit').click();
+    await page.waitForTimeout(300);
+    if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+    await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+    await page.locator('#mdAgain').click();
+    await page.waitForTimeout(300);
+  }
+  assert.ok(!hrDims.some(d=>/业务判断/.test(d)),'HR 轮不该考业务判断，实际：'+hrDims.join('/'));
+  await page.waitForFunction(()=>!document.getElementById('mdPanelMotive').hidden);
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 4 \/ 4 题/,'HR 轮第四题是动机题');
+
+  // 切到业务面：不出动机题，出业务判断
+  await page.locator('#methodStart').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProfile').hidden);
+  await page.locator('#mdRounds [data-md-round="business"]').click();
+  // 在定标尺步骤切换轮次只记设置、不抢跑，需要再点一次确认
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(300);
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 4 题/,'业务面应是四题');
+  assert.match(await page.locator('#mdQuestionDim').innerText(),/业务判断/,'业务面第一题应是业务判断');
+
+  // 没带过人时的替代问法
+  await page.locator('#methodStart').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProfile').hidden);
+  await page.locator('#mdReports [data-md-reports="none"]').click();
+  await page.locator('#mdRounds [data-md-round="all"]').click();
+  await page.selectOption('#mdYears','y2');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  // 跳到第 3 题（协作冲突，lead 档会用到管理题）
+  await page.evaluate(()=>{mdRound.index=2;mdShowRoundQuestion();});
+  await page.waitForTimeout(300);
+  const q3=await page.locator('#mdQuestion').innerText();
+  assert.ok(!/你带的人/.test(q3),'没带过人时不该问「你带的人」，实际：'+q3);
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);
