@@ -2593,6 +2593,9 @@
       document.getElementById('mdMotiveAnswer').value='';
       document.getElementById('mdMotiveResult').innerHTML='';
       mdMotiveCtx={shortStints:false};
+      // 轮内不给「换一题」：一轮的题是固定组好的，换题会打乱轮次与小结。
+      const nextBtn=document.getElementById('mdMotiveNext');
+      if(nextBtn)nextBtn.hidden=true;
       mdSetStep('motive');
       mdMsg('');
       return;
@@ -2826,6 +2829,9 @@
 
   function mdStartMotive(){
     const q=MD.MOTIVE.questions[mdMotiveIdx%MD.MOTIVE.questions.length];
+    // 独立动机模式才允许换题
+    const nextBtn=document.getElementById('mdMotiveNext');
+    if(nextBtn)nextBtn.hidden=false;
     document.getElementById('mdMotiveQ').textContent=q.q;
     document.getElementById('mdMotiveHint').textContent=q.hint;
     document.getElementById('mdMotiveAnswer').value='';
@@ -3097,7 +3103,16 @@
   if(mdState.profile)mdStartAnswer();
 
   const mdBind=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
-  mdBind('methodStart',()=>{mdSetStep('profile');mdMsg('');});
+  // 轮内点「开始一次诊断」会重建一轮，已答的题会丢。
+  // 有进度时先确认——用户可能只是想回去改一下标尺。
+  mdBind('methodStart',()=>{
+    if(mdRound&&mdRound.results.filter(Boolean).length>0
+       &&!confirm('回到定标尺会重新组一轮，这一轮已答的 '+mdRound.results.filter(Boolean).length+' 题记录会保留在诊断记录里，但本轮进度会清空。继续吗？')){
+      return;
+    }
+    if(mdRound)mdRound=null;
+    mdSetStep('profile');mdMsg('');
+  });
   mdBind('mdSaveProfile',mdSaveProfile);
   mdBind('mdUseJob',mdFromJob);
   mdBind('mdSubmit',mdSubmit);

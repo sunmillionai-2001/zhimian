@@ -815,3 +815,13 @@ test('带过人时保留管理版问法，不做无谓替换',()=>{
   const d4=qs.find(q=>q.dimensionId==='D4');
   assert.match(d4.question,/你带的人/,'带过团队应保留管理版问法');
 });
+
+test('小结能容忍结果里的空位，不崩溃',()=>{
+  // 中途跳过或数据不完整时 results 里可能有 undefined，不能让整轮小结崩掉
+  const sum=M.roundSummary([{dimensionId:'D1',level:'yes'},undefined,{dimensionId:'D3',level:'no'}],'owner');
+  assert.equal(sum.total,2,'空位应被跳过');
+  assert.equal(sum.metCount,1);
+  assert.ok(sum.headline.length>0);
+  assert.equal(M.roundSummary([undefined,null],'owner').total,0);
+  assert.match(M.roundSummary([],'owner').headline,/还没有/);
+});

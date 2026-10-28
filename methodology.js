@@ -983,7 +983,9 @@ function buildRound(jobStage,dimIds,opts){
 // 整轮小结：按维度汇总档位，找出最该补的那一个。
 // 判定「最弱」不只看分数，还要看离达标差多少——差两档比差一档更紧急。
 function roundSummary(items,jobStage){
-  const all=items||[];
+  // 过滤空位：中途跳过或数据不完整时 results 里可能有 undefined，
+  // 不处理会直接抛错，让整轮小结崩掉。
+  const all=(items||[]).filter(x=>x&&typeof x==='object');
   // 动机题没有档位，单独拆出来：不进达标统计，但要在小结里占一行。
   const motive=all.find(it=>it.dimensionId==='M')||null;
   const rows=all.filter(it=>it.dimensionId!=='M').map(it=>{

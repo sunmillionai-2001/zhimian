@@ -264,6 +264,8 @@ const {spawn}=require('node:child_process');
   await page.waitForFunction(()=>!document.getElementById('mdPanelMotive').hidden);
   assert.match(await page.locator('#mdRoundBar').innerText(),/第 6 \/ 6 题/,'第 6 题应是动机题');
   assert.match(await page.locator('#mdMotiveQ').innerText(),/离开|选择|未来/,'第 6 题应是动机题');
+  // 轮内不给「换一题」：一轮的题是固定组好的，换题会打乱轮次与小结
+  assert.equal(await page.evaluate(()=>document.getElementById('mdMotiveNext').hidden),true,'轮内不应出现「换一题」');
   await page.locator('#mdMotiveAnswer').fill('我上一份工作的领导水平不行，团队也混乱，实在待不下去。');
   await page.locator('#mdMotiveSubmit').click();
   await page.waitForTimeout(400);
