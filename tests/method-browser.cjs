@@ -21,8 +21,11 @@ const {spawn}=require('node:child_process');
 
   // 首次进入会弹新手指引，先关掉，否则会挡住点击
   await page.addInitScript(()=>{try{localStorage.setItem('zm_guide_seen_v1','1');}catch(e){}});
+  // 轮次/带人/模式收在折叠区里，交互前要先展开（真实用户也要点一下）
+  const openAdv=async()=>{await page.evaluate(()=>{const d=document.getElementById('mdAdvanced');if(d)d.open=true;});await page.waitForTimeout(80);};
   await page.goto(base+'/app.html#method');
   await page.waitForSelector('#methodStart');
+  await openAdv();
   if(await page.locator('#guideModal.open').isVisible().catch(()=>false))await page.locator('#guideModal [data-guide-close]').click();
 
   // 01 定标尺：年限 + JD 推断出岗位档位
@@ -127,6 +130,7 @@ const {spawn}=require('node:child_process');
   // 刷新后记录仍在（有档案时直接进答题，不再回到定标尺）
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('zm_method_state_v1')));
   assert.equal(after.sessions.length,1,'刷新后记录应保留');
 
@@ -155,57 +159,11 @@ const {spawn}=require('node:child_process');
   }
   await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden,{timeout:5000});
 
-  // AI 复核：规则判定未达标时，AI 指出被漏掉的证据，用户可采纳上调一档
-  await page.evaluate(()=>document.getElementById('mdAgain').click());
-  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
-  // 这段回答规则会判「否」，缺口是 G2 摩擦力 / G3 决策 / G5 反思（量化已达标）。
-  // mock 必须挑一个真实存在的缺口，否则代码会正确地丢弃这条复核。
-  await page.locator('#mdAnswer').fill('我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。我拿了两周灰度数据给财务看，对账时间从三天变成半天，他同意先试一个部门。');
-  await page.route('**/api/ai/method-review',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-    result:{found:true,gap:'G3',quote:'我拿了两周灰度数据给财务看',reason:'这里体现了用数据说服对方的判断过程，规则可能因为没出现"因为/所以"而漏判'},
-    meta:{model:'fake'}
-  })}));
-  await page.locator('#mdSubmit').click();
-  await page.waitForTimeout(400);
-  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
-  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
-  await page.waitForFunction(()=>!document.getElementById('mdReview').hidden,{timeout:5000});
-  const reviewText=await page.locator('#mdReview').innerText();
-  assert.match(reviewText,/AI 复核/,'应显示复核卡片');
-  assert.match(reviewText,/我拿了两周灰度数据给财务看/,'必须引用用户原话');
-  assert.match(reviewText,/规则判定不会被自动改写/,'必须说明不覆盖规则结论');
-  const beforeLevel=await page.locator('#mdVerdictBody .md-level').first().innerText();
-  await page.locator('#mdReviewAccept').click();
-  await page.waitForTimeout(300);
-  const afterLevel=await page.locator('#mdVerdictBody .md-level').first().innerText();
-  assert.notEqual(afterLevel,beforeLevel,'采纳后档位应变化，之前='+beforeLevel);
-  assert.match(await page.locator('#mdVerdictBody').innerText(),/由 AI 复核上调/,'应标明是复核上调的');
-  const lifted=await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('zm_method_state_v1'));return s.sessions.at(-1).verdict;});
-  assert.equal(lifted.aiLifted,true,'记录里应标记为 AI 复核上调');
-  assert.equal(lifted.aiEvidence,'我拿了两周灰度数据给财务看','应保存证据原文');
-
-  // 已达标时不发起复核（不应出现复核卡片）
-  // 先切到单题模式：一轮模式下答完一题会继续下一题，不适合验证单次判定
-  await page.evaluate(()=>document.querySelector('[data-md-mode="single"]').click());
-  await page.waitForTimeout(200);
-  await page.unroute('**/api/ai/method-review');
-  let reviewCalled=false;
-  await page.route('**/api/ai/method-review',route=>{reviewCalled=true;route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({result:{found:false,gap:'',quote:'',reason:''}})});});
-  await page.evaluate(()=>document.getElementById('mdAgain').click());
-  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
-  await page.locator('#mdAnswer').fill('我推动三个部门共用一套指标。财务明确反对，我拿两周灰度数据说服他先试一个部门。跑通后我把这套口径固化成了周会机制，对账时间从三天降到半天，推广到另外两个业务线。');
-  await page.locator('#mdSubmit').click();
-  await page.waitForTimeout(400);
-  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
-  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
-  await page.waitForTimeout(800);
-  assert.equal(reviewCalled,false,'已达标时不应发起 AI 复核');
-  assert.equal(await page.evaluate(()=>document.getElementById('mdReview').hidden),true,'已达标时不应显示复核卡片');
-
   // 维度切换：D1 与 D2 出不同的题，切回 D1 题目要变
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   assert.equal(await page.locator('#mdDims .chip').count(),5,'应有五个维度可选');
   const dimNames=await page.locator('#mdDims .chip').allInnerTexts();
   for(const want of ['推动与影响力','业务判断与决策','协作与冲突','复盘与成长','压力与稳定性']){
@@ -249,6 +207,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
@@ -275,6 +234,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
@@ -338,6 +298,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   assert.equal(await page.locator('[data-md-mode="motive"]').count(),1,'应有动机题模式');
   await page.locator('[data-md-mode="motive"]').click();
   await page.waitForFunction(()=>!document.getElementById('mdPanelMotive').hidden);
@@ -377,6 +338,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>{localStorage.removeItem('zm_method_state_v1');localStorage.removeItem('zm_method_cards_v1');});
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','5 年以上，带过团队');
@@ -407,6 +369,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   assert.equal(await page.locator('#mdRounds .chip').count(),3,'应有三个轮次可选');
   assert.equal(await page.locator('#mdReports .chip').count(),3,'应有三个带人状态可选');
   // 选「HR 初面」+「没带过人」+ 6–10 年，应封顶在独当一面
@@ -468,6 +431,7 @@ const {spawn}=require('node:child_process');
   await page.evaluate(()=>{localStorage.removeItem('zm_method_state_v1');localStorage.removeItem('zm_method_cards_v1');});
   await page.reload();
   await page.waitForSelector('#methodStart');
+  await openAdv();
   await page.selectOption('#mdYears','y1');
   await page.fill('#mdRole','产品经理');
   await page.fill('#mdJd','');

@@ -1047,16 +1047,6 @@ const CARDS=[
     body:'不用编数字。三个来源就够：做之前是什么水平、做完之后是什么水平、中间隔了多久。哪怕是"从三天变成半天"也比"效果很好"强。'
   },
   {
-    id:'C3',title:'被追问时怎么办',
-    when:'被追问后沉默超过 5 秒',
-    body:'先说"我想一下"，然后只补被问到的那一块，不要重讲整段。追问是在帮你补证据，不是在挑错。'
-  },
-  {
-    id:'C4',title:'怎么从平淡经历里挖素材',
-    when:'用户说想不出例子',
-    body:'不用非有大项目。想一想：哪件事让你不得不把同样的逻辑解释了两遍？哪个项目做到一半突然变了？哪些时刻你特别不想去开会？这些里面都藏着故事。'
-  },
-  {
     id:'C5',title:'"我"和"我们"的边界',
     when:'连续两题个人贡献不足',
     body:'讲团队做的事时，"我们"可以保留背景，但每个关键节点都要说清：这个决定是谁拍的、这个动作是谁做的、出了问题谁承担。'
@@ -1074,9 +1064,8 @@ function pickCard(ctx){
   const c=ctx||{};
   const shown=Array.isArray(c.shown)?c.shown:[];
   const ready=id=>!shown.includes(id);
-  // 优先级：卡住的那一刻 > 重复犯错 > 首次引导
-  if(c.silentMs>=5000&&ready('C3'))return CARDS.find(x=>x.id==='C3');
-  if(c.wantsExample&&ready('C4'))return CARDS.find(x=>x.id==='C4');
+  // 优先级：重复犯错 > 首次引导。
+  // 只保留真正有检测来源的触发条件——写一个永远不成立的判定等于死代码。
   if(c.weaknessStrongNo&&ready('C6'))return CARDS.find(x=>x.id==='C6');
   if((c.quantMissStreak||0)>=2&&ready('C2'))return CARDS.find(x=>x.id==='C2');
   if((c.ownMissStreak||0)>=2&&ready('C5'))return CARDS.find(x=>x.id==='C5');

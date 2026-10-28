@@ -43,6 +43,9 @@ const SCENARIOS=[
    await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
    await page.reload();
    await page.waitForSelector('#methodStart');
+   // 轮次/带人收在折叠区里，先展开（真实用户也要点一下）
+   await page.evaluate(()=>{const d=document.getElementById('mdAdvanced');if(d)d.open=true;});
+   await page.waitForTimeout(80);
    await page.selectOption('#mdYears','y2');                 // 6–10 年
    await page.locator(`#mdReports [data-md-reports="${scenario.reports}"]`).click();
    await page.locator(`#mdRounds [data-md-round="${scenario.round}"]`).click();

@@ -238,36 +238,6 @@ async function runAi(task,body,cfg){
       for(const n of nums(probe))if(!known.has(n))throw fail('追问引入了回答中没有的数字',502);
       return {probe,quote};
     };
-  }else if(task==='method-review'){
-    // 受限复核：只在规则判定偏低时，检查有没有被规则漏掉的证据。
-    // 边界——AI 不能推翻规则，最多提出"这里可能漏了"并给出原话；
-    // 提升幅度由客户端限制为一档，且最终是否采纳由用户决定。
-    const GAP_CODES=['G1','G2','G3','G4','G5'];
-    const GAP_DESC={G1:'个人贡献（"我"具体做了什么）',G2:'真实障碍（谁反对、卡在哪）',G3:'取舍判断（为什么选这个）',G4:'量化结果（做前做后的差别）',G5:'复盘（学到了什么、改了什么）'};
-    const answer=text(body.answer,'回答',12000);
-    const level=text(body.level,'当前档位',20);
-    if(!['strong_no','no','neutral'].includes(level))throw fail('只有未达标的回答才需要复核');
-    const gapsInput=body.gaps??[];
-    if(!Array.isArray(gapsInput)||gapsInput.length>5)throw fail('缺口列表格式异常');
-    const gaps=gapsInput.map(g=>{const code=text(g,'缺口类型',10);if(!GAP_CODES.includes(code))throw fail('未知的缺口类型');return code;});
-    if(!gaps.length)throw fail('当前没有待复核的缺口');
-    data={answer,level,levelName:text(body.levelName,'档位名称',20),gaps,gapDesc:Object.fromEntries(gaps.map(g=>[g,GAP_DESC[g]]))};
-    instruction='你是面试官，复核一份行为面试回答。系统用规则判断它缺以下能力证据：'+gaps.map(g=>g+' '+GAP_DESC[g]).join('；')+'。'
-      +'你的任务：只在回答里确实存在被规则漏掉的证据时，指出一条。'
-      +'严格要求：quote 必须是 answer 中的连续原文，逐字复制，不得改写、不得拼接、不得用同义词替换；'
-      +'该原文必须真实体现对应缺口的能力，而不是复述题干或泛泛表态；'
-      +'最多指出一条，没有把握就返回 found:false。'
-      +'不要评价语气、文采或态度，不要提出改进建议，不要改变档位判断本身。'
-      +'返回 {found:true或false,gap:缺口编号或空字符串,quote:逐字原文或空字符串,reason:一句话说明这段原文为什么已经体现了该能力}。';
-    validate=v=>{
-      if(typeof v?.found!=='boolean')throw fail('复核结果格式异常',502);
-      if(!v.found)return {found:false,gap:'',quote:'',reason:''};
-      const gap=text(v.gap,'缺口编号',10),quote=text(v.quote,'原文依据',600),reason=text(v.reason,'复核理由',300);
-      if(!gaps.includes(gap))throw fail('复核的缺口不在待复核范围内',502);
-      if(!answer.includes(quote))throw fail('复核依据不在回答原文中',502);
-      if(quote.length<6)throw fail('复核依据过短，不足以作为证据',502);
-      return {found:true,gap,quote,reason};
-    };
   }else if(task==='method-rewrite'){
     // 回答改写：只允许重组用户已经说过的话，不允许新增任何事实。
     // 这是整个模块里最容易编造的一步——模型很自然会「帮用户补一个数字」，

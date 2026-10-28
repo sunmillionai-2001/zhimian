@@ -147,6 +147,15 @@
   .md-panel h3{font-family:var(--serif);font-weight:900;font-size:19px;margin-bottom:8px}
   .md-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
   .md-scale{margin-top:18px;padding:16px;border-radius:14px;background:var(--paper-2);border:1px solid var(--line-soft)}
+  .md-advanced{margin:18px 0;border:1px solid var(--line-soft);border-radius:12px;background:var(--card-hi);padding:0 16px}
+  .md-advanced>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;cursor:pointer;font-size:13.5px;color:var(--ink-soft);list-style:none}
+  .md-advanced>summary::-webkit-details-marker{display:none}
+  .md-advanced>summary::before{content:'▸';color:var(--ink-faint);margin-right:8px;transition:.2s}
+  .md-advanced[open]>summary::before{transform:rotate(90deg)}
+  .md-advanced>summary #mdAdvSummary{flex:1;font-weight:500}
+  .md-advanced .md-adv-hint{font-size:12px;color:var(--ink-faint);white-space:nowrap}
+  .md-advanced .field:first-of-type{margin-top:4px}
+  .md-advanced .field:last-child{padding-bottom:14px}
   .md-scale-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
   .md-scale-line b{color:var(--seal-deep)}
   .md-scale-note{font-size:12.5px;color:var(--ink-faint);margin-top:8px;line-height:1.65}
@@ -181,12 +190,6 @@
   #mdCardHint .ch-t{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--teal);margin-bottom:7px}
   #mdCardHint .ch-b{font-size:13.5px;line-height:1.75;color:var(--ink-soft)}
   #mdCardHint .ch-a{margin-top:10px}
-  #mdReview{margin-top:18px;padding:16px 18px;border:1px solid rgba(47,93,93,.3);border-radius:14px;background:rgba(47,93,93,.05)}
-  #mdReview h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:8px;color:var(--teal)}
-  #mdReview .rv-quote{border-left:3px solid var(--teal);padding:6px 0 6px 12px;margin:10px 0;font-size:13.5px;color:var(--ink-soft);font-style:italic}
-  #mdReview .rv-reason{font-size:13.5px;line-height:1.7;color:var(--ink-soft)}
-  #mdReview .rv-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-  #mdReview .rv-note{font-size:12px;color:var(--ink-faint);margin-top:8px}
   .md-next{padding:14px 16px;border-radius:12px;background:var(--seal-soft);color:var(--seal-deep);font-weight:600;font-size:14.5px;line-height:1.65}
   .md-gap{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:rgba(193,58,30,.08);color:var(--seal-deep);margin:0 7px 7px 0}
   .md-gap i{font-family:var(--latin);font-style:italic;font-size:11px;opacity:.75}
@@ -900,16 +903,19 @@
           <div class="field"><label for="mdRole">你在看什么岗位（选填）</label><input id="mdRole" maxlength="80" placeholder="如：产品经理 / 后端开发" /></div>
         </div>
         <div class="field"><label for="mdJd">岗位 JD（选填，填了诊断更准）</label><textarea id="mdJd" rows="4" maxlength="30000" placeholder="粘贴任职要求，用来判断这个岗位要什么人"></textarea></div>
-        <div class="field"><label>这次面哪一轮</label><div class="filter-row" id="mdRounds"></div></div>
-        <div class="field"><label>你带过人吗</label><div class="filter-row" id="mdReports"></div>
-          <p class="mock-note" style="margin-top:6px">年限看不出有没有带过人。没带过也能练，题目会换成平级版本。</p>
-        </div>
-        <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
-          <button type="button" class="chip active" data-md-mode="round">练一轮（按轮次组题）</button>
-          <button type="button" class="chip" data-md-mode="single">只练一题</button>
-          <button type="button" class="chip" data-md-mode="motive">动机题（离职原因 / 为什么选我们）</button>
-        </div></div>
-        <div class="field" id="mdDimField" hidden><label>练哪个维度</label><div class="filter-row" id="mdDims"></div></div>
+        <details class="md-advanced" id="mdAdvanced">
+          <summary><span id="mdAdvSummary">按「都要练 · 带过团队 · 练一轮」开始</span><span class="md-adv-hint">想调再点</span></summary>
+          <div class="field"><label>这次面哪一轮</label><div class="filter-row" id="mdRounds"></div></div>
+          <div class="field"><label>你带过人吗</label><div class="filter-row" id="mdReports"></div>
+            <p class="mock-note" style="margin-top:6px">年限看不出有没有带过人。没带过也能练，题目会换成平级版本。</p>
+          </div>
+          <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
+            <button type="button" class="chip active" data-md-mode="round">练一轮（按轮次组题）</button>
+            <button type="button" class="chip" data-md-mode="single">只练一题</button>
+            <button type="button" class="chip" data-md-mode="motive">动机题（离职原因 / 为什么选我们）</button>
+          </div></div>
+          <div class="field" id="mdDimField" hidden><label>练哪个维度</label><div class="filter-row" id="mdDims"></div></div>
+        </details>
         <div class="paste-actions">
           <button class="btn btn-primary" id="mdSaveProfile" type="button">确认标尺</button>
           <button class="btn btn-ghost" id="mdUseJob" type="button">从目标岗位带入</button>
@@ -946,7 +952,6 @@
       <section class="md-panel" id="mdPanelVerdict" hidden>
         <div id="mdVerdictBody"></div>
         <div id="mdCardHint" hidden></div>
-        <div id="mdReview" hidden></div>
         <div id="mdRewriteBox" hidden></div>
         <div class="paste-actions" id="mdVerdictActions">
           <button class="btn btn-ghost" id="mdRewriteBtn" type="button">看改写示例</button>
@@ -2435,7 +2440,7 @@
   // 方法卡触发状态：连续失误计数 + 已展示过的卡（存本地，避免重复弹）
   let mdCardCtx={answeredCount:0,quantMissStreak:0,ownMissStreak:0,shown:[]};
   try{const raw=localStorage.getItem('zm_method_cards_v1');if(raw){const v=JSON.parse(raw);if(v&&Array.isArray(v.shown))mdCardCtx=v;}}catch(e){}
-  let mdProbeToken=0, mdReviewToken=0, mdDimId='D2';
+  let mdProbeToken=0, mdDimId='D2';
   // AI 只用于追问措辞润色。没有配置模型时自动退回规则底稿，功能不降级。
   const mdAiEnabled = location.protocol==='http:'||location.protocol==='https:';
 
@@ -2539,7 +2544,7 @@
     if(p){
       if(p.round&&MD.ROUND_IDS.includes(p.round))mdRoundId=p.round;
       if(p.reports&&MD.REPORTS_IDS.includes(p.reports))mdReports=p.reports;
-      mdRenderRounds();mdRenderReports();
+      mdRenderRounds();mdRenderReports();mdRenderAdvSummary();
       if(sel)sel.value=p.years;
       const role=document.getElementById('mdRole'); if(role)role.value=p.role||'';
       const jd=document.getElementById('mdJd'); if(jd)jd.value=p.jd||'';
@@ -2766,7 +2771,6 @@
     mdSetStep('verdict');
     mdMsg('');
     mdUpdateCards(v,dimId);
-    mdMaybeReview(combined,v);
   }
 
   // 按本次判定更新计数，再看该不该弹方法卡。
@@ -2937,69 +2941,6 @@
     }
   }
 
-  // 受限复核：只在规则判定未达标时，问 AI 有没有被漏掉的证据。
-  // 三条边界：不推翻规则、最多提一档、必须引用原文。
-  async function mdMaybeReview(answer,v){
-    const box=document.getElementById('mdReview');
-    if(!box)return;
-    box.hidden=true;box.innerHTML='';
-    // 已达标不复核——没有需要救回的误判。
-    if(!mdAiEnabled||v.alignment==='met')return;
-    if(!['strong_no','no','neutral'].includes(v.level))return;
-    if(!v.gaps.length)return;
-    const token=++mdReviewToken;
-    try{
-      const data=await requestAi('method-review',{
-        answer,level:v.level,levelName:v.levelName,gaps:v.gaps.map(g=>g.code)
-      },{openSettings:false,timeoutMs:20000});
-      const r=data?.result;
-      // 用户可能已经换题或离开：过期结果丢弃。
-      if(!r||!r.found||token!==mdReviewToken||mdStep!=='verdict')return;
-      const gap=v.gaps.find(g=>g.code===r.gap);
-      if(!gap)return;
-      box.hidden=false;
-      box.innerHTML=`<h4>AI 复核：这里可能漏了一条</h4>
-        <div class="rv-reason">系统判断这题缺「${esc(gap.label)}」，但你这段话里可能已经有证据：</div>
-        <div class="rv-quote">${esc(r.quote)}</div>
-        <div class="rv-reason">${esc(r.reason)}</div>
-        <div class="rv-actions">
-          <button class="btn btn-ghost" id="mdReviewAccept" type="button">这条确实是我说的，按它重算</button>
-          <button class="btn btn-ghost" id="mdReviewIgnore" type="button">忽略</button>
-        </div>
-        <p class="rv-note">规则判定不会被自动改写。你可以自己决定这段算不算数。</p>`;
-      document.getElementById('mdReviewIgnore').onclick=()=>{box.hidden=true;};
-      document.getElementById('mdReviewAccept').onclick=()=>{
-        // 采纳：把规则档位提一档（最多一档），并把这段证据记进本次诊断。
-        const order=['strong_no','no','neutral','yes','strong_yes'];
-        const cur=order.indexOf(v.level);
-        const lifted=order[Math.min(order.length-1,cur+1)];
-        const nx=structuredClone(mdState);
-        const last=nx.sessions[nx.sessions.length-1];
-        if(last){
-          last.verdict={...last.verdict,level:lifted,aiLifted:true,aiEvidence:r.quote,ruleLevel:v.level};
-          last.nextStep='已按你确认的证据上调一档。想再稳一点，可以补一句复盘。';
-          if(mdWrite(nx))mdRenderLifted(v,lifted,r,gap);
-        }
-        box.hidden=true;
-      };
-    }catch(e){
-      // 未配置 / 超时 / 校验失败：静默跳过复核，规则结论保持不变。
-    }
-  }
-
-  // 采纳复核后，把档位区域就地更新，并说明是 AI 复核上调的。
-  function mdRenderLifted(v,levelId,r,gap){
-    const top=document.querySelector('#mdVerdictBody .md-verdict-top');
-    if(!top)return;
-    const name=MD.levelName(levelId);
-    const req=MD.STAGE_REQUIRED[mdState.profile.jobStage];
-    const order=['strong_no','no','neutral','yes','strong_yes'];
-    const met=order.indexOf(levelId)>=req;
-    top.innerHTML=`<div class="md-level ${met?'met':''}">${esc(name)}</div>
-      <div class="md-verdict-sub">按「${esc(MD.stageName(mdState.profile.jobStage))}」标准评 · 这一档需要到「${esc(MD.levelName(MD.LEVEL_IDS[req]))}」才算达标 · ${met?'<b style="color:var(--teal)">已达标</b>':'<b style="color:var(--seal)">还差一点</b>'}
-      <br><span class="mock-note">由 AI 复核上调（规则原判「${esc(v.levelName)}」），依据：「${esc(r.quote)}」</span></div>`;
-  }
-
   /* 换位模式 */
   function mdOpenSwap(){
     mdSwapIdx=0;
@@ -3070,13 +3011,23 @@
     }catch(e){mdMsg('读取目标岗位失败，可直接粘贴 JD。');}
   }
 
+  // 折叠标题要显示当前选择，否则用户不点开就不知道会被怎么练。
+  function mdRenderAdvSummary(){
+    const el=document.getElementById('mdAdvSummary');
+    if(!el)return;
+    const roundName=(MD.INTERVIEW_ROUNDS.find(r=>r.id===mdRoundId)||{}).name||'都要练';
+    const reportsName=mdReports==='none'?'没带过人':(mdReports==='small'?'带过 1–3 人':'带过团队');
+    const modeName=mdMode==='round'?'练一轮':(mdMode==='single'?'只练一题':'动机题');
+    el.textContent=`按「${roundName} · ${reportsName} · ${modeName}」开始`;
+  }
+
   function mdRenderRounds(){
     const box=document.getElementById('mdRounds');
     if(!box)return;
     box.innerHTML=MD.INTERVIEW_ROUNDS.map(r=>`<button type="button" class="chip ${r.id===mdRoundId?'active':''}" data-md-round="${r.id}" title="${esc(r.desc)}">${esc(r.name)}</button>`).join('');
     box.querySelectorAll('[data-md-round]').forEach(b=>b.onclick=()=>{
       mdRoundId=b.dataset.mdRound;
-      mdRenderRounds();
+      mdRenderRounds();mdRenderAdvSummary();
       // 轮次变了，一轮的题也变了，重新组卷。
       // 但如果用户还在定标尺这一步，只记设置、不要抢跑——他还没确认年限。
       if(mdState.profile){
@@ -3092,7 +3043,7 @@
     box.innerHTML=MD.REPORTS.map(r=>`<button type="button" class="chip ${r.id===mdReports?'active':''}" data-md-reports="${r.id}">${esc(r.label)}</button>`).join('');
     box.querySelectorAll('[data-md-reports]').forEach(b=>b.onclick=()=>{
       mdReports=b.dataset.mdReports;
-      mdRenderReports();
+      mdRenderReports();mdRenderAdvSummary();
       if(mdState.profile){
         mdState.profile.reports=mdReports;mdWrite(mdState);
         if(mdStep!=='profile')mdStartAnswer();
@@ -3109,7 +3060,7 @@
       b.onclick=()=>{
         mdMode=b.dataset.mdMode;
         mdRound=null;
-        mdRenderModes();
+        mdRenderModes();mdRenderAdvSummary();
         // 动机题不依赖档位，任何时候点都能直接开始
         if(mdMode==='motive'){mdStartMotive();return;}
         // 其他模式还在定标尺就别抢跑，等用户点「确认标尺」
@@ -3139,6 +3090,7 @@
   mdRenderRounds();
   mdRenderReports();
   mdRenderModes();
+  mdRenderAdvSummary();
   mdRenderDims();
   mdRenderProfile();
   mdSetStep(mdState.profile?'answer':'profile');

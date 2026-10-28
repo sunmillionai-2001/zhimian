@@ -638,19 +638,20 @@ test('存档接受 usedUtterances，且兼容没有该字段的旧数据',()=>{
 });
 
 /* ===== F2 方法卡触发 ===== */
-test('方法卡六张，每张都有触发时机和正文',()=>{
-  assert.equal(M.CARDS.length,6);
+test('方法卡四张，每张都有触发时机和正文',()=>{
+  // 只保留有真实检测来源的触发条件：写一个永远不成立的判定等于死代码
+  assert.equal(M.CARDS.length,4);
   for(const c of M.CARDS){
     assert.ok(c.id&&c.title&&c.when&&c.body,c.id);
     assert.ok(c.body.length>30,c.id+' 正文要够说明白');
   }
 });
 
-test('方法卡按「卡住的那一刻」优先，不是按顺序',()=>{
-  // 同时满足沉默和首次引导时，应该先给「被追问时怎么办」
-  assert.equal(M.pickCard({silentMs:6000,answeredCount:1}).id,'C3');
+test('方法卡按诊断价值排序：重复犯错优先于首次引导',()=>{
   // 同时满足两题无量化和其他条件时，先给量化
   assert.equal(M.pickCard({answeredCount:3,quantMissStreak:2,ownMissStreak:2}).id,'C2');
+  // 复盘强否优先于首次引导
+  assert.equal(M.pickCard({answeredCount:1,weaknessStrongNo:true}).id,'C6');
 });
 
 test('方法卡不该弹的时候绝不弹',()=>{
@@ -660,7 +661,23 @@ test('方法卡不该弹的时候绝不弹',()=>{
 
 test('看过的卡不再重复弹',()=>{
   assert.equal(M.pickCard({answeredCount:1,shown:['C1']}),null);
-  assert.equal(M.pickCard({silentMs:6000,shown:['C3']}),null);
+  assert.equal(M.pickCard({answeredCount:3,quantMissStreak:2,shown:['C2']}),null);
+});
+
+test('每张方法卡都有真实可触发的条件，不存在死卡',()=>{
+  // 逐个用最小上下文触发，确保没有「定义了但永远不弹」的卡
+  const contexts={
+    C1:{answeredCount:1},
+    C2:{answeredCount:3,quantMissStreak:2},
+    C5:{answeredCount:3,ownMissStreak:2},
+    C6:{answeredCount:3,weaknessStrongNo:true}
+  };
+  for(const c of M.CARDS){
+    const ctx=contexts[c.id];
+    assert.ok(ctx,c.id+' 缺少可触发它的上下文，可能是死卡');
+    assert.equal(M.pickCard(ctx).id,c.id,c.id+' 应能被触发');
+  }
+  assert.equal(Object.keys(contexts).length,M.CARDS.length,'不应有多余的触发上下文');
 });
 
 /* ===== 面试轮次 ===== */
