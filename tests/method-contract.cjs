@@ -103,7 +103,7 @@ test('每轮只问一条、最多两轮、全通过不追问',()=>{
 
 test('话术库覆盖全部缺口且每类至少 3 条，同一 seed 不撞句',()=>{
   // G1–G5 通用 + G6–G8 是 D1 专用的取舍三件套
-  assert.equal(M.utteranceCount(),49);
+  assert.equal(M.utteranceCount(),73,'14 个业务缺口 + 8 个技术缺口，每类 3–5 条');
   for(const code of ['G1','G2','G3','G4','G5'])assert.ok(M.UTTERANCES[code].length>=4,code);
   for(const code of ['G6','G7','G8','G9','G10','G11','G12','G13','G14'])assert.ok(M.UTTERANCES[code].length>=3,code);
   const a=M.pickUtterance('G1',0),b=M.pickUtterance('G1',1);
@@ -212,7 +212,7 @@ test('app.html 引入 methodology.js 且视图与导航已接线',()=>{
 
 /* ===== D1 业务判断与决策 ===== */
 test('D1 与 D2 是两个独立维度，各有三题五锚点',()=>{
-  assert.equal(M.DIMENSIONS.length,5);
+  assert.equal(M.DIMENSIONS.length,8,'五个非技术维度 + 三个技术维度');
   for(const d of M.DIMENSIONS){
     assert.equal(d.questions.length,3,d.id);
     assert.equal(d.anchors.length,5,d.id);
@@ -382,9 +382,10 @@ test('D5 硬扛是风险信号，不该被当成抗压加分',()=>{
   assert.ok(b.score>a.score,'主动调整的得分必须高于硬扛');
 });
 
-test('五个维度各有三题五锚点，题目都带找例子的提示',()=>{
-  assert.deepEqual(M.DIMENSIONS.map(d=>d.id),['D1','D2','D3','D4','D5']);
-  for(const d of M.DIMENSIONS){
+test('通用族五个维度各有三题五锚点，题目都带找例子的提示',()=>{
+  assert.deepEqual(M.dimensionsForFamily('generic'),['D1','D2','D3','D4','D5']);
+  assert.equal(M.DIMENSIONS.length,8,'维度总数是五个非技术 + 三个技术');
+  for(const d of M.dimensionsForFamily('generic').map(id=>M.dimension(id))){
     assert.equal(d.questions.length,3,d.id);
     assert.equal(d.anchors.length,5,d.id);
     for(const q of d.questions){
@@ -415,7 +416,7 @@ test('各维度下一步优先修自己的致命缺口',()=>{
 });
 
 /* ===== 一轮练习：组题与小结 ===== */
-test('一轮是五个行为维度加一道动机题，题目不重复',()=>{
+test('一轮是五个行为维度加一道动机题，题目不重复（通用族）',()=>{
   assert.equal(M.ROUND_SIZE,6);
   const round=M.buildRound('owner');
   assert.equal(round.length,6);
@@ -699,6 +700,9 @@ test('各轮次题数正确：HR 四题、业务面四题、都要练六题',()=
   assert.equal(M.roundSize('hr'),4);
   assert.equal(M.roundSize('business'),4);
   assert.equal(M.roundSize('all'),6);
+  assert.equal(M.roundSize('all','technical'),6,'技术族也是五个维度 + 动机');
+  assert.equal(M.roundSize('business','technical'),5,'技术业务面五个技术相关维度，不含动机');
+  assert.equal(M.roundSize('hr','technical'),4,'HR 面不分岗位族');
   assert.equal(M.buildRound('owner',null,{round:'hr'}).length,4);
   assert.equal(M.buildRound('owner',null,{round:'business'}).length,4);
 });
@@ -1082,4 +1086,132 @@ test('中文数量也能被识别为差异，不只阿拉伯数字',()=>{
   const c=M.storyConflicts([a,b]);
   assert.equal(c.length,1);
   assert.ok(c[0].numbers.includes('两周')||c[0].numbers.includes('三周'));
+});
+
+/* ===== 阶段四：技术岗位族 ===== */
+test('两个岗位族，技术族换掉非技术维度',()=>{
+  assert.deepEqual(M.FAMILY_IDS,['generic','technical']);
+  assert.deepEqual(M.dimensionsForFamily('generic'),['D1','D2','D3','D4','D5']);
+  assert.deepEqual(M.dimensionsForFamily('technical'),['T1','T2','T3','D2','D4']);
+  // 未知岗位族回落到通用，不崩也不给空卷
+  assert.deepEqual(M.dimensionsForFamily('不存在'),['D1','D2','D3','D4','D5']);
+});
+
+test('三个技术维度各有三题、三题校招版、五档锚点',()=>{
+  for(const id of ['T1','T2','T3']){
+    const d=M.dimension(id);
+    assert.equal(d.questions.length,3,id+' 应有三题');
+    assert.equal(d.campusQuestions.length,3,id+' 应有校招版');
+    assert.equal(d.anchors.length,5,id+' 应有五档锚点');
+    assert.ok(d.definition.length>10,id+' 应有定义');
+  }
+});
+
+test('技术族一轮是三个技术维度 + 推动 + 复盘 + 动机',()=>{
+  const round=M.buildRound('owner',null,{round:'all',family:'technical'});
+  assert.equal(round.length,6);
+  assert.deepEqual(round.map(q=>q.dimensionId),['T1','T2','T3','D2','D4','M']);
+});
+
+test('HR 面不分岗位族，永远考协作/复盘/压力',()=>{
+  const hr=M.buildRound('owner',null,{round:'hr',family:'technical'});
+  assert.deepEqual(hr.map(q=>q.dimensionId),['D3','D4','D5','M']);
+});
+
+test('技术深度：只报名词→否，讲原理→中性，原理+取舍+代价→是',()=>{
+  const lv=t=>M.judge(t,{jobStage:'owner',dimension:'T1'}).level;
+  assert.equal(lv('我用了 Redis，还用了 Kafka。'),'no');
+  assert.equal(lv('Redis 的底层是哈希表和跳表，内存模型是单线程加 IO 多路复用。'),'neutral');
+  assert.equal(lv('Redis 底层是哈希表和跳表，单线程避免锁竞争。选它是因为读写比 9:1，代价是内存成本高，所以只缓存热数据。'),'yes');
+});
+
+test('技术深度：知识类维度不受「我们太多」和「没数字」封顶',()=>{
+  const v=M.judge('Redis 的底层是哈希表和跳表，单线程避免锁竞争。我们选它是因为读写比 9:1，代价是内存成本高。',{jobStage:'owner',dimension:'T1'});
+  assert.equal(v.level,'yes','技术深度考的是知识，不该因缺个人动词封顶');
+  assert.ok(!v.caps.some(c=>c.code==='X-OWN'));
+});
+
+test('系统设计：报技术栈→否，有量级没取舍→中性，三件齐→是',()=>{
+  const lv=t=>M.judge(t,{jobStage:'owner',dimension:'T2'}).level;
+  assert.equal(lv('我用 Spring Cloud 加 MySQL 实现。'),'no');
+  assert.equal(lv('日活 50 万，QPS 峰值 3000。我做了接入层、服务层、缓存和异步队列。'),'neutral');
+  assert.equal(lv('日活 50 万，QPS 峰值 3000。我分接入层、服务层、缓存和异步队列。为了保证可用性，我放弃强一致，改成最终一致，代价是前端要处理短暂不一致。'),'yes');
+});
+
+test('工程实践：只说修好了→否，没定位→否，定位+根因+预防→是',()=>{
+  const lv=t=>M.judge(t,{jobStage:'owner',dimension:'T3'}).level;
+  assert.equal(lv('我把它修好了。'),'no');
+  assert.equal(lv('原因是缓存没设过期时间，我改了配置。'),'no');
+  assert.equal(lv('我先看监控发现缓存命中率掉到 20%，再用日志定位到某批 key 没设过期，根因是上线时漏了配置。修完加了配置校验和缓存命中率告警。'),'yes');
+});
+
+test('工程实践仍受个人贡献封顶（它讲的是你亲手做的事）',()=>{
+  const v=M.judge('我们团队处理了线上故障，定位到是缓存没设过期，根因是上线漏配置。后来加了告警和配置校验。',{jobStage:'owner',dimension:'T3'});
+  assert.equal(v.level,'neutral');
+  assert.ok(v.caps.some(c=>c.code==='X-OWN'));
+});
+
+test('技术维度有专用缺口，能指出缺的是原理还是取舍',()=>{
+  const t1=M.detectGaps(M.analyze('我用了 Redis。'),'我用了 Redis。','T1').map(g=>g.code);
+  assert.ok(t1.includes('H1'),'应指出缺原理');
+  assert.ok(t1.includes('H2'),'应指出缺选型');
+  const t2=M.detectGaps(M.analyze('我做了个系统。'),'我做了个系统。','T2').map(g=>g.code);
+  assert.ok(t2.includes('H4'),'应指出缺量级');
+  const t3=M.detectGaps(M.analyze('我把它修好了。'),'我把它修好了。','T3').map(g=>g.code);
+  assert.ok(t3.includes('H7'),'应指出缺定位');
+  assert.ok(t3.includes('H8'),'应指出缺预防');
+});
+
+test('技术缺口都有对应追问话术',()=>{
+  for(const code of ['H1','H2','H3','H4','H5','H6','H7','H8']){
+    assert.ok(M.UTTERANCES[code]&&M.UTTERANCES[code].length>=3,code+' 应至少有 3 条话术');
+  }
+});
+
+test('技术族专项复练走技术题库',()=>{
+  const qs=M.drillRound('T1','owner',{family:'technical'});
+  assert.equal(qs.length,3);
+  assert.ok(qs.every(q=>/^T1-/.test(q.questionId)));
+});
+
+test('技术维度也有校招版，且不含职场措辞',()=>{
+  for(const id of ['T1','T2','T3']){
+    const qs=M.drillRound(id,'owner',{track:'campus'});
+    assert.ok(qs.every(q=>/-C\d$/.test(q.questionId)),id+' 校招专项应用校招题');
+    assert.ok(qs.every(q=>!/公司|领导|同事|线上故障/.test(q.question)),id+' 校招题不该出现职场措辞');
+  }
+});
+
+test('技术知识题不套行为面缺口，不给「我们太多」「没复盘」这类噪音',()=>{
+  const v=M.judge('Redis 底层是哈希表和跳表，单线程避免锁竞争。选它是因为我们读写比 9:1，代价是内存成本高。',{jobStage:'owner',dimension:'T1'});
+  const codes=v.gaps.map(g=>g.code);
+  assert.deepEqual(codes,[],'三条信号都满足就不该报缺口，实际：'+codes);
+  // 但 T3（工程实践）讲的是你亲手做的事，行为缺口仍然适用
+  const t3=M.judge('我把它修好了。',{jobStage:'owner',dimension:'T3'});
+  assert.ok(t3.gaps.some(g=>g.code==='H7'),'T3 应指出缺定位');
+});
+
+test('技术题返回三维信号，替代 STAR',()=>{
+  const t1=M.judge('我用了 Redis。',{jobStage:'owner',dimension:'T1'});
+  assert.ok(Array.isArray(t1.tech.cells)&&t1.tech.cells.length===3,'T1 应返回三条信号');
+  assert.deepEqual(t1.tech.cells.map(c=>c.key),['原理','选型','代价']);
+  const t2=M.judge('我用 Spring Cloud。',{jobStage:'owner',dimension:'T2'});
+  assert.deepEqual(t2.tech.cells.map(c=>c.key),['量级','分层','取舍']);
+  const t3=M.judge('我把它修好了。',{jobStage:'owner',dimension:'T3'});
+  assert.deepEqual(t3.tech.cells.map(c=>c.key),['定位','根因','预防']);
+  // 非技术维度不返回 tech
+  assert.equal(M.judge('我做了个项目。',{jobStage:'owner',dimension:'D1'}).tech,null);
+});
+
+test('「选它是因为」这类说法算讲清了选型',()=>{
+  const t='Redis 底层是哈希表。选它是因为读写比 9:1。';
+  const r=M.judgeTechDepth(t);
+  assert.equal(r.select,true,'「选它是因为」应被识别为讲选型');
+});
+
+test('STAR 方法卡不弹给知识类技术题，但故障故事仍弹',()=>{
+  assert.equal(M.pickCard({answeredCount:1,dimensionId:'T1'}),null,'技术深度讲原理，不该弹 STAR');
+  assert.equal(M.pickCard({answeredCount:1,dimensionId:'T2'}),null,'系统设计讲方案，不该弹 STAR');
+  assert.equal(M.pickCard({answeredCount:1,dimensionId:'D2'})?.id,'C1','行为面首题仍应弹');
+  assert.equal(M.pickCard({answeredCount:1,dimensionId:'T3'})?.id,'C1','工程实践讲故障故事，STAR 适用');
 });

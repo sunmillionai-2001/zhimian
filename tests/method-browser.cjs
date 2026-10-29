@@ -602,6 +602,40 @@ const {spawn}=require('node:child_process');
   assert.match(conflictText,/数字对不上/,'应说明是数字对不上');
   assert.match(conflictText,/三周|五天/,'应列出冲突的数字');
 
+  // 技术岗位族：换维度、换题、单题模式只列技术维度
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await openAdv();
+  assert.equal(await page.locator('#mdFamilies .chip').count(),2,'应有非技术/技术两个岗位族');
+  await page.locator('[data-md-family="technical"]').click();
+  await page.waitForTimeout(250);
+  assert.match(await page.locator('#mdAdvSummary').innerText(),/技术研发/,'摘要应反映岗位族');
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','后端开发');
+  await page.fill('#mdJd','3 年以上后端经验，熟悉分布式系统');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(300);
+  assert.match(await page.locator('#mdQuestionDim').innerText(),/技术深度/,'技术族第一题应是技术深度');
+  // 单题模式的维度列表只含技术族维度
+  await page.locator('#methodStart').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProfile').hidden);
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(250);
+  const techDims=await page.locator('#mdDims .chip').allInnerTexts();
+  assert.deepEqual(techDims,['技术深度','系统设计','工程实践与质量','推动与影响力','复盘与成长'],'单题模式应只列技术族维度');
+  // 技术回答判定：讲原理+取舍+代价应拿「是」
+  await page.locator('#mdDims [data-md-dim="T1"]').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.locator('#mdAnswer').fill('Redis 底层是哈希表和跳表，单线程避免锁竞争。选它是因为我们读写比 9:1，代价是内存成本高，所以只缓存热数据。后来踩过坑：大 key 会阻塞主线程，所以定了 key 大小规范和监控告警机制。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(350);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  const techVerdict=await page.locator('#mdVerdictBody').innerText();
+  assert.match(techVerdict,/强是|是/, '讲清原理与代价应判定达标，实际：'+techVerdict.slice(0,80));
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);

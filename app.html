@@ -934,6 +934,7 @@
         <h3>先把标尺定下来</h3>
         <p class="mock-note" id="mdProfileIntro">我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。</p>
         <div class="field"><label>你是校招还是社招</label><div class="filter-row" id="mdTracks"></div></div>
+        <div class="field"><label>你投的是哪类岗位</label><div class="filter-row" id="mdFamilies"></div></div>
         <div class="md-grid2">
           <div class="field" id="mdYearsField"><label for="mdYears">你工作几年了？</label><select id="mdYears"></select></div>
           <div class="field" id="mdExpField" hidden><label for="mdExp">你有几段相关经历？</label><select id="mdExp"></select></div>
@@ -2500,7 +2501,7 @@
   const MD_KEY='zm_method_state_v1';
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
   // 一轮练习的状态：questions 是这一轮的题，results 逐题累计。
-  let mdMode='round', mdRound=null, mdRoundId='all', mdReports='team', mdDrillDim='D2', mdTrack='experienced';
+  let mdMode='round', mdRound=null, mdRoundId='all', mdReports='team', mdDrillDim='D2', mdTrack='experienced', mdFamily='generic';
   // 方法卡触发状态：连续失误计数 + 已展示过的卡（存本地，避免重复弹）
   let mdCardCtx={answeredCount:0,quantMissStreak:0,ownMissStreak:0,shown:[]};
   try{const raw=localStorage.getItem('zm_method_cards_v1');if(raw){const v=JSON.parse(raw);if(v&&Array.isArray(v.shown))mdCardCtx=v;}}catch(e){}
@@ -2618,9 +2619,10 @@
     const p=mdState.profile;
     if(p){
       if(p.track&&MD.TRACK_IDS.includes(p.track))mdTrack=p.track;
+      if(p.family&&MD.FAMILY_IDS.includes(p.family))mdFamily=p.family;
       if(p.round&&MD.ROUND_IDS.includes(p.round))mdRoundId=p.round;
       if(p.reports&&MD.REPORTS_IDS.includes(p.reports))mdReports=p.reports;
-      mdRenderTracks();mdRenderRounds();mdRenderReports();mdRenderAdvSummary();
+      mdRenderTracks();mdRenderFamilies();mdRenderRounds();mdRenderReports();mdRenderAdvSummary();
       if(sel)sel.value=p.years||'y1';
       if(expSel)expSel.value=p.exp||'e1';
       const role=document.getElementById('mdRole'); if(role)role.value=p.role||'';
@@ -2640,7 +2642,7 @@
     const jd=document.getElementById('mdJd').value.trim();
     const scale=MD.resolveScale({track:mdTrack,years,exp,jd,roleName:role,reports:mdReports});
     const next=structuredClone(mdState);
-    next.profile={track:mdTrack,years,exp,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred',round:mdRoundId,reports:mdReports};
+    next.profile={track:mdTrack,family:mdFamily,years,exp,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred',round:mdRoundId,reports:mdReports};
     if(!mdWrite(next))return;
     mdRenderScale(scale);
     mdMsg(scale.jobSource==='fallback'?'已按你的年限定标准。填 JD 会更准。':'标尺已确认，可以开始答题了。');
@@ -2652,10 +2654,10 @@
     if(!mdState.profile){mdSetStep('profile');mdMsg('先确认标尺。');return;}
     if(mdMode==='drill'){
       // 专项复练：同一维度三个难度各一题，比「再随机出一题」更能看出真实水平
-      mdRound={questions:MD.drillRound(mdDrillDim,mdState.profile.jobStage,{hasReports:mdReports!=='none',track:mdTrack}),results:[],index:0,drill:true};
+      mdRound={questions:MD.drillRound(mdDrillDim,mdState.profile.jobStage,{hasReports:mdReports!=='none',track:mdTrack,family:mdFamily}),results:[],index:0,drill:true};
       mdShowRoundQuestion();
     }else if(mdMode==='round'){
-      mdRound={questions:MD.buildRound(mdState.profile.jobStage,null,{round:mdRoundId,hasReports:mdReports!=='none',track:mdTrack}),results:[],index:0};
+      mdRound={questions:MD.buildRound(mdState.profile.jobStage,null,{round:mdRoundId,hasReports:mdReports!=='none',track:mdTrack,family:mdFamily}),results:[],index:0};
       mdShowRoundQuestion();
     }else{
       mdRound=null;
@@ -2835,7 +2837,12 @@
     const v=MD.judge(combined,{jobStage,dimension:dimId,track:mdTrack});
     const q=dim.questions.find(x=>x.id===mdSession.questionId)||dim.questions[0];
     const starIcon={ok:'✅',warn:'⚠️',miss:'❌'};
-    const starHtml=v.star.map(x=>`<div class="md-star-cell ${x.status}"><div class="k">${x.key}</div><div class="s">${starIcon[x.status]} ${esc(x.label)}</div><div class="h">${esc(x.hint)}</div></div>`).join('');
+    // 技术题不套 STAR：讲原理、讲设计不是「讲故事」，用 STAR 量会得出
+    // 「强是 + 四项全错」这种自相矛盾的结论。改成显示该维度自己的信号。
+    const starHtml=v.tech
+      ? v.tech.cells.map(c=>`<div class="md-star-cell ${c.ok?'ok':'miss'}"><div class="k">${esc(c.key)}</div><div class="s">${c.ok?'✅':'❌'} ${esc(c.key)}</div><div class="h">${esc(c.hint)}</div></div>`).join('')
+      : v.star.map(x=>`<div class="md-star-cell ${x.status}"><div class="k">${x.key}</div><div class="s">${starIcon[x.status]} ${esc(x.label)}</div><div class="h">${esc(x.hint)}</div></div>`).join('');
+    const starTitle=v.tech?'这道题看这三件事':'';
     const gapsHtml=v.gaps.length?v.gaps.map(g=>`<span class="md-gap"><i>${g.code}</i>${esc(g.label)}</span>`).join(''):'<span class="mock-note">五类缺口都补上了。</span>';
     const evHtml=v.evidence.length?v.evidence.map(e=>`<div class="md-evidence"><b>${esc(e.name)}</b> · 你说过：<q>${esc(e.quote)}</q></div>`).join(''):'';
     const capHtml=v.caps.length?v.caps.map(c=>`<div class="md-evidence"><b>封顶</b> · ${esc(c.reason)}</div>`).join(''):'';
@@ -2845,6 +2852,7 @@
         <div class="md-level ${align}">${esc(v.levelName)}</div>
         <div class="md-verdict-sub">按「${esc(v.jobStageName)}」标准评 · 这一档需要到「${esc(v.requiredName)}」才算达标 · ${v.alignment==='met'?'<b style="color:var(--teal)">已达标</b>':'<b style="color:var(--seal)">还差一点</b>'}</div>
       </div>
+      ${starTitle?`<div class="md-block"><h4>${esc(starTitle)}</h4></div>`:''}
       <div class="md-star">${starHtml}</div>
       <div class="md-block"><h4>缺的是这几块</h4><div>${gapsHtml}</div></div>
       ${evHtml?`<div class="md-block"><h4>判定依据（你的原话）</h4>${evHtml}</div>`:''}
@@ -3258,9 +3266,10 @@
     const reportsName=mdReports==='none'?'没带过人':(mdReports==='small'?'带过 1–3 人':'带过团队');
     const modeName=mdMode==='round'?'练一轮':(mdMode==='single'?'只练一题':(mdMode==='drill'?'专项复练 '+MD.dimension(mdDrillDim).name:'动机题'));
     // 校招不显示带人状态——学生基本不可能带过人
+    const famName=(MD.JOB_FAMILIES.find(f=>f.id===mdFamily)||{}).name||'非技术通用';
     el.textContent=mdTrack==='campus'
-      ?`按「${roundName} · ${modeName}」开始`
-      :`按「${roundName} · ${reportsName} · ${modeName}」开始`;
+      ?`按「${famName} · ${roundName} · ${modeName}」开始`
+      :`按「${famName} · ${roundName} · ${reportsName} · ${modeName}」开始`;
   }
 
   function mdRenderTracks(){
@@ -3282,6 +3291,17 @@
         ?'我们只问两件你一定知道的事——按「你有多少相关经历 + 这个岗位要什么人」来定标准。'
         :'我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。');
       if(mdState.profile){mdState.profile.track=mdTrack;mdWrite(mdState);if(mdStep!=='profile')mdStartAnswer();}
+    });
+  }
+
+  function mdRenderFamilies(){
+    const box=document.getElementById('mdFamilies');
+    if(!box)return;
+    box.innerHTML=MD.JOB_FAMILIES.map(f=>`<button type="button" class="chip ${f.id===mdFamily?'active':''}" data-md-family="${f.id}" title="${esc(f.desc)}">${esc(f.name)}</button>`).join('');
+    box.querySelectorAll('[data-md-family]').forEach(b=>b.onclick=()=>{
+      mdFamily=b.dataset.mdFamily;
+      mdRenderFamilies();mdRenderDims();mdRenderAdvSummary();
+      if(mdState.profile){mdState.profile.family=mdFamily;mdWrite(mdState);if(mdStep!=='profile')mdStartAnswer();}
     });
   }
 
@@ -3345,7 +3365,9 @@
   function mdRenderDims(){
     const box=document.getElementById('mdDims');
     if(!box)return;
-    box.innerHTML=MD.DIMENSIONS.map(d=>`<button type="button" class="chip ${d.id===mdDimId?'active':''}" data-md-dim="${d.id}">${esc(d.name)}</button>`).join('');
+    const dims=MD.dimensionsForFamily(mdFamily).map(id=>MD.dimension(id));
+    if(!dims.some(d=>d.id===mdDimId))mdDimId=dims[0].id;
+    box.innerHTML=dims.map(d=>`<button type="button" class="chip ${d.id===mdDimId?'active':''}" data-md-dim="${d.id}">${esc(d.name)}</button>`).join('');
     box.querySelectorAll('[data-md-dim]').forEach(b=>b.onclick=()=>{
       mdDimId=b.dataset.mdDim;
       mdRenderDims();
@@ -3358,6 +3380,7 @@
   mdLoad();
   renderGrid();
   mdRenderTracks();
+  mdRenderFamilies();
   mdRenderRounds();
   mdRenderReports();
   mdRenderModes();

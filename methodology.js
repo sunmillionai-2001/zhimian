@@ -329,7 +329,88 @@ const D5={
   ]
 };
 
-const DIMENSIONS=[D1,D2,D3,D4,D5];
+/* ========== 技术岗位族：三个技术维度 ========== */
+// 技术面的判定和业务面不同：不看「有没有推动别人」，看「懂不懂原理、会不会权衡、出问题怎么定位」。
+
+const T1={
+  id:'T1',name:'技术深度',weight_default:0.25,
+  definition:'对自己用过的技术，能讲清原理与适用边界，并能说明为什么选它、代价是什么。',
+  questions:[
+    {id:'T1-Q1',minStage:'executor',q:'讲一次你用某个技术解决具体问题的经历。',hint:'挑一个你真正用过、能说清内部怎么运作的技术，不要只报名字。'},
+    {id:'T1-Q2',minStage:'owner',q:'讲一次你在几个技术方案之间做选型的经历。',hint:'想一想：为什么选 A 不选 B，你放弃了什么。'},
+    {id:'T1-Q3',minStage:'lead',q:'讲一次你发现某个技术在你们场景下不合适、推动换掉的经历。',hint:'想一想：它的瓶颈在哪，你怎么验证，换掉付出了什么代价。'}
+  ],
+  campusQuestions:[
+    {id:'T1-C1',minStage:'executor',q:'讲一次你在课程项目或比赛里用某个技术解决具体问题的经历。',hint:'挑一个你真正用过、能说清内部怎么运作的技术。'},
+    {id:'T1-C2',minStage:'owner',q:'讲一次你在两个技术方案之间做选择的经历。',hint:'想一想：为什么选这个不选那个。'},
+    {id:'T1-C3',minStage:'lead',q:'讲一次你发现原来的做法有问题、推动换掉的经历。',hint:'想一想：问题在哪，你怎么验证。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'只报技术名词，说不出用在什么场景、解决什么问题。'},
+    {id:'no',text:'讲了用法，但说不清它的原理，也不知道它的边界。'},
+    {id:'neutral',text:'讲清了原理，但没说为什么选它、代价是什么。'},
+    {id:'yes',text:'讲清原理与适用边界，能说明选型理由和付出的代价。'},
+    {id:'strong_yes',text:'还能说清什么场景不该用它、踩过什么坑，并有量化或事故佐证。'}
+  ]
+};
+
+const T2={
+  id:'T2',name:'系统设计',weight_default:0.25,
+  definition:'能把模糊需求拆成量级、分层方案与取舍，而不是直接给一个技术栈。',
+  questions:[
+    {id:'T2-Q1',minStage:'executor',q:'讲一次你设计一个模块或接口时考虑了哪些因素。',hint:'不只要说用了什么，还要说为什么这么分层。'},
+    {id:'T2-Q2',minStage:'owner',q:'讲一次你做系统设计时明确做了取舍的经历。',hint:'想一想：一致性 vs 可用性、成本 vs 延迟，你最后选了哪边。'},
+    {id:'T2-Q3',minStage:'lead',q:'讲一次你主导的系统设计在上线后遇到瓶颈、你如何演进它。',hint:'想一想：瓶颈出在哪一层，你怎么定位，怎么改。'}
+  ],
+  campusQuestions:[
+    {id:'T2-C1',minStage:'executor',q:'讲一次你在课程项目里设计一个模块时考虑了哪些因素。',hint:'不只要说用了什么，还要说为什么这么拆。'},
+    {id:'T2-C2',minStage:'owner',q:'讲一次你的设计方案在评审时被质疑、你如何回应或调整。',hint:'想一想：对方质疑的是什么，你怎么判断谁对。'},
+    {id:'T2-C3',minStage:'lead',q:'讲一次你做的设计后来暴露出问题、你如何改进。',hint:'想一想：问题出在哪一层，你怎么发现，怎么改。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'直接报技术栈或框架，没有需求、没有分层，也没有取舍。'},
+    {id:'no',text:'有方案描述，但没说清数据量、并发或延迟这些约束。'},
+    {id:'neutral',text:'说清了需求和分层，但没讲为什么这样取舍、代价是什么。'},
+    {id:'yes',text:'先量化需求，再分层设计，并明确说明取舍与代价。'},
+    {id:'strong_yes',text:'还能给出容量估算、瓶颈分析与后续演进路径，并有线上数据佐证。'}
+  ]
+};
+
+const T3={
+  id:'T3',name:'工程实践与质量',weight_default:0.25,
+  definition:'线上问题能定位到根因，修完之后能把同类问题挡住，而不是只把这次修好。',
+  questions:[
+    {id:'T3-Q1',minStage:'executor',q:'讲一次你排查一个 bug 的过程。',hint:'重点不是「修好了」，而是你怎么一步步定位到它。'},
+    {id:'T3-Q2',minStage:'owner',q:'讲一次你处理线上故障的经历。',hint:'想一想：怎么发现的、怎么止损、最后怎么定位到根因。'},
+    {id:'T3-Q3',minStage:'lead',q:'讲一次你推动改进工程质量（测试、监控、发布流程）的经历。',hint:'想一想：原来哪里容易出事，你加了什么，后来还出过吗。'}
+  ],
+  campusQuestions:[
+    {id:'T3-C1',minStage:'executor',q:'讲一次你调试一个程序错误的经历。',hint:'重点不是「改好了」，而是你怎么一步步找到原因。'},
+    {id:'T3-C2',minStage:'owner',q:'讲一次你的程序在演示或提交前出了问题的经历。',hint:'想一想：怎么发现的、怎么应急、最后根因是什么。'},
+    {id:'T3-C3',minStage:'lead',q:'讲一次你让项目更不容易出错的经历。',hint:'想一想：原来哪里容易出问题，你加了什么检查。'}
+  ],
+  anchors:[
+    {id:'strong_no',text:'只说了「修好了」，说不清问题出在哪。'},
+    {id:'no',text:'说了原因，但没讲怎么定位到的，像是猜的。'},
+    {id:'neutral',text:'讲清了定位过程，但修完就结束了，没做任何预防。'},
+    {id:'yes',text:'定位过程、根因、修复、预防四件事都讲清楚了。'},
+    {id:'strong_yes',text:'还把这次教训变成了团队可用的机制（监控告警、回归用例、发布卡点），后来确实挡住过同类问题。'}
+  ]
+};
+
+const DIMENSIONS=[D1,D2,D3,D4,D5,T1,T2,T3];
+
+/* ========== 岗位族：不同岗位考不同维度 ========== */
+const JOB_FAMILIES=[
+  {id:'generic',name:'非技术通用',desc:'产品 / 运营 / 市场 / 职能',dimensions:['D1','D2','D3','D4','D5']},
+  {id:'technical',name:'技术研发',desc:'后端 / 前端 / 算法 / 测试',dimensions:['T1','T2','T3','D2','D4']}
+];
+const FAMILY_IDS=JOB_FAMILIES.map(f=>f.id);
+function family(id){return JOB_FAMILIES.find(f=>f.id===id)||JOB_FAMILIES[0];}
+function dimensionsForFamily(id){return family(id).dimensions.slice();}
+// 业务面不考「压力与稳定性」——那是 HR 面和终面的事。
+// 这条对技术族同样成立（技术族本来就没有 D5）。
+function dimensionsForBusiness(id){return dimensionsForFamily(id).filter(d=>d!=='D5');}
 function dimension(id){return DIMENSIONS.find(d=>d.id===id)||D2;}
 
 // 选题：档位决定难度，带人状态决定用哪个版本。
@@ -477,10 +558,30 @@ const GAPS_D5=[
   {code:'G14',priority:82,name:'调整',label:'没说清你做了什么调整或取舍',test:(s,t)=>!RE_ADJUST.test(t)}
 ];
 
-const DIM_GAPS={D1:GAPS_D1,D3:GAPS_D3,D4:GAPS_D4,D5:GAPS_D5};
+// 技术维度专用缺口
+const GAPS_T1=[
+  {code:'H1',priority:94,name:'原理',label:'只讲了怎么用，没讲它怎么运作',test:(s,t)=>!RE_TECH_PRINCIPLE.test(t)},
+  {code:'H2',priority:82,name:'选型',label:'没说为什么选它、放弃了什么',test:(s,t)=>!RE_TECH_SELECT.test(t)},
+  {code:'H3',priority:78,name:'边界',label:'没讲它的限制或代价',test:(s,t)=>!RE_TECH_COST.test(t)}
+];
+const GAPS_T2=[
+  {code:'H4',priority:96,name:'量级',label:'没说数据量、并发或延迟要求',test:(s,t)=>!RE_SYS_SCALE.test(t)},
+  {code:'H5',priority:80,name:'分层',label:'没说方案分几层、各层做什么',test:(s,t)=>!RE_SYS_LAYER.test(t)},
+  {code:'H6',priority:84,name:'取舍',label:'没说在一致性、可用性、成本之间怎么取舍',test:(s,t)=>!RE_SYS_TRADEOFF.test(t)}
+];
+const GAPS_T3=[
+  {code:'H7',priority:92,name:'定位',label:'没讲怎么一步步定位到问题',test:(s,t)=>!RE_ENG_LOCATE.test(t)},
+  {code:'H8',priority:86,name:'预防',label:'修完就结束了，没说怎么防止再发生',test:(s,t)=>!RE_ENG_PREVENT.test(t)}
+];
+
+const DIM_GAPS={D1:GAPS_D1,D3:GAPS_D3,D4:GAPS_D4,D5:GAPS_D5,T1:GAPS_T1,T2:GAPS_T2,T3:GAPS_T3};
 // 按维度组装缺口表：通用缺口 + 该维度的专用缺口。
+// T1/T2 考的是知识与判断，不是讲故事：
+// 「我们太多」「没有障碍」「没有复盘」这些行为面缺口套上去只会制造噪音。
+const KNOWLEDGE_DIMS=['T1','T2'];
 function gapsFor(dimId){
   const extra=DIM_GAPS[dimId];
+  if(KNOWLEDGE_DIMS.includes(dimId))return (extra||[]).slice().sort((a,b)=>b.priority-a.priority);
   if(!extra)return GAPS;
   return [...GAPS,...extra].sort((a,b)=>b.priority-a.priority);
 }
@@ -584,6 +685,47 @@ const UTTERANCES={
     '压力最大的时候，你具体调整了什么？',
     '你放弃了哪部分，为什么是那部分？',
     '有没有找谁帮忙，或者要求延期？'
+  ],
+  // 技术岗位族
+  H1:[
+    '这个技术内部是怎么运作的？说说它的原理。',
+    '为什么它能解决这个问题？换一个行不行？',
+    '你刚才说的这些，哪些是它自己保证的，哪些是你自己加的？'
+  ],
+  H2:[
+    '当时还考虑过别的方案吗？为什么没选？',
+    '选它你放弃了什么？',
+    '如果换个场景，你还会选它吗？'
+  ],
+  H3:[
+    '它有什么限制或者代价？',
+    '什么情况下它就不合适了？',
+    '你踩过它的坑吗？'
+  ],
+  H4:[
+    '数据量或者并发大概是什么量级？',
+    '延迟要求是多少？有没有算过容量？',
+    '峰值会到多少？'
+  ],
+  H5:[
+    '你这个方案分几层？每层负责什么？',
+    '请求进来之后，依次经过哪些组件？',
+    '缓存和存储之间怎么保持一致？'
+  ],
+  H6:[
+    '一致性、可用性、成本这三样，你最后优先保了哪个？',
+    '这么设计牺牲了什么？',
+    '如果流量再翻十倍，哪里会先撑不住？'
+  ],
+  H7:[
+    '你是怎么定位到这个问题上的？',
+    '看了哪些日志或者指标？',
+    '一开始怀疑的是别的地方吗？'
+  ],
+  H8:[
+    '修完之后怎么防止同类问题再发生？',
+    '有没有加监控或者回归用例？',
+    '下次别人犯同样的错，能挡住吗？'
   ]
 };
 function utteranceCount(){return Object.values(UTTERANCES).reduce((n,a)=>n+a.length,0);}
@@ -639,7 +781,7 @@ function judge(text,options){
   const dimId=opt.dimension||'D2';
   const s=analyze(text);
   const gaps=detectGaps(s,text,dimId);
-  let score;
+  let score, tech=null;
   if(dimId==='D1'){
     // 业务判断维度按「取舍是否成立」判，不按「有没有阻力」判。
     score=judgeDecision(text).score;
@@ -649,6 +791,15 @@ function judge(text,options){
     score=judgeGrowth(text).score;
   }else if(dimId==='D5'){
     score=judgePressure(text).score;
+  }else if(dimId==='T1'){
+    const r=judgeTechDepth(text);score=r.score;
+    tech={cells:[{key:'原理',ok:r.principle,hint:'它内部怎么运作'},{key:'选型',ok:r.select,hint:'为什么选它、放弃了什么'},{key:'代价',ok:r.cost,hint:'它的限制与不适用的场景'}]};
+  }else if(dimId==='T2'){
+    const r=judgeSystemDesign(text);score=r.score;
+    tech={cells:[{key:'量级',ok:r.scale,hint:'数据量、并发、延迟要求'},{key:'分层',ok:r.layer,hint:'方案分几层、各层做什么'},{key:'取舍',ok:r.tradeoff,hint:'一致性/可用性/成本怎么选'}]};
+  }else if(dimId==='T3'){
+    const r=judgeEngineering(text);score=r.score;
+    tech={cells:[{key:'定位',ok:r.locate,hint:'怎么一步步找到问题'},{key:'根因',ok:r.root,hint:'问题到底出在哪'},{key:'预防',ok:r.prevent,hint:'怎么防止再发生'}]};
   }else{
     // 强否：被指派且没有主动动作。「领导让我推」+「我按他说的做」= 全程被动，
     // 即使句子里有「做」也不算个人动作。
@@ -660,8 +811,13 @@ function judge(text,options){
     if(score>=3&&s.mechanism)score=4;                  // 是 → 强是：需要机制证据
   }
   const caps=[];
-  if(s.ownRatio<0.4&&score>2){score=2;caps.push({code:'X-OWN',reason:'"我们"太多，个人贡献无法确认，封顶「中性」'});}
-  if(s.quantDensity<0.3&&score>3){score=3;caps.push({code:'X-QUANT',reason:'结果没有数字，封顶「是」'});}
+  // T1/T2 考的是知识与判断（能讲清原理、会权衡），不强求"我做了什么"，
+  // 个人贡献封顶只用于行为类维度与 T3（工程实践讲的是你亲手处理的事）。
+  const ownCapApplies=!(dimId==='T1'||dimId==='T2');
+  if(ownCapApplies&&s.ownRatio<0.4&&score>2){score=2;caps.push({code:'X-OWN',reason:'"我们"太多，个人贡献无法确认，封顶「中性」'});}
+  // T1 的「强是」锚点接受「量化**或事故佐证**」，所以量化封顶同样不适用于知识类维度。
+  const quantCapApplies=!(dimId==='T1'||dimId==='T2');
+  if(quantCapApplies&&s.quantDensity<0.3&&score>3){score=3;caps.push({code:'X-QUANT',reason:'结果没有数字，封顶「是」'});}
   const level=levelByScore(score);
   const jobStage=opt.jobStage&&STAGE_IDS.includes(opt.jobStage)?opt.jobStage:'owner';
   const required=STAGE_REQUIRED[jobStage];
@@ -670,6 +826,7 @@ function judge(text,options){
     level:level.id,levelName:level.name,score,
     required,requiredName:levelName(LEVEL_IDS[required]),
     jobStage,jobStageName:stageName(jobStage,opt.track),
+    tech,
     alignment,
     signals:s,gaps,caps,
     star:starCheck(text),
@@ -863,6 +1020,65 @@ function judgePressure(text){
   return {score,signals:s,adjusts,hardEndure};
 }
 
+/* ========== 技术维度专项判定 ========== */
+// 技术面和业务面判的不是一回事：
+// 业务面看「有没有推动别人」，技术面看「懂不懂原理、会不会权衡、出问题怎么定位」。
+const RE_TECH_PRINCIPLE=/(?:原理|底层|机制|源码|内部实现|数据结构|算法复杂度|怎么实现|为什么快|为什么慢|索引结构|线程模型|内存模型|协议|事务|隔离级别)/;
+const RE_TECH_SELECT=/(?:选型|对比|相比|替代方案|为什么用|为什么不用|为什么选|选它|选这个|选择它|换成|方案[AB甲乙]|技术栈|权衡)/;
+const RE_TECH_COST=/(?:代价|缺点|限制|瓶颈|不适合|边界|坑|问题在于|不足|退化|复杂度上升)/;
+const RE_TECH_PIT=/(?:踩过|踩坑|出过事故|后来发现|不知道|没考虑到|翻过车|教训)/;
+
+function judgeTechDepth(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  const principle=RE_TECH_PRINCIPLE.test(t),select=RE_TECH_SELECT.test(t),cost=RE_TECH_COST.test(t);
+  let score;
+  if(!principle&&!select&&!cost)score=s.passive?0:1;      // 只报名词
+  else if(principle&&!select&&!cost)score=2;               // 讲了原理但没取舍
+  // 技术深度考的是「懂不懂、会不会权衡」，不强求句子里有"我+动词"；
+  // 个人贡献由横向信号 X-OWN 单独封顶，不在这里重复卡。
+  else if(principle&&(select||cost))score=3;
+  else if(select&&cost)score=3;
+  else score=2;
+  if(score>=3&&RE_TECH_PIT.test(t)&&hasMechanism(t))score=4;
+  return {score,signals:s,principle,select,cost};
+}
+
+const RE_SYS_SCALE=/(?:qps|QPS|并发|数据量|量级|延迟|P99|p99|吞吐|日活|万级|亿级|\d+\s*(?:万|亿|qps|QPS|条|次))|(?:[一二两三四五六七八九十百千万]+\s*(?:万|亿|条|次|人))/;
+const RE_SYS_LAYER=/(?:分层|接入层|服务层|存储层|缓存|异步|队列|网关|分库分表|读写分离|限流|降级)/;
+const RE_SYS_TRADEOFF=/(?:取舍|权衡|一致性|可用性|CAP|成本|代价|牺牲|优先保)/;
+
+function judgeSystemDesign(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  const scale=RE_SYS_SCALE.test(t),layer=RE_SYS_LAYER.test(t),tradeoff=RE_SYS_TRADEOFF.test(t);
+  let score;
+  if(!scale&&!layer&&!tradeoff)score=s.passive?0:1;        // 直接报技术栈
+  else if(!scale)score=2;                                  // 有方案但没量化约束
+  else if(scale&&layer&&!tradeoff)score=2;                 // 有量级有分层但没取舍
+  else if(scale&&layer&&tradeoff)score=3;
+  else score=2;
+  if(score>=3&&hasMechanism(t)&&/演进|扩容|瓶颈|容量/.test(t))score=4;
+  return {score,signals:s,scale,layer,tradeoff};
+}
+
+const RE_ENG_LOCATE=/(?:定位|排查|日志|监控|复现|堆栈|dump|二分|缩小范围|逐层|抓包|看指标|回放)/;
+const RE_ENG_ROOT=/(?:根因|根本原因|原因是|问题出在|发现是)/;
+const RE_ENG_PREVENT=/(?:预防|回归|监控告警|告警|预案|卡点|测试覆盖|复现用例|挡住|自动化|巡检)/;
+
+function judgeEngineering(text){
+  const t=String(text||'');
+  const s=analyze(t);
+  const locate=RE_ENG_LOCATE.test(t),root=RE_ENG_ROOT.test(t),prevent=RE_ENG_PREVENT.test(t);
+  let score;
+  if(!locate&&!root)score=s.passive?0:1;                   // 只说修好了
+  else if(!locate)score=1;                                 // 说了原因但没定位过程
+  else if(!prevent)score=2;                                // 定位+根因，但没预防
+  else score=3;
+  if(score>=3&&hasMechanism(t))score=4;
+  return {score,signals:s,locate,root,prevent};
+}
+
 /* ========== 换位模式（极轻版 3 题） ========== */
 // 换位模式每题有自己的判定口径：S2 是「缺点题」、S3 是「结果题」，
 // 都不能套 D2 推动力的锚点，否则引擎判定会和专家判定打架。
@@ -1041,16 +1257,25 @@ function scanMotive(text,ctx){
 // 一轮 = 五个行为维度 + 一道动机题。
 // 动机题放在最后：它不参与达标统计，但社招最常挂在这里，
 // 放在末尾能确保前面五个维度先练完，不会因为动机题卡住就放弃整轮。
-const ROUND_SIZE=DIMENSIONS.length+1;
+// 一轮的默认题数按通用族算（五个维度 + 动机）；其他族用 roundSize() 现算。
+const ROUND_SIZE=JOB_FAMILIES[0].dimensions.length+1;
 // 一轮实际题数随轮次变化：HR 面四题、业务面四题、都要练六题。
-function roundSize(round){
-  return dimensionsForRound(round).length+(roundHasMotive(round)?1:0);
+function roundSize(round,familyId){
+  const dims=round==='hr'
+    ?dimensionsForRound('hr')
+    :(round==='business'?dimensionsForBusiness(familyId):dimensionsForFamily(familyId));
+  return dims.length+(roundHasMotive(round)?1:0);
 }
 
 // 按档位为每个维度各出一题，组成一轮。
 function buildRound(jobStage,dimIds,opts){
   const o=opts||{};
-  const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:dimensionsForRound(o.round);
+  // HR 面不分岗位族，永远考协作/复盘/压力；业务面才按岗位族选维度
+  const ids=Array.isArray(dimIds)&&dimIds.length
+    ?dimIds
+    :(o.round==='hr'
+      ?dimensionsForRound('hr')
+      :(o.round==='business'?dimensionsForBusiness(o.family):dimensionsForFamily(o.family)));
   const round=ids.map(id=>{
     const d=dimension(id);
     const q=pickQuestion(jobStage,id,{hasReports:o.hasReports,track:o.track});
@@ -1165,7 +1390,9 @@ function pickCard(ctx){
   if(c.weaknessStrongNo&&ready('C6'))return CARDS.find(x=>x.id==='C6');
   if((c.quantMissStreak||0)>=2&&ready('C2'))return CARDS.find(x=>x.id==='C2');
   if((c.ownMissStreak||0)>=2&&ready('C5'))return CARDS.find(x=>x.id==='C5');
-  if((c.answeredCount||0)===1&&ready('C1'))return CARDS.find(x=>x.id==='C1');
+  // STAR 是讲故事的框架，知识类技术题（讲原理/讲设计）不适用，别弹
+  const knowledge=c.dimensionId==='T1'||c.dimensionId==='T2';
+  if((c.answeredCount||0)===1&&!knowledge&&ready('C1'))return CARDS.find(x=>x.id==='C1');
   return null;
 }
 
@@ -1417,13 +1644,14 @@ function validate(state){
 /* ========== 对外接口 ========== */
 return {
   TRACKS,TRACK_IDS,CAMPUS_EXPERIENCE,CAMPUS_EXP_IDS,CAMPUS_STAGE_NAMES,
+  T1,T2,T3,JOB_FAMILIES,FAMILY_IDS,family,dimensionsForFamily,dimensionsForBusiness,
   STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
   INTERVIEW_ROUNDS,ROUND_IDS,REPORTS,REPORTS_IDS,dimensionsForRound,roundHasMotive,
   stageName,stageDesc,stageIndex,inferSelfStage,inferCampusStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,rememberUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
-  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,gapsFor,evidenceFor,
+  starCheck,judge,judgeByRule,judgeWeakness,judgeResult,judgeDecision,judgeCollab,judgeGrowth,judgePressure,judgeTechDepth,judgeSystemDesign,judgeEngineering,gapsFor,evidenceFor,
   MOTIVE,MOTIVE_FLAGS,scanMotive,
   CARDS,pickCard,
   buildRound,roundSummary,ROUND_SIZE,roundSize,
