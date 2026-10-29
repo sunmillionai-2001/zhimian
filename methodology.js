@@ -1016,9 +1016,16 @@ function roundSummary(items,jobStage){
     riskCount:Number.isInteger(motive.riskCount)?motive.riskCount:0,
     nextStep:motive.nextStep||''
   }:null;
+  // 专项复练是「同一维度三个难度」，不能按「N 个维度」说，否则文案会错。
+  const isDrill=rows.length>1&&new Set(rows.map(r=>r.dimensionId)).size===1;
+  const unit=isDrill?'题':'个维度';
   const base=rows.length?(metCount===rows.length
-    ?'这一轮 '+rows.length+' 个维度都达标了。可以换更高的岗位标准再练一遍。'
-    :'这一轮 '+metCount+' / '+rows.length+' 个维度达标。最该补的是「'+weakest.dimensionName+'」。'):'还没有可汇总的题目。';
+    ?(isDrill
+      ?'这个维度的 '+rows.length+' 道题（三个难度）都达标了。可以换个更难的岗位标准再练。'
+      :'这一轮 '+rows.length+' 个维度都达标了。可以换更高的岗位标准再练一遍。')
+    :(isDrill
+      ?'这个维度 '+rows.length+' 道题里达标 '+metCount+' 道。最该补的还是「'+rows[0].dimensionName+'」。'
+      :'这一轮 '+metCount+' / '+rows.length+' 个维度达标。最该补的是「'+weakest.dimensionName+'」。')):'还没有可汇总的题目。';
   // 动机题有风险时补一句——行为维度都过了但离职原因讲了前公司坏话，是社招最常见的挂法。
   const motiveNote=motiveRow&&motiveRow.riskCount>0
     ?'另外，动机题有 '+motiveRow.riskCount+' 处可能被读成风险，建议先改这一块。':'';
@@ -1075,8 +1082,152 @@ function pickCard(ctx){
   return null;
 }
 
+/* ========== 阶段三：能力曲线、错题本、专项复练、故事库 ========== */
+// 这一层的原则：只把已经存下来的数据用起来，不新增采集流程。
+// sessions 里每条都记了 questionId + verdict.level，足够画曲线和列错题。
+
+// 题号 → 维度：'D2-Q3' → 'D2'，'M-Q1' → 'M'
+function questionDimension(questionId){
+  const m=/^([DM]\d?)-/.exec(String(questionId||''));
+  return m?m[1]:'';
+}
+
+// 能力曲线：按维度分组，按时间排出档位变化。
+// 只统计行为维度；动机题没有档位，不进曲线。
+function progressSeries(sessions,jobStage){
+  const rows=(sessions||[]).filter(s=>s&&s.verdict&&!s.verdict.motive&&s.date);
+  return DIMENSIONS.map(d=>{
+    const points=rows
+      .filter(s=>questionDimension(s.questionId)===d.id)
+      .sort((a,b)=>Date.parse(a.date)-Date.parse(b.date))
+      .map(s=>({date:s.date,level:s.verdict.level,score:LEVEL_IDS.indexOf(s.verdict.level)}));
+    const scores=points.map(p=>p.score);
+    return {
+      dimensionId:d.id,
+      dimensionName:d.name,
+      points,
+      count:points.length,
+      first:scores.length?scores[0]:null,
+      latest:scores.length?scores[scores.length-1]:null,
+      best:scores.length?Math.max(...scores):null,
+      // 进步量：最新减最早。0 表示没变化，负数是退步。
+      delta:scores.length>1?scores[scores.length-1]-scores[0]:0
+    };
+  });
+}
+
+// 错题本：还没达标的题，按「差几档」排序。
+// 同一个题号只留最近一次，否则同一题会重复出现。
+function mistakes(sessions,jobStage){
+  const required=STAGE_REQUIRED[jobStage]||3;
+  const latest=new Map();
+  for(const s of (sessions||[])){
+    if(!s||!s.verdict||s.verdict.motive||!s.questionId)continue;
+    const cur=latest.get(s.questionId);
+    if(!cur||Date.parse(s.date)>=Date.parse(cur.date))latest.set(s.questionId,s);
+  }
+  return [...latest.values()]
+    .map(s=>{
+      const score=LEVEL_IDS.indexOf(s.verdict.level);
+      return {
+        questionId:s.questionId,
+        dimensionId:questionDimension(s.questionId),
+        dimensionName:dimension(questionDimension(s.questionId)).name,
+        question:s.question||'',
+        level:s.verdict.level,
+        levelName:levelName(s.verdict.level),
+        required,
+        requiredName:levelName(LEVEL_IDS[required]),
+        gap:Math.max(0,required-score),
+        nextStep:s.nextStep||'',
+        date:s.date
+      };
+    })
+    .filter(m=>m.gap>0)
+    .sort((a,b)=>b.gap-a.gap||Date.parse(b.date)-Date.parse(a.date));
+}
+
+// 专项复练：同一维度，三个难度各出一题。
+// 比「再随机出一题」更有效——同一个能力在不同复杂度下的表现，才是真实水平。
+function drillRound(dimId,jobStage,opts){
+  const d=dimension(dimId);
+  const o=opts||{};
+  return d.questions.map(q=>{
+    const picked=pickQuestion(q.minStage,dimId,{hasReports:o.hasReports});
+    // 用 usingAlt 判断，不能比 id——替代版本和原题是同一个 id，
+    // 比 id 会永远取到原题，导致「没带过人」也出管理题。
+    const use=(picked&&picked.usingAlt)?picked:q;
+    return {
+      dimensionId:d.id,dimensionName:d.name,
+      questionId:q.id,question:use.q||q.q,hint:use.hint||q.hint,
+      minStage:q.minStage,kind:'behavior',drill:true
+    };
+  });
+}
+
+// 年限/带人经历与行为证据不匹配的诊断。
+// 典型：填了「带过团队」，但所有题都没有一处体现「通过别人拿结果」。
+function stageGap(sessions,profile){
+  if(!profile)return null;
+  const rows=(sessions||[]).filter(s=>s&&s.verdict&&!s.verdict.motive);
+  if(rows.length<3)return null;                    // 样本太少不下结论
+  const met=rows.filter(s=>s.verdict.alignment==='met').length;
+  if(profile.reports&&profile.reports!=='none'&&met===0){
+    return {
+      kind:'reports-no-evidence',
+      title:'你的带人经历没有体现在回答里',
+      detail:'你填了带过人，但 '+rows.length+' 道题里没有任何一道达到达标线。'
+        +'这不一定是你的问题（也许你确实更多在做执行），但面试官会拿带人的标准要求你——'
+        +'你的经历正在给你带来更高的期待，而表达没跟上。'
+    };
+  }
+  return null;
+}
+
+/* ========== 故事库 ========== */
+// 一条答案就是一个故事胚子。存下来、打维度标签、标出缺口，
+// 之后练新题时可以先挑一个故事来用——这是「一鱼多吃」的产品化。
+const STORY_DIM_LIMIT=5;
+function storyFromSession(session){
+  if(!session||!session.verdict)return null;
+  const text=(session.turns||[]).map(t=>t.answer).filter(Boolean).join('\n').trim();
+  if(text.length<20)return null;                    // 太短的不值得存
+  return {
+    id:'s'+(session.id||Date.now()),
+    title:(session.question||'').slice(0,40),
+    text,
+    dimensions:[questionDimension(session.questionId)].filter(Boolean),
+    gaps:(session.verdict.gaps||[]).map(g=>g.code),
+    level:session.verdict.level,
+    sourceSessionId:session.id||'',
+    createdAt:new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+}
+
+// 故事 × 问题矩阵：一个故事能回答哪些维度的问题。
+// 只按已打标签算，不猜——猜出来的匹配用户不敢信。
+function storyMatrix(story){
+  const dims=(story&&story.dimensions)||[];
+  const out=[];
+  for(const id of dims){
+    const d=dimension(id);
+    for(const q of d.questions)out.push({dimensionId:id,dimensionName:d.name,questionId:q.id,question:q.q});
+  }
+  return out;
+}
+
+function validStory(st){
+  if(!isPlain(st))return false;
+  if(!isStr(st.id,100)||!isStr(st.title,200)||!isStr(st.text,30000))return false;
+  if(!Array.isArray(st.dimensions)||st.dimensions.length>STORY_DIM_LIMIT)return false;
+  if(!st.dimensions.every(d=>DIMENSIONS.some(x=>x.id===d)))return false;
+  if(!Array.isArray(st.gaps)||st.gaps.length>20||!st.gaps.every(g=>isStr(g,10)))return false;
+  return isStr(st.createdAt,60)&&isStr(st.updatedAt,60)&&(!st.sourceSessionId||isStr(st.sourceSessionId,100));
+}
+
 /* ========== 存储 ========== */
-function empty(){return {schemaVersion:1,profile:null,sessions:[],usedUtterances:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
+function empty(){return {schemaVersion:1,profile:null,sessions:[],stories:[],usedUtterances:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
 
 const isPlain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const isStr=(v,max)=>typeof v==='string'&&v.length<=max;
@@ -1099,6 +1250,11 @@ function validate(state){
     if(!s.turns.every(t=>isPlain(t)&&isStr(t.answer,30000)))return false;
     if(!isPlain(s.verdict)||!LEVEL_IDS.includes(s.verdict.level))return false;
     if(!STAGE_IDS.includes(s.verdict.jobStage))return false;
+  }
+  // stories 是后加的字段，旧存档没有也要能读。
+  if(state.stories!==undefined){
+    if(!Array.isArray(state.stories)||state.stories.length>500)return false;
+    if(!state.stories.every(validStory))return false;
   }
   // usedUtterances 是后加的字段，旧存档没有也要能读。
   if(state.usedUtterances!==undefined){
@@ -1124,6 +1280,7 @@ return {
   MOTIVE,MOTIVE_FLAGS,scanMotive,
   CARDS,pickCard,
   buildRound,roundSummary,ROUND_SIZE,roundSize,
+  questionDimension,progressSeries,mistakes,drillRound,stageGap,storyFromSession,storyMatrix,validStory,STORY_DIM_LIMIT,
   empty,validate
 };
 });

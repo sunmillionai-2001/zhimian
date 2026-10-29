@@ -825,3 +825,137 @@ test('小结能容忍结果里的空位，不崩溃',()=>{
   assert.equal(M.roundSummary([undefined,null],'owner').total,0);
   assert.match(M.roundSummary([],'owner').headline,/还没有/);
 });
+
+/* ===== 阶段三：能力曲线 / 错题本 / 专项复练 / 故事库 ===== */
+const mkSession=(id,date,qid,level,align,txt)=>({id,date,questionId:qid,question:'题',turns:[{answer:txt||'这是一段足够长的回答内容用于测试'}],verdict:{level,alignment:align,jobStage:'owner'},nextStep:'下一步'});
+
+test('题号能解析出维度，动机题识别为 M',()=>{
+  assert.equal(M.questionDimension('D2-Q3'),'D2');
+  assert.equal(M.questionDimension('D1-Q1'),'D1');
+  assert.equal(M.questionDimension('M-Q1'),'M');
+  assert.equal(M.questionDimension(''),'');
+});
+
+test('能力曲线按维度分组并按时间排序，算出进步量',()=>{
+  const ss=[
+    mkSession('a','2026-10-22T10:00:00Z','D2-Q2','neutral','below'),
+    mkSession('b','2026-10-20T10:00:00Z','D2-Q2','no','below'),
+    mkSession('c','2026-10-24T10:00:00Z','D2-Q3','yes','met')
+  ];
+  const d2=M.progressSeries(ss,'owner').find(x=>x.dimensionId==='D2');
+  assert.equal(d2.count,3);
+  assert.deepEqual(d2.points.map(p=>p.level),['no','neutral','yes'],'必须按时间排序，不能按传入顺序');
+  assert.equal(d2.first,1);
+  assert.equal(d2.latest,3);
+  assert.equal(d2.delta,2);
+});
+
+test('能力曲线不统计动机题，空维度返回空点',()=>{
+  const ss=[mkSession('a','2026-10-20T10:00:00Z','M-Q1','neutral','met')];
+  const series=M.progressSeries(ss,'owner');
+  assert.ok(series.every(s=>s.count===0),'动机题没有档位，不该进曲线');
+  const d1=series.find(s=>s.dimensionId==='D1');
+  assert.equal(d1.latest,null);
+  assert.equal(d1.delta,0);
+});
+
+test('错题本只列未达标的题，同题只留最近一次',()=>{
+  const ss=[
+    mkSession('a','2026-10-20T10:00:00Z','D2-Q2','no','below'),
+    mkSession('b','2026-10-22T10:00:00Z','D2-Q2','yes','met'),   // 同题后来达标了
+    mkSession('c','2026-10-21T10:00:00Z','D1-Q2','no','below')
+  ];
+  const rows=M.mistakes(ss,'owner');
+  assert.equal(rows.length,1,'D2-Q2 最新已达标，不该出现在错题本');
+  assert.equal(rows[0].questionId,'D1-Q2');
+  assert.equal(rows[0].gap,2);
+});
+
+test('错题本按「差几档」排序，差距大的在前面',()=>{
+  const ss=[
+    mkSession('a','2026-10-20T10:00:00Z','D1-Q2','neutral','below'), // 差1
+    mkSession('b','2026-10-21T10:00:00Z','D2-Q2','no','below')       // 差2
+  ];
+  const rows=M.mistakes(ss,'owner');
+  assert.deepEqual(rows.map(r=>r.questionId),['D2-Q2','D1-Q2']);
+});
+
+test('专项复练是同一维度三个难度各一题',()=>{
+  const qs=M.drillRound('D2','owner',{hasReports:true});
+  assert.equal(qs.length,3);
+  assert.ok(qs.every(q=>q.dimensionId==='D2'));
+  assert.ok(qs.every(q=>q.drill===true));
+  assert.deepEqual(qs.map(q=>M.stageName(q.minStage)),['执行者','独当一面','带人带事']);
+  assert.equal(new Set(qs.map(q=>q.questionId)).size,3,'三道题不能重复');
+});
+
+test('专项复练尊重「没带过人」，不出管理题',()=>{
+  const qs=M.drillRound('D4','lead',{hasReports:false});
+  assert.ok(qs.every(q=>!/你带的人/.test(q.question)),'专项复练也要换平级版本');
+});
+
+test('专项复练的小结文案按「题」说，不按「维度」说',()=>{
+  const rows=[{dimensionId:'D2',level:'yes'},{dimensionId:'D2',level:'yes'},{dimensionId:'D2',level:'yes'}];
+  const sum=M.roundSummary(rows,'owner');
+  assert.match(sum.headline,/这个维度/);
+  assert.match(sum.headline,/3 道题/);
+  assert.ok(!/3 个维度/.test(sum.headline),'不能把三道同维度的题说成三个维度');
+});
+
+test('stage_gap：声称带人但零达标时给出提示',()=>{
+  const ss=[mkSession('a','2026-10-20T10:00:00Z','D2-Q2','no','below'),mkSession('b','2026-10-21T10:00:00Z','D1-Q2','no','below'),mkSession('c','2026-10-22T10:00:00Z','D3-Q2','neutral','below')];
+  const g=M.stageGap(ss,{reports:'team'});
+  assert.ok(g,'应给出提示');
+  assert.match(g.detail,/更高的期待/);
+});
+
+test('stage_gap 不该误报：没带人 / 样本不足 / 有达标',()=>{
+  const ss=[mkSession('a','2026-10-20T10:00:00Z','D2-Q2','no','below'),mkSession('b','2026-10-21T10:00:00Z','D1-Q2','no','below'),mkSession('c','2026-10-22T10:00:00Z','D3-Q2','no','below')];
+  assert.equal(M.stageGap(ss,{reports:'none'}),null,'没带人不该提示');
+  assert.equal(M.stageGap(ss.slice(0,2),{reports:'team'}),null,'样本不足不该下结论');
+  assert.equal(M.stageGap(ss.concat([mkSession('d','2026-10-23T10:00:00Z','D2-Q3','yes','met')]),{reports:'team'}),null,'有达标就不该提示');
+});
+
+test('故事库：从一次诊断能提取故事并打上维度与缺口',()=>{
+  const s1=mkSession('a','2026-10-20T10:00:00Z','D2-Q2','no','below','我们团队一起做了个跨部门项目，中间遇到很多困难，最后成功了。');
+  s1.verdict.gaps=[{code:'G1'},{code:'G4'}];
+  const st=M.storyFromSession(s1);
+  assert.ok(st);
+  assert.deepEqual(st.dimensions,['D2']);
+  assert.deepEqual(st.gaps,['G1','G4']);
+  assert.equal(st.sourceSessionId,'a');
+  assert.ok(M.validStory(st));
+});
+
+test('故事库：太短的回答不值得存',()=>{
+  const s1=mkSession('a','2026-10-20T10:00:00Z','D2-Q2','no','below','太短');
+  assert.equal(M.storyFromSession(s1),null);
+});
+
+test('故事×问题矩阵只按已打标签算，不猜',()=>{
+  const st={id:'x',title:'t',text:'内容内容内容内容内容内容',dimensions:['D2'],gaps:[],createdAt:'2026-10-20',updatedAt:'2026-10-20'};
+  const mtx=M.storyMatrix(st);
+  assert.equal(mtx.length,3,'D2 有三道题');
+  assert.ok(mtx.every(x=>x.dimensionId==='D2'));
+  assert.deepEqual(M.storyMatrix({...st,dimensions:[]}),[],'没打标签就不该匹配任何题');
+});
+
+test('故事校验拒绝非法维度、超长与缺字段',()=>{
+  const base={id:'x',title:'t',text:'内容',dimensions:['D2'],gaps:[],createdAt:'a',updatedAt:'b'};
+  assert.ok(M.validStory(base));
+  assert.equal(M.validStory({...base,dimensions:['D9']}),false,'非法维度要拒绝');
+  assert.equal(M.validStory({...base,dimensions:['D1','D2','D3','D4','D5','D1']}),false,'超过 5 个标签要拒绝');
+  assert.equal(M.validStory({...base,text:''}),true,'空正文目前允许（用户可能先建后填）');
+  assert.equal(M.validStory({...base,title:undefined}),false);
+});
+
+test('存档接受 stories 并兼容旧数据',()=>{
+  const st=M.empty();
+  assert.ok(Array.isArray(st.stories));
+  st.stories=[{id:'s1',title:'t',text:'内容',dimensions:['D2'],gaps:[],createdAt:'a',updatedAt:'b'}];
+  assert.ok(M.validate(st));
+  st.stories=[{id:'bad'}];
+  assert.equal(M.validate(st),false);
+  const old=M.empty();delete old.stories;
+  assert.ok(M.validate(old),'旧存档没有 stories 也要能读');
+});

@@ -118,14 +118,16 @@ const {spawn}=require('node:child_process');
   assert.equal(pos.cardsHidden,false,'方法卡必须保持展示，不能靠隐藏它来解决滚动问题');
   assert.match(await page.locator('#mdSwapDim').innerText(),/2 \/ 3/,'应切到第二题');
 
-  // 历史记录入口可达（此前没有任何入口能打开这个面板）
+  // 历史记录入口可达（入口现在在「我的进展」页里）
   await page.locator('#mdSwapBack').click();
   await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.locator('#mdProgressOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProgress').hidden);
   await page.locator('#mdHistoryOpen').click();
   await page.waitForFunction(()=>!document.getElementById('mdPanelHistory').hidden);
   assert.ok((await page.locator('#mdHistoryList').innerText()).length>0,'应显示历史记录');
   await page.locator('#mdHistoryBack').click();
-  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProgress').hidden,'返回应回到进展页');
 
   // 刷新后记录仍在（有档案时直接进答题，不再回到定标尺）
   await page.reload();
@@ -292,9 +294,10 @@ const {spawn}=require('node:child_process');
   // 只补最弱那一项：应切到单题模式并出对应维度的题
   await page.locator('#mdSummaryWeak').click();
   await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
-  assert.equal(await page.locator('[data-md-mode="single"]').getAttribute('class'),'chip active','应切到单题模式');
-  assert.equal(await page.evaluate(()=>document.getElementById('mdDimField').hidden),false,'单题模式要显示维度选择');
-  assert.equal(await page.evaluate(()=>document.getElementById('mdRoundBar').hidden),true,'单题模式不显示进度条');
+  assert.equal(await page.locator('[data-md-mode="drill"]').getAttribute('class'),'chip active','应切到专项复练模式');
+  assert.equal(await page.evaluate(()=>document.getElementById('mdDrillChip').hidden),false,'专项复练按钮应取消隐藏');
+  assert.match(await page.evaluate(()=>document.getElementById('mdDrillChip').textContent),/专项复练：/,'按钮应带上维度名');
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 3 题/,'专项复练是同一维度三个难度');
 
   // 动机题：风险扫描，不给分数
   await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
@@ -483,6 +486,73 @@ const {spawn}=require('node:child_process');
   assert.match(failText,/规则诊断结果不受影响/,'失败不能影响规则结论');
   assert.equal(await page.locator('#mdVerdictBody .md-level').first().innerText(),level2,'失败后档位不变');
   await page.unroute('**/api/ai/method-rewrite');
+
+  // 我的进展：空状态 → 造数据 → 曲线/错题本/故事库 → 专项复练
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await page.locator('#mdProgressOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProgress').hidden);
+  await page.waitForTimeout(250);
+  assert.match(await page.locator('#mdProgCurve').innerText(),/还没有曲线/,'空状态应提示');
+  assert.equal(await page.locator('#mdProgTabs .chip').count(),3,'应有三类进展');
+
+  // 造两次同维度记录（先低后高）+ 一条错题 + 一个故事
+  await page.evaluate(()=>{
+    const now=Date.now();
+    mdState.profile={years:'y1',role:'产品经理',jd:'',selfStage:'owner',jobStage:'owner',stageSource:'inferred',round:'all',reports:'team'};
+    mdState.sessions=[
+      {id:'p1',date:new Date(now-86400000).toISOString(),questionId:'D2-Q2',question:'推动题',turns:[{answer:'我们团队做了个项目，遇到很多困难。'}],verdict:{level:'no',alignment:'below',jobStage:'owner'},nextStep:'把「我们」改成「我」'},
+      {id:'p2',date:new Date(now).toISOString(),questionId:'D2-Q2',question:'推动题',turns:[{answer:'我推动三个部门共用一套指标，财务明确反对，我拿两周灰度数据说服他先试一个部门，对账时间从三天降到半天。'}],verdict:{level:'yes',alignment:'met',jobStage:'owner'},nextStep:'这题达标了'},
+      {id:'p3',date:new Date(now-3600000).toISOString(),questionId:'D1-Q2',question:'取舍题',turns:[{answer:'我们选了一个方案，最后做成了。'}],verdict:{level:'no',alignment:'below',jobStage:'owner'},nextStep:'补一句你放弃了什么'}
+    ];
+    mdState.stories=[{id:'sg1',title:'跨部门推动',text:'我推动三个部门共用一套指标，财务明确反对，我拿两周灰度数据说服他先试一个部门。',dimensions:['D2'],gaps:['G4'],level:'yes',sourceSessionId:'p2',createdAt:new Date(now).toISOString(),updatedAt:new Date(now).toISOString()}];
+    mdWrite(mdState);
+  });
+  await page.evaluate(()=>{mdProgTab='curve';mdRenderProgress();});
+  await page.waitForTimeout(250);
+  const curveText=await page.locator('#mdProgCurve').innerText();
+  assert.match(curveText,/推动与影响力/,'曲线应显示维度');
+  assert.match(curveText,/\+2 档/,'应算出进步量');
+  assert.ok(await page.locator('.md-curve-dot').count()>=2,'应画出档位点');
+
+  await page.evaluate(()=>{mdProgTab='mistakes';mdRenderProgress();});
+  await page.waitForTimeout(200);
+  const mistakeText=await page.locator('#mdProgMistakes').innerText();
+  assert.match(mistakeText,/取舍题/,'错题本应列出未达标题');
+  assert.ok(!/推动题/.test(mistakeText),'已达标的最新记录不该出现在错题本');
+  assert.ok(await page.locator('[data-md-drill]').count()>=1,'应提供专项复练入口');
+
+  await page.evaluate(()=>{mdProgTab='stories';mdRenderProgress();});
+  await page.waitForTimeout(200);
+  const storyText=await page.locator('#mdProgStories').innerText();
+  assert.match(storyText,/跨部门推动/);
+  assert.match(storyText,/可答 3 道题/,'应显示一个故事可复用的题数');
+  assert.match(storyText,/G4/,'应显示缺口标记');
+
+  // stage_gap 提示：只在「声称带过团队 且 三道题全未达标」时出现
+  assert.equal(await page.evaluate(()=>document.getElementById('mdProgNotice').hidden),true,'有达标记录时不该提示');
+  await page.evaluate(()=>{
+    const now=Date.now();
+    mdState.sessions=[
+      {id:'g1',date:new Date(now-3000).toISOString(),questionId:'D2-Q2',question:'推动题',turns:[{answer:'我们做了个项目。'}],verdict:{level:'no',alignment:'below',jobStage:'owner'},nextStep:'x'},
+      {id:'g2',date:new Date(now-2000).toISOString(),questionId:'D1-Q2',question:'取舍题',turns:[{answer:'我们选了一个方案。'}],verdict:{level:'no',alignment:'below',jobStage:'owner'},nextStep:'y'},
+      {id:'g3',date:new Date(now-1000).toISOString(),questionId:'D3-Q2',question:'冲突题',turns:[{answer:'我们沟通了一下。'}],verdict:{level:'neutral',alignment:'below',jobStage:'owner'},nextStep:'z'}
+    ];
+    mdState.profile.reports='team';
+    mdWrite(mdState);mdProgTab='curve';mdRenderProgress();
+  });
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(()=>document.getElementById('mdProgNotice').hidden),false,'全未达标且有带人经历时应提示');
+  assert.match(await page.locator('#mdProgNotice').innerText(),/带人经历没有体现在回答里/);
+
+  // 专项复练：同一维度三个难度（要先切回错题本标签页）
+  await page.evaluate(()=>{mdProgTab='mistakes';mdRenderProgress();});
+  await page.waitForTimeout(200);
+  await page.locator('[data-md-drill="D1"]').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(250);
+  assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 3 题/,'专项复练应是三题');
 
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
