@@ -636,6 +636,32 @@ const {spawn}=require('node:child_process');
   const techVerdict=await page.locator('#mdVerdictBody').innerText();
   assert.match(techVerdict,/强是|是/, '讲清原理与代价应判定达标，实际：'+techVerdict.slice(0,80));
 
+  // 每个锚点挂依据：诊断页可查「凭什么这么判」+ 上一档要什么
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await openAdv();
+  await page.locator('[data-md-mode="single"]').click();
+  await page.waitForTimeout(200);
+  await page.selectOption('#mdYears','y1');
+  await page.fill('#mdRole','产品经理');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(250);
+  await page.locator('#mdAnswer').fill('我们做了个方案，最后选了一个，做成了。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(350);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator('.md-standard').count(),1,'诊断页应有标准说明');
+  await page.locator('.md-standard summary').click();
+  await page.waitForTimeout(250);
+  const stdText=await page.locator('.md-standard').innerText();
+  assert.match(stdText,/你现在的档位/,'应说明当前档位');
+  assert.match(stdText,/再往上一档/,'应给出上一档要求');
+  assert.ok(stdText.length>80,'应包含锚点原文与依据');
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);

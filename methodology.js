@@ -154,6 +154,20 @@ const LEVELS=[
 ];
 const LEVEL_IDS=LEVELS.map(l=>l.id);
 function levelByScore(n){return LEVELS[Math.max(0,Math.min(4,Math.round(n)))];}
+// 取某一档的锚点（含依据）。用户问「凭什么判我」时，答案就在这里。
+function anchorFor(dimId,levelId){
+  // 这里是查询接口，未知维度要老实返回 null，不能像内部渲染那样回落到 D2
+  const d=DIMENSIONS.find(x=>x.id===dimId);
+  if(!d)return null;
+  return (d.anchors||[]).find(a=>a.id===levelId)||null;
+}
+// 再往上一档要什么——比只告诉他「你不行」有用得多。
+function nextAnchor(dimId,levelId){
+  const i=LEVEL_IDS.indexOf(levelId);
+  if(i<0||i>=LEVEL_IDS.length-1)return null;
+  return anchorFor(dimId,LEVEL_IDS[i+1]);
+}
+
 function levelName(id){return (LEVELS.find(l=>l.id===id)||LEVELS[0]).name;}
 
 /* ========== 维度 D2：推动与影响力 ========== */
@@ -183,11 +197,11 @@ const D2={
     {id:'D2-C3',minStage:'lead',q:'讲一次你改变了一个小组或社团一直以来的做法的经历。',hint:'想一想：大家都习惯了老做法，你觉得不对，推动大家换了个方式。'}
   ],
   anchors:[
-    {id:'strong_no',text:'全程被动执行（"领导让我推"），或把阻力描述成"对方不配合"而自己没有任何动作。'},
-    {id:'no',text:'有推动动作，但只有"沟通 / 协调 / 对接"这类无具体动作的动词，说不清阻力在哪。'},
-    {id:'neutral',text:'有具体动作和具体阻力，但推动方式单一（只靠开会 / 只靠催），且未说明对方为何改变立场。'},
-    {id:'yes',text:'识别出真实利益分歧，用数据 / 试点 / 换位 / 共同指标等方式让对方改变立场，结果可验证。'},
-    {id:'strong_yes',text:'在无授权甚至被反对时，主动建立可复用的推动机制（固定例会、共同 KPI、流程改造），结果可量化。'}
+    {id:'strong_no',text:'全程被动执行（"领导让我推"），或把阻力描述成"对方不配合"而自己没有任何动作。',basis:'无法区分个人贡献时，面试官无法给你记功。'},
+    {id:'no',text:'有推动动作，但只有"沟通 / 协调 / 对接"这类无具体动作的动词，说不清阻力在哪。',basis:'没有阻力的「推动」其实是执行，不是影响。'},
+    {id:'neutral',text:'有具体动作和具体阻力，但推动方式单一（只靠开会 / 只靠催），且未说明对方为何改变立场。',basis:'说了难但没说怎么解决，等于没讲能力。'},
+    {id:'yes',text:'识别出真实利益分歧，用数据 / 试点 / 换位 / 共同指标等方式让对方改变立场，结果可验证。',basis:'影响力的证据是「改变了谁的决定」，对象和手段都必须具体。'},
+    {id:'strong_yes',text:'在无授权甚至被反对时，主动建立可复用的推动机制（固定例会、共同 KPI、流程改造），结果可量化。',basis:'能复述对方的顾虑并针对性解决，说明是真的理解对方，不是硬推。'}
   ]
 };
 /* ========== 维度 D1：业务判断与决策 ========== */
@@ -215,11 +229,11 @@ const D1={
     {id:'D1-C3',minStage:'lead',q:'讲一次你在两个都有道理的做法之间做了取舍的经历。',hint:'想一想：两个选择各有好处，选了一个就得放弃另一个。'}
   ],
   anchors:[
-    {id:'strong_no',text:'只是执行了别人的决定，或把"当时只能这样"说成判断。'},
-    {id:'no',text:'有选择动作，但说不清选项是什么、放弃了什么，或事后才总结出理由。'},
-    {id:'neutral',text:'说清了选项和取舍，但依据是直觉或"感觉这样更好"，没有可验证的支撑。'},
-    {id:'yes',text:'说清选项与放弃的代价，取舍依据是数据 / 约束 / 目标优先级，结果可验证。'},
-    {id:'strong_yes',text:'在信息不全时主动建立判断标准，取舍被结果验证，且这套标准后来被复用。'}
+    {id:'strong_no',text:'只是执行了别人的决定，或把"当时只能这样"说成判断。',basis:'判断力的证据是「排除」：说不出被放弃的选项，就无法证明做过判断。'},
+    {id:'no',text:'有选择动作，但说不清选项是什么、放弃了什么，或事后才总结出理由。',basis:'列出选项不等于做选择，面试官要听的是你按什么标准选了哪个。'},
+    {id:'neutral',text:'说清了选项和取舍，但依据是直觉或"感觉这样更好"，没有可验证的支撑。',basis:'任何选择都有代价，说不出代价通常意味着当时没真正承担后果。'},
+    {id:'yes',text:'说清选项与放弃的代价，取舍依据是数据 / 约束 / 目标优先级，结果可验证。',basis:'选项、标准、代价三件事齐了，判断过程才可复现，也才经得起追问。'},
+    {id:'strong_yes',text:'在信息不全时主动建立判断标准，取舍被结果验证，且这套标准后来被复用。',basis:'判断质量最终要靠结果检验，能说出验证方式和偏差，说明有闭环。'}
   ]
 };
 
@@ -251,11 +265,11 @@ const D3={
     {id:'D3-C3',minStage:'lead',q:'讲一次你处理两个同学（或两个小组）之间长期矛盾的经历。',hint:'想一想：不是你自己的冲突，而是你要让两个合不来的人继续合作。'}
   ],
   anchors:[
-    {id:'strong_no',text:'把分歧归因为对方能力或态度问题，自己只是受害者或旁观者。'},
-    {id:'no',text:'有处理动作，但只有"沟通了一下"，说不清分歧点在哪，也没说对方为何让步。'},
-    {id:'neutral',text:'说清了分歧和处理方式，但把对方写成完全不讲理，或结果只是"领导拍板"。'},
-    {id:'yes',text:'先承认对方立场中的合理部分，再用事实 / 目标 / 试点推动，关系未受损。'},
-    {id:'strong_yes',text:'不只解决这次分歧，还建立了减少同类冲突的机制（分工边界、决策规则、同步节奏）。'}
+    {id:'strong_no',text:'把分歧归因为对方能力或态度问题，自己只是受害者或旁观者。',basis:'归因于对方的人品或能力，意味着没有分析空间，也证明不了你能处理。'},
+    {id:'no',text:'有处理动作，但只有"沟通了一下"，说不清分歧点在哪，也没说对方为何让步。',basis:'只描述冲突不描述动作，看不出协作能力。'},
+    {id:'neutral',text:'说清了分歧和处理方式，但把对方写成完全不讲理，或结果只是"领导拍板"。',basis:'只讲自己怎么做，可能只是单方面推进，不是协作。'},
+    {id:'yes',text:'先承认对方立场中的合理部分，再用事实 / 目标 / 试点推动，关系未受损。',basis:'能准确复述对方立场，是「真的听懂了」的最强证据。'},
+    {id:'strong_yes',text:'不只解决这次分歧，还建立了减少同类冲突的机制（分工边界、决策规则、同步节奏）。',basis:'冲突处理的高阶是关系修复与自我调整，不只是把事情做完。'}
   ]
 };
 
@@ -286,11 +300,11 @@ const D4={
     {id:'D4-C3',minStage:'lead',q:'讲一次你参与的项目出了问题、你复盘时发现自己哪一步判断错了的经历。',hint:'想一想：不怪队友，是你当时某个判断或安排埋下了坑。'}
   ],
   anchors:[
-    {id:'strong_no',text:'凡尔赛式缺点（追求完美 / 太拼 / 要求太高），或把责任全部推给外部。'},
-    {id:'no',text:'承认了失误，但说不出具体代价，也说不清后来改了什么。'},
-    {id:'neutral',text:'有具体失误和代价，改变停留在"以后会更注意"这类决心。'},
-    {id:'yes',text:'失误具体、代价具体，改变是某个可观察的做法，且说明后来验证过。'},
-    {id:'strong_yes',text:'不只自己改，还把教训变成团队可用的规则、清单或流程，并被他人复用。'}
+    {id:'strong_no',text:'凡尔赛式缺点（追求完美 / 太拼 / 要求太高），或把责任全部推给外部。',basis:'把失败包装成优点，等于拒绝复盘。'},
+    {id:'no',text:'承认了失误，但说不出具体代价，也说不清后来改了什么。',basis:'外部归因无法带来改变，面试官看不到成长。'},
+    {id:'neutral',text:'有具体失误和代价，改变停留在"以后会更注意"这类决心。',basis:'知道错了不等于会改，要听具体改了什么。'},
+    {id:'yes',text:'失误具体、代价具体，改变是某个可观察的做法，且说明后来验证过。',basis:'自我归因、具体改变、后续验证三者齐了，才是可复用的成长。'},
+    {id:'strong_yes',text:'不只自己改，还把教训变成团队可用的规则、清单或流程，并被他人复用。',basis:'成长的外溢效应（影响了后来的做法或团队）是最高证据。'}
   ]
 };
 
@@ -321,11 +335,11 @@ const D5={
     {id:'D5-C3',minStage:'lead',q:'讲一次你发现手上的事情已经扛不住、你主动调整了范围或排期的经历。',hint:'想一想：你判断按原计划做不完，主动砍范围、找人帮忙或者跟老师说。'}
   ],
   anchors:[
-    {id:'strong_no',text:'把硬扛当美德（连续通宵 / 一个人顶住），或把压力全归为外部、自己没做任何调整。'},
-    {id:'no',text:'只说了"加班赶完"，没有说明怎么取舍、有没有求助或调整。'},
-    {id:'neutral',text:'有调整动作（减范围 / 求助 / 改节奏），但没说明判断依据，或结果是靠运气过关。'},
-    {id:'yes',text:'识别出压力来源，主动调整资源或预期，说清取舍依据，结果可验证。'},
-    {id:'strong_yes',text:'不只这次扛过去，还建立了预警或缓冲机制（提前暴露风险、留 buffer、分级响应），后来避免过同类问题。'}
+    {id:'strong_no',text:'把硬扛当美德（连续通宵 / 一个人顶住），或把压力全归为外部、自己没做任何调整。',basis:'硬扛说明没有资源调度能力，长期会崩。'},
+    {id:'no',text:'只说了"加班赶完"，没有说明怎么取舍、有没有求助或调整。',basis:'描述情绪不描述动作。'},
+    {id:'neutral',text:'有调整动作（减范围 / 求助 / 改节奏），但没说明判断依据，或结果是靠运气过关。',basis:'压力管理的核心是取舍，不是扛。'},
+    {id:'yes',text:'识别出压力来源，主动调整资源或预期，说清取舍依据，结果可验证。',basis:'能主动降范围、要资源、改节奏，说明有边界感。'},
+    {id:'strong_yes',text:'不只这次扛过去，还建立了预警或缓冲机制（提前暴露风险、留 buffer、分级响应），后来避免过同类问题。',basis:'从「处理压力」到「消除压力源」，是稳定性的高阶。'}
   ]
 };
 
@@ -346,11 +360,11 @@ const T1={
     {id:'T1-C3',minStage:'lead',q:'讲一次你发现原来的做法有问题、推动换掉的经历。',hint:'想一想：问题在哪，你怎么验证。'}
   ],
   anchors:[
-    {id:'strong_no',text:'只报技术名词，说不出用在什么场景、解决什么问题。'},
-    {id:'no',text:'讲了用法，但说不清它的原理，也不知道它的边界。'},
-    {id:'neutral',text:'讲清了原理，但没说为什么选它、代价是什么。'},
-    {id:'yes',text:'讲清原理与适用边界，能说明选型理由和付出的代价。'},
-    {id:'strong_yes',text:'还能说清什么场景不该用它、踩过什么坑，并有量化或事故佐证。'}
+    {id:'strong_no',text:'只报技术名词，说不出用在什么场景、解决什么问题。',basis:'名词不代表理解，说不出场景就是没用过。'},
+    {id:'no',text:'讲了用法，但说不清它的原理，也不知道它的边界。',basis:'只会调用 API 的人，出问题时无法判断根因。'},
+    {id:'neutral',text:'讲清了原理，但没说为什么选它、代价是什么。',basis:'理解原理是及格，能选型才是工程判断。'},
+    {id:'yes',text:'讲清原理与适用边界，能说明选型理由和付出的代价。',basis:'原理、选型、代价三者齐了，说明能独立做技术决策。'},
+    {id:'strong_yes',text:'还能说清什么场景不该用它、踩过什么坑，并有量化或事故佐证。',basis:'知道边界来自真实踩坑，是最难伪造的。'}
   ]
 };
 
@@ -368,11 +382,11 @@ const T2={
     {id:'T2-C3',minStage:'lead',q:'讲一次你做的设计后来暴露出问题、你如何改进。',hint:'想一想：问题出在哪一层，你怎么发现，怎么改。'}
   ],
   anchors:[
-    {id:'strong_no',text:'直接报技术栈或框架，没有需求、没有分层，也没有取舍。'},
-    {id:'no',text:'有方案描述，但没说清数据量、并发或延迟这些约束。'},
-    {id:'neutral',text:'说清了需求和分层，但没讲为什么这样取舍、代价是什么。'},
-    {id:'yes',text:'先量化需求，再分层设计，并明确说明取舍与代价。'},
-    {id:'strong_yes',text:'还能给出容量估算、瓶颈分析与后续演进路径，并有线上数据佐证。'}
+    {id:'strong_no',text:'直接报技术栈或框架，没有需求、没有分层，也没有取舍。',basis:'没有需求和约束的方案不是设计，是拼装。'},
+    {id:'no',text:'有方案描述，但没说清数据量、并发或延迟这些约束。',basis:'不量化就无法判断方案是否够用。'},
+    {id:'neutral',text:'说清了需求和分层，但没讲为什么这样取舍、代价是什么。',basis:'设计能力体现在取舍，不在堆组件。'},
+    {id:'yes',text:'先量化需求，再分层设计，并明确说明取舍与代价。',basis:'量级、分层、取舍三者齐了，方案才可评审。'},
+    {id:'strong_yes',text:'还能给出容量估算、瓶颈分析与后续演进路径，并有线上数据佐证。',basis:'能预判瓶颈，说明真的想过它怎么坏。'}
   ]
 };
 
@@ -390,11 +404,11 @@ const T3={
     {id:'T3-C3',minStage:'lead',q:'讲一次你让项目更不容易出错的经历。',hint:'想一想：原来哪里容易出问题，你加了什么检查。'}
   ],
   anchors:[
-    {id:'strong_no',text:'只说了「修好了」，说不清问题出在哪。'},
-    {id:'no',text:'说了原因，但没讲怎么定位到的，像是猜的。'},
-    {id:'neutral',text:'讲清了定位过程，但修完就结束了，没做任何预防。'},
-    {id:'yes',text:'定位过程、根因、修复、预防四件事都讲清楚了。'},
-    {id:'strong_yes',text:'还把这次教训变成了团队可用的机制（监控告警、回归用例、发布卡点），后来确实挡住过同类问题。'}
+    {id:'strong_no',text:'只说了「修好了」，说不清问题出在哪。',basis:'没有定位过程，无法判断是修好还是绕过。'},
+    {id:'no',text:'说了原因，但没讲怎么定位到的，像是猜的。',basis:'直接给结论通常是猜的。'},
+    {id:'neutral',text:'讲清了定位过程，但修完就结束了，没做任何预防。',basis:'修完不防，同类问题会再来。'},
+    {id:'yes',text:'定位过程、根因、修复、预防四件事都讲清楚了。',basis:'定位、根因、修复、预防四件齐了，才是工程闭环。'},
+    {id:'strong_yes',text:'还把这次教训变成了团队可用的机制（监控告警、回归用例、发布卡点），后来确实挡住过同类问题。',basis:'从个人修复到组织能力，是资深工程师的标志。'}
   ]
 };
 
@@ -1647,7 +1661,7 @@ return {
   T1,T2,T3,JOB_FAMILIES,FAMILY_IDS,family,dimensionsForFamily,dimensionsForBusiness,
   STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
   INTERVIEW_ROUNDS,ROUND_IDS,REPORTS,REPORTS_IDS,dimensionsForRound,roundHasMotive,
-  stageName,stageDesc,stageIndex,inferSelfStage,inferCampusStage,inferJobStage,resolveScale,
+  anchorFor,nextAnchor,stageName,stageDesc,stageIndex,inferSelfStage,inferCampusStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,rememberUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,

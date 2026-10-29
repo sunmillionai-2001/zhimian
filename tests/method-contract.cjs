@@ -1215,3 +1215,42 @@ test('STAR 方法卡不弹给知识类技术题，但故障故事仍弹',()=>{
   assert.equal(M.pickCard({answeredCount:1,dimensionId:'D2'})?.id,'C1','行为面首题仍应弹');
   assert.equal(M.pickCard({answeredCount:1,dimensionId:'T3'})?.id,'C1','工程实践讲故障故事，STAR 适用');
 });
+
+/* ===== 阶段五：每个锚点挂依据 ===== */
+test('全部 40 个锚点都挂了依据，没有一条空着',()=>{
+  let n=0;
+  for(const d of M.DIMENSIONS){
+    for(const a of d.anchors){
+      n++;
+      assert.ok(a.basis&&a.basis.trim().length>=8,d.id+' 的 '+a.id+' 缺少依据');
+    }
+  }
+  assert.equal(n,40,'八个维度乘五档');
+});
+
+test('依据不是重复锚点原文，而是在解释「为什么这样算」',()=>{
+  for(const d of M.DIMENSIONS){
+    for(const a of d.anchors)assert.notEqual(a.basis,a.text,d.id+' '+a.id+' 的依据不能照抄原文');
+  }
+});
+
+test('能按维度与档位取到锚点，取不到时返回 null 不抛错',()=>{
+  const a=M.anchorFor('D1','no');
+  assert.ok(a&&a.text&&a.basis);
+  assert.equal(M.anchorFor('D1','不存在'),null);
+  assert.equal(M.anchorFor('不存在','no'),null);
+});
+
+test('「再往上一档」逐级递进，最高档没有下一档',()=>{
+  assert.equal(M.nextAnchor('D2','strong_no').id,'no');
+  assert.equal(M.nextAnchor('D2','no').id,'neutral');
+  assert.equal(M.nextAnchor('D2','neutral').id,'yes');
+  assert.equal(M.nextAnchor('D2','yes').id,'strong_yes');
+  assert.equal(M.nextAnchor('D2','strong_yes'),null,'强是已经最高档');
+});
+
+test('技术维度的锚点也有依据，判定标准同样可查',()=>{
+  for(const id of ['T1','T2','T3']){
+    for(const a of M.dimension(id).anchors)assert.ok(a.basis&&a.basis.length>=8,id+' '+a.id);
+  }
+});

@@ -215,6 +215,15 @@
   .md-story .mtx{font-size:12px;color:var(--teal)}
   .md-empty{text-align:center;padding:34px 20px;color:var(--ink-soft)}
   .md-empty h4{font-family:var(--serif);font-weight:900;font-size:16px;margin-bottom:6px}
+  .md-standard{margin-top:16px;border:1px solid var(--line-soft);border-radius:12px;background:var(--card-hi);padding:0 16px}
+  .md-standard>summary{padding:13px 0;cursor:pointer;font-size:13.5px;color:var(--ink-soft);list-style:none}
+  .md-standard>summary::-webkit-details-marker{display:none}
+  .md-standard>summary::before{content:'▸';color:var(--ink-faint);margin-right:8px;display:inline-block;transition:.2s}
+  .md-standard[open]>summary::before{transform:rotate(90deg)}
+  .md-standard .sd{padding:2px 0 14px}
+  .md-standard .sd b{font-family:var(--serif);font-size:14px;color:var(--seal-deep)}
+  .md-standard .sd p{font-size:13px;line-height:1.75;color:var(--ink-soft);margin-top:5px}
+  .md-standard .sd p.why{color:var(--ink-faint);border-left:2px solid var(--line);padding-left:10px;margin-top:7px}
   #mdRewriteBox{margin-top:18px;padding:17px 19px;border:1px solid var(--line-soft);border-radius:14px;background:var(--card-hi)}
   #mdRewriteBox h4{font-family:var(--serif);font-weight:900;font-size:15.5px;margin-bottom:9px}
   #mdRewriteBox .rw-text{font-size:14px;line-height:1.85;white-space:pre-wrap;color:var(--ink)}
@@ -2857,7 +2866,17 @@
       <div class="md-block"><h4>缺的是这几块</h4><div>${gapsHtml}</div></div>
       ${evHtml?`<div class="md-block"><h4>判定依据（你的原话）</h4>${evHtml}</div>`:''}
       ${capHtml?`<div class="md-block"><h4>为什么没给更高</h4>${capHtml}</div>`:''}
-      <div class="md-block"><h4>下一步只做这一件事</h4><div class="md-next">${esc(v.nextStep)}</div></div>`;
+      <div class="md-block"><h4>下一步只做这一件事</h4><div class="md-next">${esc(v.nextStep)}</div></div>`+
+      (()=>{
+        // 「凭什么判我」：把这一档的锚点和依据摊开，再给出上一档的要求。
+        const cur=MD.anchorFor(dimId,v.level),nxt=MD.nextAnchor(dimId,v.level);
+        if(!cur)return '';
+        return `<details class="md-standard"><summary>这一档的标准是什么？为什么这么判</summary>
+          <div class="sd"><b>你现在的档位「${esc(v.levelName)}」</b><p>${esc(cur.text)}</p>
+            <p class="why">${esc(cur.basis||'')}</p></div>
+          ${nxt?`<div class="sd"><b>再往上一档「${esc(MD.levelName(nxt.id))}」要什么</b><p>${esc(nxt.text)}</p></div>`:''}
+        </details>`;
+      })();
     const next=structuredClone(mdState);
     next.sessions=next.sessions.concat([{
       id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),
