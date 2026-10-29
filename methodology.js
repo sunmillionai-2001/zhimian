@@ -7,12 +7,42 @@
 /* ========== 档位 ========== */
 // 四档命名刻意避开大厂职级（阿里/腾讯/字节那套）：它只在大厂内部通用，
 // 传统行业、国企、外企、创业公司各有各的体系且互不相通，用户看不懂。
+const TRACKS=[
+  {id:'experienced',name:'社招',desc:'看项目复杂度与职级信号'},
+  {id:'campus',name:'校招',desc:'看学习能力、项目参与度与潜力'}
+];
+const TRACK_IDS=TRACKS.map(t=>t.id);
+
 const STAGES=[
   {id:'executor',name:'执行者',desc:'把明确的任务做好，需要有人定方向'},
   {id:'owner',name:'独当一面',desc:'自己定方向、扛指标，能解决模糊问题'},
   {id:'lead',name:'带人带事',desc:'通过别人拿结果，能推动无汇报关系的人'},
   {id:'strategy',name:'定战略',desc:'定义问题而不只是解决问题'}
 ];
+
+// 校招用同一套四档结构，但档位名换成学生能对号入座的说法。
+// 不新建一套维度——「有没有判断力」「会不会复盘」在学生和职场人身上是同一件事。
+const CAMPUS_STAGE_NAMES={
+  executor:'起步',
+  owner:'有项目',
+  lead:'能独立',
+  strategy:'有判断'
+};
+const CAMPUS_STAGE_DESC={
+  executor:'还没有拿得出手的相关经历',
+  owner:'有课程项目、竞赛或实习经历',
+  lead:'独立负责过完整项目或带过小组',
+  strategy:'能定方向、能判断该做什么'
+};
+
+// 校招的经历档（替代「工作几年」这个问题）
+const CAMPUS_EXPERIENCE=[
+  {id:'e0',label:'还没有相关经历',stage:'executor'},
+  {id:'e1',label:'有课程项目 / 竞赛 / 社团',stage:'owner'},
+  {id:'e2',label:'有实习经历',stage:'owner'},
+  {id:'e3',label:'独立负责过完整项目',stage:'lead'}
+];
+const CAMPUS_EXP_IDS=CAMPUS_EXPERIENCE.map(e=>e.id);
 const STAGE_IDS=STAGES.map(s=>s.id);
 const YEARS=[
   {id:'y0',label:'0–2 年',stage:'executor'},
@@ -40,7 +70,18 @@ const REPORTS_IDS=REPORTS.map(r=>r.id);
 // 每个档位「合格」对应的锚点等级：执行者=中性(2)、独当一面=是(3)、带人带事/定战略=强是(4)
 const STAGE_REQUIRED={executor:2,owner:3,lead:4,strategy:4};
 
-function stageName(id){return (STAGES.find(s=>s.id===id)||STAGES[0]).name;}
+function stageName(id,track){
+  if(track==='campus')return CAMPUS_STAGE_NAMES[id]||CAMPUS_STAGE_NAMES.executor;
+  return (STAGES.find(s=>s.id===id)||STAGES[0]).name;
+}
+function stageDesc(id,track){
+  if(track==='campus')return CAMPUS_STAGE_DESC[id]||'';
+  return (STAGES.find(s=>s.id===id)||STAGES[0]).desc;
+}
+function inferCampusStage(expId){
+  const row=CAMPUS_EXPERIENCE.find(e=>e.id===expId);
+  return row?row.stage:'owner';
+}
 
 // 各轮次考哪些维度。动机题只进 HR 面——业务面不会问你为什么离职。
 const ROUND_DIMENSIONS={
@@ -68,21 +109,31 @@ const JOB_RULES=[
   {stage:'owner',re:/(独立负责|独立完成|独当一面|3\s*年以上|三年以上|3\s*[-–—]\s*5\s*年|负责.{0,6}模块|owner|自驱)/i},
   {stage:'executor',re:/(1\s*[-–—]\s*3\s*年|1\s*年以上|协助|配合|执行|专员|助理|实习|应届|校招|无经验)/}
 ];
-function inferJobStage(jd,roleName){
+// 校招 JD 的档位信号和社招完全不同：JD 里写「校招 / 应届 / 培训生」是常态，
+// 不能当成「低职级岗位」，否则会误报「岗位低于你的经验」。
+const CAMPUS_JOB_RULES=[
+  {stage:'lead',re:/(管培生|管理培训生|储备干部|核心项目|未来负责人|独立负责|轮岗培养)/},
+  {stage:'owner',re:/(校招|应届|202\d届|培训生|实习生转正|正式岗|全职)/}
+];
+function inferJobStage(jd,roleName,track){
   const text=String(jd||'')+'\n'+String(roleName||'');
   if(!text.trim())return '';
-  for(const rule of JOB_RULES)if(rule.re.test(text))return rule.stage;
+  const rules=track==='campus'?CAMPUS_JOB_RULES:JOB_RULES;
+  for(const rule of rules)if(rule.re.test(text))return rule.stage;
   return '';
 }
 
 /* 标尺永远用「岗位要求的档位」，不是「用户自己的档位」。
    JD 没填时用年限兜底，并标记来源，界面据此提示「填 JD 可提高精度」。 */
-function resolveScale({years,jd,roleName,manualSelf,manualJob,reports}){
-  let selfStage=manualSelf&&STAGE_IDS.includes(manualSelf)?manualSelf:inferSelfStage(years);
+function resolveScale({track,years,exp,jd,roleName,manualSelf,manualJob,reports}){
+  const isCampus=track==='campus';
+  let selfStage=manualSelf&&STAGE_IDS.includes(manualSelf)
+    ?manualSelf
+    :(isCampus?inferCampusStage(exp):inferSelfStage(years));
   // 没带过人，自我档位封顶在「独当一面」：年限再长也不能算「带人带事」。
   // 岗位要求仍可高于此——那是「冲高」，由 flag 提示。
   if(reports==='none'&&stageIndex(selfStage)>stageIndex('owner'))selfStage='owner';
-  const inferredJob=inferJobStage(jd,roleName);
+  const inferredJob=inferJobStage(jd,roleName,track);
   const jobStage=manualJob&&STAGE_IDS.includes(manualJob)?manualJob:(inferredJob||selfStage);
   const jobSource=manualJob?'manual':(inferredJob?'jd':'fallback');
   const gap=stageIndex(jobStage)-stageIndex(selfStage);
@@ -126,6 +177,11 @@ const D2={
      hint:'想一想：团队一直按老办法做事，你觉得不对，推动大家换了个做法。哪怕只是周会怎么开、报表怎么填。'}
   ],
   // 锚点带档位刻度：同一行为，执行者做到是「是」，带人带事的人做到只是「否」。
+  campusQuestions:[
+    {id:'D2-C1',minStage:'executor',q:'讲一次你说服同学配合你完成一件事的经历。',hint:'想一想：对方本来不想做，或者有自己的安排，你想办法让他愿意配合。'},
+    {id:'D2-C2',minStage:'owner',q:'讲一次你推动一件需要别人配合、但对方不归你管的事。',hint:'想一想：跨班级、跨社团、跨小组，你没有权力直接安排他们。'},
+    {id:'D2-C3',minStage:'lead',q:'讲一次你改变了一个小组或社团一直以来的做法的经历。',hint:'想一想：大家都习惯了老做法，你觉得不对，推动大家换了个方式。'}
+  ],
   anchors:[
     {id:'strong_no',text:'全程被动执行（"领导让我推"），或把阻力描述成"对方不配合"而自己没有任何动作。'},
     {id:'no',text:'有推动动作，但只有"沟通 / 协调 / 对接"这类无具体动作的动词，说不清阻力在哪。'},
@@ -152,6 +208,11 @@ const D1={
     {id:'D1-Q3',minStage:'lead',
      q:'讲一次你判断某件事不该做、并说服别人放弃它的经历。',
      hint:'想一想：有人要做一件你觉得不划算的事（做功能、投渠道、接客户），你说服他们停下来。'}
+  ],
+  campusQuestions:[
+    {id:'D1-C1',minStage:'executor',q:'讲一次你在小组作业或比赛里做了一个关键决定的经历。',hint:'想一想：当时有几种做法，你选了其中一个，并且要说服别人跟着做。'},
+    {id:'D1-C2',minStage:'owner',q:'讲一次你在信息不全、又没人告诉你答案的情况下做判断的经历。',hint:'想一想：资料不够、时间又紧，你必须先做决定，不能一直等。'},
+    {id:'D1-C3',minStage:'lead',q:'讲一次你在两个都有道理的做法之间做了取舍的经历。',hint:'想一想：两个选择各有好处，选了一个就得放弃另一个。'}
   ],
   anchors:[
     {id:'strong_no',text:'只是执行了别人的决定，或把"当时只能这样"说成判断。'},
@@ -184,6 +245,11 @@ const D3={
      alt:'讲一次你处理两个团队（或两位平级同事）之间长期矛盾的经历。',
      altHint:'想一想：两边各有立场、互相不配合，你夹在中间或者主动去协调。'}
   ],
+  campusQuestions:[
+    {id:'D3-C1',minStage:'executor',q:'讲一次你和同学意见不一致，最后把事情做完的经历。',hint:'想一想：你们对怎么做有不同看法，可能还争过，但最后得一起交作业。'},
+    {id:'D3-C2',minStage:'owner',q:'讲一次小组里分工不均或有人不配合，你处理这件事的经历。',hint:'想一想：有人划水或者临时退出，你怎么让事情继续走下去。'},
+    {id:'D3-C3',minStage:'lead',q:'讲一次你处理两个同学（或两个小组）之间长期矛盾的经历。',hint:'想一想：不是你自己的冲突，而是你要让两个合不来的人继续合作。'}
+  ],
   anchors:[
     {id:'strong_no',text:'把分歧归因为对方能力或态度问题，自己只是受害者或旁观者。'},
     {id:'no',text:'有处理动作，但只有"沟通了一下"，说不清分歧点在哪，也没说对方为何让步。'},
@@ -213,6 +279,11 @@ const D4={
      hint:'想一想：下属或团队出了状况，你复盘时发现根子在自己的决策、要求或节奏上。',
      alt:'讲一次你参与的项目出了问题、你复盘时发现自己哪一步判断错了的经历。',
      altHint:'想一想：不怪别人，是你当时某个判断或安排埋下了坑。'}
+  ],
+  campusQuestions:[
+    {id:'D4-C1',minStage:'executor',q:'讲一次你做得不够好、后来改进的经历。',hint:'想一想：比如一次考试、一次比赛、一次小组作业，结果不理想，你后来换了做法。'},
+    {id:'D4-C2',minStage:'owner',q:'讲一次你在课程项目或比赛里做的判断后来被证明是错的经历。',hint:'想一想：你当时觉得对，结果不对，而且这个错是你自己造成的。'},
+    {id:'D4-C3',minStage:'lead',q:'讲一次你参与的项目出了问题、你复盘时发现自己哪一步判断错了的经历。',hint:'想一想：不怪队友，是你当时某个判断或安排埋下了坑。'}
   ],
   anchors:[
     {id:'strong_no',text:'凡尔赛式缺点（追求完美 / 太拼 / 要求太高），或把责任全部推给外部。'},
@@ -244,6 +315,11 @@ const D5={
      alt:'讲一次你发现手上的事情已经扛不住、你主动调整了范围或排期的经历。',
      altHint:'想一想：你判断按原计划做不完，主动砍范围、要资源或者跟人摊牌。'}
   ],
+  campusQuestions:[
+    {id:'D5-C1',minStage:'executor',q:'讲一次你在考试周或截止日前把任务赶完的经历。',hint:'想一想：几件事挤在一起，你必须决定先做什么、后做什么。'},
+    {id:'D5-C2',minStage:'owner',q:'讲一次你同时有好几件事、最后做了取舍的经历。',hint:'想一想：几件事都很急，你没法全做好，必须放弃一部分。'},
+    {id:'D5-C3',minStage:'lead',q:'讲一次你发现手上的事情已经扛不住、你主动调整了范围或排期的经历。',hint:'想一想：你判断按原计划做不完，主动砍范围、找人帮忙或者跟老师说。'}
+  ],
   anchors:[
     {id:'strong_no',text:'把硬扛当美德（连续通宵 / 一个人顶住），或把压力全归为外部、自己没做任何调整。'},
     {id:'no',text:'只说了"加班赶完"，没有说明怎么取舍、有没有求助或调整。'},
@@ -260,8 +336,11 @@ function dimension(id){return DIMENSIONS.find(d=>d.id===id)||D2;}
 // 没带过人的资深用户不该被问「你带的人出了什么问题」——那不是他的经历。
 function pickQuestion(jobStage,dimId,opts){
   const d=dimension(dimId||'D2');
-  const idx=Math.min(stageIndex(jobStage),d.questions.length-1);
-  const q=d.questions[idx];
+  const o=opts||{};
+  // 校招走自己的问法；没有校招题库的维度回落到社招
+  const pool=(o.track==='campus'&&d.campusQuestions&&d.campusQuestions.length)?d.campusQuestions:d.questions;
+  const idx=Math.min(stageIndex(jobStage),pool.length-1);
+  const q=pool[idx];
   // 只有明确说了「没带过人」才换版本；没说就按原题（档位本身已暗示带人）。
   const noReports=opts&&opts.hasReports===false;
   if(q.needsReports&&noReports&&q.alt){
@@ -590,7 +669,7 @@ function judge(text,options){
   return {
     level:level.id,levelName:level.name,score,
     required,requiredName:levelName(LEVEL_IDS[required]),
-    jobStage,jobStageName:stageName(jobStage),
+    jobStage,jobStageName:stageName(jobStage,opt.track),
     alignment,
     signals:s,gaps,caps,
     star:starCheck(text),
@@ -882,6 +961,12 @@ const MOTIVE={
     {id:'M-Q1',q:'你为什么离开上一份工作？',hint:'想一想：说事实，不说人。把「受不了什么」换成「发生了什么」。'},
     {id:'M-Q2',q:'你为什么选择我们这个岗位 / 公司？',hint:'想一想：能不能说出一个只有做过功课才知道的细节。'},
     {id:'M-Q3',q:'你未来三年希望自己在什么位置上？',hint:'想一想：你想要的东西，这个岗位能不能给。'}
+  ],
+  // 校招没有「上一份工作」，动机题换三问
+  campusQuestions:[
+    {id:'M-C1',q:'你为什么选择这个行业？',hint:'想一想：是什么具体的事让你开始关注这个方向，不用说得宏大。'},
+    {id:'M-C2',q:'你为什么投我们公司，而不是同类的其他家？',hint:'想一想：能不能说出一个只有做过功课才知道的细节。'},
+    {id:'M-C3',q:'你未来三年希望自己在什么位置上？',hint:'想一想：你想要的东西，这个岗位能不能给。'}
   ]
 };
 
@@ -968,13 +1053,14 @@ function buildRound(jobStage,dimIds,opts){
   const ids=Array.isArray(dimIds)&&dimIds.length?dimIds:dimensionsForRound(o.round);
   const round=ids.map(id=>{
     const d=dimension(id);
-    const q=pickQuestion(jobStage,id,{hasReports:o.hasReports});
+    const q=pickQuestion(jobStage,id,{hasReports:o.hasReports,track:o.track});
     return {dimensionId:d.id,dimensionName:d.name,questionId:q.id,question:q.q,hint:q.hint,kind:'behavior'};
   });
   // 动机题只在完整一轮且该轮包含动机时追加（业务面不问离职原因）
   const full=!Array.isArray(dimIds)||!dimIds.length;
   if(full&&roundHasMotive(o.round)){
-    const mq=MOTIVE.questions[0];
+    const pool=(o.track==='campus'&&MOTIVE.campusQuestions)?MOTIVE.campusQuestions:MOTIVE.questions;
+    const mq=pool[0];
     round.push({dimensionId:'M',dimensionName:MOTIVE.name,questionId:mq.id,question:mq.q,hint:mq.hint,kind:'motive'});
   }
   return round;
@@ -982,7 +1068,7 @@ function buildRound(jobStage,dimIds,opts){
 
 // 整轮小结：按维度汇总档位，找出最该补的那一个。
 // 判定「最弱」不只看分数，还要看离达标差多少——差两档比差一档更紧急。
-function roundSummary(items,jobStage){
+function roundSummary(items,jobStage,track){
   // 过滤空位：中途跳过或数据不完整时 results 里可能有 undefined，
   // 不处理会直接抛错，让整轮小结崩掉。
   const all=(items||[]).filter(x=>x&&typeof x==='object');
@@ -995,6 +1081,7 @@ function roundSummary(items,jobStage){
     return {
       dimensionId:it.dimensionId,
       dimensionName:it.dimensionName||dimension(it.dimensionId).name,
+      jobStageName:stageName(jobStage,track),
       level,
       levelName:levelName(level),
       score,
@@ -1094,7 +1181,7 @@ function questionDimension(questionId){
 
 // 能力曲线：按维度分组，按时间排出档位变化。
 // 只统计行为维度；动机题没有档位，不进曲线。
-function progressSeries(sessions,jobStage){
+function progressSeries(sessions,jobStage,track){
   const rows=(sessions||[]).filter(s=>s&&s.verdict&&!s.verdict.motive&&s.date);
   return DIMENSIONS.map(d=>{
     const points=rows
@@ -1118,7 +1205,7 @@ function progressSeries(sessions,jobStage){
 
 // 错题本：还没达标的题，按「差几档」排序。
 // 同一个题号只留最近一次，否则同一题会重复出现。
-function mistakes(sessions,jobStage){
+function mistakes(sessions,jobStage,track){
   const required=STAGE_REQUIRED[jobStage]||3;
   const latest=new Map();
   for(const s of (sessions||[])){
@@ -1138,6 +1225,7 @@ function mistakes(sessions,jobStage){
         levelName:levelName(s.verdict.level),
         required,
         requiredName:levelName(LEVEL_IDS[required]),
+        jobStageName:stageName(jobStage,track),
         gap:Math.max(0,required-score),
         nextStep:s.nextStep||'',
         date:s.date
@@ -1152,8 +1240,9 @@ function mistakes(sessions,jobStage){
 function drillRound(dimId,jobStage,opts){
   const d=dimension(dimId);
   const o=opts||{};
-  return d.questions.map(q=>{
-    const picked=pickQuestion(q.minStage,dimId,{hasReports:o.hasReports});
+  const pool=(o.track==='campus'&&d.campusQuestions&&d.campusQuestions.length)?d.campusQuestions:d.questions;
+  return pool.map(q=>{
+    const picked=pickQuestion(q.minStage,dimId,{hasReports:o.hasReports,track:o.track});
     // 用 usingAlt 判断，不能比 id——替代版本和原题是同一个 id，
     // 比 id 会永远取到原题，导致「没带过人」也出管理题。
     const use=(picked&&picked.usingAlt)?picked:q;
@@ -1226,6 +1315,63 @@ function validStory(st){
   return isStr(st.createdAt,60)&&isStr(st.updatedAt,60)&&(!st.sourceSessionId||isStr(st.sourceSessionId,100));
 }
 
+/* ========== 多轮上下文：同一轮里别重复用同一个故事 ========== */
+// 面试官最常见的追问是「还有别的例子吗」。如果用户在一个维度讲了某个项目，
+// 下一个维度又讲同一个项目，练的时候没人拦，真面试就会露怯。
+function charBigrams(text){
+  const t=String(text||'').replace(/[\s\p{P}\p{S}]/gu,'');
+  const out=new Set();
+  for(let i=0;i<t.length-1;i++)out.add(t.slice(i,i+2));
+  return out;
+}
+function similarity(a,b){
+  const A=charBigrams(a),B=charBigrams(b);
+  if(!A.size||!B.size)return 0;
+  let hit=0;for(const x of A)if(B.has(x))hit++;
+  return hit/Math.max(A.size,B.size);
+}
+
+// 当前回答是否在重复本轮前面用过的素材。
+// 返回最相似的那一条，相似度低于阈值就返回 null——不能把正常回答误报成重复。
+function repeatedStory(previous,current){
+  const cur=String(current||'');
+  if(cur.length<30)return null;
+  let best=null;
+  for(const p of (previous||[])){
+    const sim=similarity(p.answer,cur);
+    if(sim>=0.5&&(!best||sim>best.similarity))best={questionId:p.questionId,similarity:Number(sim.toFixed(2))};
+  }
+  return best;
+}
+
+/* ========== 跨故事一致性：同一段经历在不同故事里说法要一致 ========== */
+// 用户在故事库里存了两段高度相似的故事，但数字对不上——
+// 这就是真面试里「说法前后矛盾」的来源。
+const STORY_DUP_THRESHOLD=0.55;
+function storyConflicts(stories){
+  const list=(stories||[]).filter(validStory);
+  // 中文数字也要抓：「两周」「三个部门」这种在中文口述里比阿拉伯数字常见
+  const nums=s=>new Set(
+    (String(s).match(/\d+(?:\.\d+)?(?:%|万|亿|倍|[kKmM])?/g)||[])
+      .concat(String(s).match(/[一二两三四五六七八九十半]+\s*(?:个|人|天|周|月|年|小时|分钟|次|条|倍|成)/g)||[])
+  );
+  const out=[];
+  for(let i=0;i<list.length;i++){
+    for(let j=i+1;j<list.length;j++){
+      const a=list[i],b=list[j];
+      const sim=similarity(a.text,b.text);
+      if(sim<STORY_DUP_THRESHOLD)continue;      // 不是同一段经历，不用比
+      const na=nums(a.text),nb=nums(b.text);
+      const diff=[...na].filter(n=>!nb.has(n)).concat([...nb].filter(n=>!na.has(n)));
+      if(diff.length)out.push({
+        aId:a.id,aTitle:a.title,bId:b.id,bTitle:b.title,
+        similarity:Number(sim.toFixed(2)),numbers:diff
+      });
+    }
+  }
+  return out;
+}
+
 /* ========== 存储 ========== */
 function empty(){return {schemaVersion:1,profile:null,sessions:[],stories:[],usedUtterances:[],metrics:{started:0,completed:0,probeOffered:0,probeAccepted:0,swapDone:0}};}
 
@@ -1270,9 +1416,10 @@ function validate(state){
 
 /* ========== 对外接口 ========== */
 return {
+  TRACKS,TRACK_IDS,CAMPUS_EXPERIENCE,CAMPUS_EXP_IDS,CAMPUS_STAGE_NAMES,
   STAGES,STAGE_IDS,YEARS,STAGE_REQUIRED,LEVELS,LEVEL_IDS,D1,D2,DIMENSIONS,dimension,GAPS,UTTERANCES,SWAP,MAX_TURNS,
   INTERVIEW_ROUNDS,ROUND_IDS,REPORTS,REPORTS_IDS,dimensionsForRound,roundHasMotive,
-  stageName,stageIndex,inferSelfStage,inferJobStage,resolveScale,
+  stageName,stageDesc,stageIndex,inferSelfStage,inferCampusStage,inferJobStage,resolveScale,
   levelByScore,levelName,pickQuestion,
   analyze,detectGaps,nextProbe,pickUtterance,rememberUtterance,utteranceCount,
   ownRatio,quantDensity,hasFriction,hasDecision,hasMechanism,hasReflection,hasSelfAction,hasInitiative,
@@ -1281,6 +1428,7 @@ return {
   CARDS,pickCard,
   buildRound,roundSummary,ROUND_SIZE,roundSize,
   questionDimension,progressSeries,mistakes,drillRound,stageGap,storyFromSession,storyMatrix,validStory,STORY_DIM_LIMIT,
+  similarity,repeatedStory,storyConflicts,STORY_DUP_THRESHOLD,
   empty,validate
 };
 });

@@ -205,6 +205,9 @@
   .md-mistake .gap{font-size:12.5px;color:var(--ink-faint)}
   .md-mistake .q{font-size:13.5px;line-height:1.65;margin:5px 0}
   .md-mistake .nx{font-size:13px;color:var(--seal-deep);background:var(--seal-soft);padding:8px 11px;border-radius:8px;margin-top:8px;line-height:1.6}
+  .md-conflict{border:1px solid rgba(193,58,30,.35);background:rgba(193,58,30,.05);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .md-conflict .ct{font-family:var(--serif);font-weight:900;font-size:14.5px;color:var(--seal-deep);margin-bottom:7px}
+  .md-conflict .cd{font-size:13px;line-height:1.7;color:var(--ink-soft);margin-top:5px}
   .md-story{border:1px solid var(--line-soft);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:var(--card-hi)}
   .md-story .t{font-weight:700;font-size:14px;margin-bottom:6px}
   .md-story .x{font-size:13px;color:var(--ink-soft);line-height:1.7;white-space:pre-wrap;max-height:120px;overflow:auto}
@@ -929,16 +932,18 @@
       <!-- 01 定标尺 -->
       <section class="md-panel" id="mdPanelProfile">
         <h3>先把标尺定下来</h3>
-        <p class="mock-note">我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。</p>
+        <p class="mock-note" id="mdProfileIntro">我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。</p>
+        <div class="field"><label>你是校招还是社招</label><div class="filter-row" id="mdTracks"></div></div>
         <div class="md-grid2">
-          <div class="field"><label for="mdYears">你工作几年了？</label><select id="mdYears"></select></div>
+          <div class="field" id="mdYearsField"><label for="mdYears">你工作几年了？</label><select id="mdYears"></select></div>
+          <div class="field" id="mdExpField" hidden><label for="mdExp">你有几段相关经历？</label><select id="mdExp"></select></div>
           <div class="field"><label for="mdRole">你在看什么岗位（选填）</label><input id="mdRole" maxlength="80" placeholder="如：产品经理 / 后端开发" /></div>
         </div>
         <div class="field"><label for="mdJd">岗位 JD（选填，填了诊断更准）</label><textarea id="mdJd" rows="4" maxlength="30000" placeholder="粘贴任职要求，用来判断这个岗位要什么人"></textarea></div>
         <details class="md-advanced" id="mdAdvanced">
           <summary><span id="mdAdvSummary">按「都要练 · 带过团队 · 练一轮」开始</span><span class="md-adv-hint">想调再点</span></summary>
           <div class="field"><label>这次面哪一轮</label><div class="filter-row" id="mdRounds"></div></div>
-          <div class="field"><label>你带过人吗</label><div class="filter-row" id="mdReports"></div>
+          <div class="field" id="mdReportsField"><label>你带过人吗</label><div class="filter-row" id="mdReports"></div>
             <p class="mock-note" style="margin-top:6px">年限看不出有没有带过人。没带过也能练，题目会换成平级版本。</p>
           </div>
           <div class="field"><label>这次怎么练</label><div class="filter-row" id="mdModes">
@@ -2495,7 +2500,7 @@
   const MD_KEY='zm_method_state_v1';
   let mdState=MD.empty(), mdBlocked=false, mdStep='profile', mdSession=null, mdSwapIdx=0;
   // 一轮练习的状态：questions 是这一轮的题，results 逐题累计。
-  let mdMode='round', mdRound=null, mdRoundId='all', mdReports='team', mdDrillDim='D2';
+  let mdMode='round', mdRound=null, mdRoundId='all', mdReports='team', mdDrillDim='D2', mdTrack='experienced';
   // 方法卡触发状态：连续失误计数 + 已展示过的卡（存本地，避免重复弹）
   let mdCardCtx={answeredCount:0,quantMissStreak:0,ownMissStreak:0,shown:[]};
   try{const raw=localStorage.getItem('zm_method_cards_v1');if(raw){const v=JSON.parse(raw);if(v&&Array.isArray(v.shown))mdCardCtx=v;}}catch(e){}
@@ -2573,15 +2578,15 @@
   function mdRenderScale(scale){
     const box=document.getElementById('mdScale'); if(!box) return;
     const flagText={
-      stretch:'这个岗位要求比你的年限更高。这不代表没机会，但面试官会按更高标准追问。',
-      below:'这个岗位要求的档位低于你的经验。可能是转岗或降级机会，注意别答得太"轻"。',
-      match:'你的年限和岗位要求基本对齐。'
+      stretch:'这个岗位要求比你现在高一档。这不代表没机会，但面试官会按更高标准追问。',
+      below:mdTrack==='campus'?'按这个岗位要求的标准评你。':'这个岗位要求的档位低于你的经验。可能是转岗或降级机会，注意别答得太"轻"。',
+      match:'你的经历和岗位要求基本对齐。'
     }[scale.flag]||'';
     box.hidden=false;
     box.innerHTML=`<div class="md-scale-line">
-        <span>按 <b>「${MD.stageName(scale.jobStage)}」</b> 的标准评你</span>
-        <span class="tag">你：${MD.stageName(scale.selfStage)}</span>
-        <span class="tag">岗位：${MD.stageName(scale.jobStage)}</span>
+        <span>按 <b>「${MD.stageName(scale.jobStage,mdTrack)}」</b> 的标准评你</span>
+        <span class="tag">你：${MD.stageName(scale.selfStage,mdTrack)}</span>
+        <span class="tag">岗位：${MD.stageName(scale.jobStage,mdTrack)}</span>
       </div>
       <p class="md-scale-note">${esc(flagText)}${scale.note?'<br>'+esc(scale.note):''}<br>觉得不对？可以直接改这里的标准：
         <span class="filter-row" style="display:inline-flex;gap:6px;margin-top:8px;flex-wrap:wrap">${
@@ -2591,7 +2596,7 @@
     box.querySelectorAll('[data-md-jobstage]').forEach(b=>b.onclick=()=>{
       const next=structuredClone(mdState);
       next.profile=Object.assign({},next.profile,{jobStage:b.dataset.mdJobstage,stageSource:'manual'});
-      if(mdWrite(next)){mdRenderScale({...MD.resolveScale({years:next.profile.years,jd:next.profile.jd,roleName:next.profile.role}),jobStage:b.dataset.mdJobstage,selfStage:next.profile.selfStage,flag:next.profile.jobStage===next.profile.selfStage?'match':(MD.stageIndex(b.dataset.mdJobstage)>MD.stageIndex(next.profile.selfStage)?'stretch':'below'),note:'已手动指定标准。'});mdMsg('标准已改为「'+MD.stageName(b.dataset.mdJobstage)+'」。');}
+      if(mdWrite(next)){mdRenderScale({...MD.resolveScale({track:next.profile.track,years:next.profile.years,exp:next.profile.exp,jd:next.profile.jd,roleName:next.profile.role}),jobStage:b.dataset.mdJobstage,selfStage:next.profile.selfStage,flag:next.profile.jobStage===next.profile.selfStage?'match':(MD.stageIndex(b.dataset.mdJobstage)>MD.stageIndex(next.profile.selfStage)?'stretch':'below'),note:'已手动指定标准。'});mdMsg('标准已改为「'+MD.stageName(b.dataset.mdJobstage,mdTrack)+'」。');}
     });
   }
 
@@ -2599,12 +2604,25 @@
     const sel=document.getElementById('mdYears');
     // 选项必须无条件填充：没有档案时也要能选年限，否则第一步就卡住。
     if(sel)sel.innerHTML=MD.YEARS.map(y=>`<option value="${y.id}">${esc(y.label)}</option>`).join('');
+    const expSel=document.getElementById('mdExp');
+    if(expSel)expSel.innerHTML=MD.CAMPUS_EXPERIENCE.map(e=>`<option value="${e.id}">${esc(e.label)}</option>`).join('');
+    const yf=document.getElementById('mdYearsField'),ef=document.getElementById('mdExpField');
+    if(yf)yf.hidden=(mdTrack==='campus');
+    if(ef)ef.hidden=(mdTrack!=='campus');
+    const rf2=document.getElementById('mdReportsField');
+    if(rf2)rf2.hidden=(mdTrack==='campus');
+    const introEl=document.getElementById('mdProfileIntro');
+    if(introEl)introEl.textContent=(mdTrack==='campus'
+      ?'我们只问两件你一定知道的事——按「你有多少相关经历 + 这个岗位要什么人」来定标准。'
+      :'我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。');
     const p=mdState.profile;
     if(p){
+      if(p.track&&MD.TRACK_IDS.includes(p.track))mdTrack=p.track;
       if(p.round&&MD.ROUND_IDS.includes(p.round))mdRoundId=p.round;
       if(p.reports&&MD.REPORTS_IDS.includes(p.reports))mdReports=p.reports;
-      mdRenderRounds();mdRenderReports();mdRenderAdvSummary();
-      if(sel)sel.value=p.years;
+      mdRenderTracks();mdRenderRounds();mdRenderReports();mdRenderAdvSummary();
+      if(sel)sel.value=p.years||'y1';
+      if(expSel)expSel.value=p.exp||'e1';
       const role=document.getElementById('mdRole'); if(role)role.value=p.role||'';
       const jd=document.getElementById('mdJd'); if(jd)jd.value=p.jd||'';
       mdRenderScale({
@@ -2617,11 +2635,12 @@
 
   function mdSaveProfile(){
     const years=document.getElementById('mdYears').value;
+    const exp=document.getElementById('mdExp').value;
     const role=document.getElementById('mdRole').value.trim();
     const jd=document.getElementById('mdJd').value.trim();
-    const scale=MD.resolveScale({years,jd,roleName:role,reports:mdReports});
+    const scale=MD.resolveScale({track:mdTrack,years,exp,jd,roleName:role,reports:mdReports});
     const next=structuredClone(mdState);
-    next.profile={years,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred',round:mdRoundId,reports:mdReports};
+    next.profile={track:mdTrack,years,exp,role,jd,selfStage:scale.selfStage,jobStage:scale.jobStage,stageSource:'inferred',round:mdRoundId,reports:mdReports};
     if(!mdWrite(next))return;
     mdRenderScale(scale);
     mdMsg(scale.jobSource==='fallback'?'已按你的年限定标准。填 JD 会更准。':'标尺已确认，可以开始答题了。');
@@ -2633,10 +2652,10 @@
     if(!mdState.profile){mdSetStep('profile');mdMsg('先确认标尺。');return;}
     if(mdMode==='drill'){
       // 专项复练：同一维度三个难度各一题，比「再随机出一题」更能看出真实水平
-      mdRound={questions:MD.drillRound(mdDrillDim,mdState.profile.jobStage,{hasReports:mdReports!=='none'}),results:[],index:0,drill:true};
+      mdRound={questions:MD.drillRound(mdDrillDim,mdState.profile.jobStage,{hasReports:mdReports!=='none',track:mdTrack}),results:[],index:0,drill:true};
       mdShowRoundQuestion();
     }else if(mdMode==='round'){
-      mdRound={questions:MD.buildRound(mdState.profile.jobStage,null,{round:mdRoundId,hasReports:mdReports!=='none'}),results:[],index:0};
+      mdRound={questions:MD.buildRound(mdState.profile.jobStage,null,{round:mdRoundId,hasReports:mdReports!=='none',track:mdTrack}),results:[],index:0};
       mdShowRoundQuestion();
     }else{
       mdRound=null;
@@ -2693,10 +2712,11 @@
     if(!p){el.hidden=true;return;}
     const selfIdx=MD.stageIndex(p.selfStage),jobIdx=MD.stageIndex(p.jobStage);
     const flag=jobIdx>selfIdx?'stretch':(jobIdx<selfIdx?'below':'match');
-    const extra=flag==='stretch'?' · 这个岗位比你的年限高一档，会被按更高标准追问'
-      :flag==='below'?' · 这个岗位低于你的经验，别答得太"轻"':'';
+    // 校招不说「岗位低于你的经验」——学生投校招岗本来就不是降级
+    const extra=flag==='stretch'?' · 这个岗位比你现在的档位高一档，会被按更高标准追问'
+      :(flag==='below'&&mdTrack!=='campus')?' · 这个岗位低于你的经验，别答得太"轻"':'';
     el.hidden=false;
-    el.innerHTML=`按 <b>「${esc(MD.stageName(p.jobStage))}」</b> 的标准评你${esc(extra)}`;
+    el.innerHTML=`按 <b>「${esc(MD.stageName(p.jobStage,mdTrack))}」</b> 的标准评你${esc(extra)}`;
   }
 
   function mdRenderRoundBar(){
@@ -2714,7 +2734,7 @@
 
   function mdShowSingle(dimId){
     const dim=MD.dimension(dimId);
-    const q=MD.pickQuestion(mdState.profile.jobStage,dimId,{hasReports:mdReports!=='none'});
+    const q=MD.pickQuestion(mdState.profile.jobStage,dimId,{hasReports:mdReports!=='none',track:mdTrack});
     mdSession={questionId:q.id,question:q.q,turns:[],probeSeed:0,dimension:dimId};
     const bar=document.getElementById('mdRoundBar');
     if(bar)bar.hidden=true;
@@ -2742,6 +2762,15 @@
   function mdNextTurn(){
     const combined=mdSession.turns.map(t=>t.answer).join('\n');
     const dimId=(mdSession&&mdSession.dimension)||mdDimId;
+    // 同一轮里重复用同一个故事时提示——真面试官会问「还有别的例子吗」。
+    // 放在这里而不是追问分支里：没触发追问时同样要提醒。
+    if(mdRound&&mdRound.results){
+      const prev=mdRound.questions.slice(0,mdRound.index)
+        .map((qq,k)=>({questionId:qq.questionId,answer:(mdRound.results[k]&&mdRound.results[k].answer)||''}))
+        .filter(x=>x.answer);
+      const rep=MD.repeatedStory(prev,combined);
+      if(rep)mdMsg('提示：这道题用的素材和前面「'+rep.questionId+'」那段很像（相似度 '+Math.round(rep.similarity*100)+'%）。真面试里面试官会问「还有别的例子吗」，建议换一个。');
+    }
     const gaps=MD.detectGaps(MD.analyze(combined),combined,dimId);
     const probe=MD.nextProbe(gaps,mdSession.turns.length-1);
     if(!probe){mdRenderVerdict();return;}
@@ -2803,7 +2832,7 @@
     const jobStage=mdState.profile.jobStage;
     const dimId=(mdSession&&mdSession.dimension)||mdDimId;
     const dim=MD.dimension(dimId);
-    const v=MD.judge(combined,{jobStage,dimension:dimId});
+    const v=MD.judge(combined,{jobStage,dimension:dimId,track:mdTrack});
     const q=dim.questions.find(x=>x.id===mdSession.questionId)||dim.questions[0];
     const starIcon={ok:'✅',warn:'⚠️',miss:'❌'};
     const starHtml=v.star.map(x=>`<div class="md-star-cell ${x.status}"><div class="k">${x.key}</div><div class="s">${starIcon[x.status]} ${esc(x.label)}</div><div class="h">${esc(x.hint)}</div></div>`).join('');
@@ -2836,7 +2865,7 @@
     mdWrite(next);
     // 一轮模式：把这题结果记进本轮，并把按钮换成「下一题」
     if(mdRound){
-      mdRound.results[mdRound.index]={dimensionId:dimId,dimensionName:dim.name,level:v.level,nextStep:v.nextStep};
+      mdRound.results[mdRound.index]={dimensionId:dimId,dimensionName:dim.name,level:v.level,nextStep:v.nextStep,answer:combined};
     }
     mdRenderVerdictActions();
     const rw=document.getElementById('mdRewriteBox');
@@ -2935,7 +2964,7 @@
   function mdRenderCurve(jobStage,sessions){
     const box=document.getElementById('mdProgCurve');
     if(!box)return;
-    const series=MD.progressSeries(sessions,jobStage);
+    const series=MD.progressSeries(sessions,jobStage,mdTrack);
     const hasAny=series.some(s=>s.count>0);
     if(!hasAny){box.innerHTML='<div class="md-empty"><h4>还没有曲线</h4><p>练几轮之后，这里会显示每个维度的档位变化。</p></div>';return;}
     box.innerHTML=series.map(s=>{
@@ -2955,7 +2984,7 @@
   function mdRenderMistakes(jobStage,sessions){
     const box=document.getElementById('mdProgMistakes');
     if(!box)return;
-    const rows=MD.mistakes(sessions,jobStage);
+    const rows=MD.mistakes(sessions,jobStage,mdTrack);
     if(!rows.length){box.innerHTML='<div class="md-empty"><h4>没有错题</h4><p>当前标准下所有练过的题都达标了。</p></div>';return;}
     const dims=[...new Set(rows.map(m=>m.dimensionId))];
     const head=dims.map(d=>`<button class="btn btn-ghost" data-md-drill="${esc(d)}" type="button" style="margin:0 8px 12px 0">专项复练「${esc(MD.dimension(d).name)}」</button>`).join('');
@@ -2984,7 +3013,12 @@
       box.innerHTML='<div class="md-empty"><h4>还没有存故事</h4><p>答完一题后点「存为故事」，把能复用的素材留下来。下次遇到同类问题就不用从零想。</p></div>';
       return;
     }
-    box.innerHTML=list.slice().reverse().map(st=>{
+    const conflicts=MD.storyConflicts(list);
+    const conflictHtml=conflicts.length?`<div class="md-conflict">
+      <div class="ct">发现 ${conflicts.length} 处同一段经历的不同说法</div>
+      ${conflicts.map(c=>`<div class="cd">「${esc(c.aTitle)}」和「${esc(c.bTitle)}」高度相似，但数字对不上：${esc(c.numbers.join(' / '))}。真面试里这种矛盾会被追问，建议统一成一个版本。</div>`).join('')}
+    </div>`:'';
+    box.innerHTML=conflictHtml+list.slice().reverse().map(st=>{
       const mtx=MD.storyMatrix(st);
       const dims=(st.dimensions||[]).map(id=>MD.dimension(id).name).join(' / ')||'未分类';
       return `<div class="md-story">
@@ -3012,7 +3046,7 @@
     const answer=mdSession.turns.map(t=>t.answer).join('\n').trim();
     if(answer.length<20){mdMsg('这段回答太短，存下来也没什么用。先答长一点。');return;}
     const dimId=mdSession.dimension||mdDimId;
-    const v=MD.judge(answer,{jobStage:mdState.profile.jobStage,dimension:dimId});
+    const v=MD.judge(answer,{jobStage:mdState.profile.jobStage,dimension:dimId,track:mdTrack});
     const draft=MD.storyFromSession({
       id:String(Date.now()),question:mdSession.question,turns:mdSession.turns,
       verdict:{level:v.level,gaps:v.gaps},questionId:mdSession.questionId
@@ -3087,7 +3121,7 @@
   // 整轮小结：五维对比，指出最该补的那一个。
   function mdRenderSummary(){
     if(!mdRound)return;
-    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage);
+    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage,mdTrack);
     document.getElementById('mdSummaryHead').textContent=sum.headline;
     const motiveHtml=sum.motive?`<div class="md-sum-row motive ${sum.motive.riskCount>0?'weak':''}">
       <div><div class="nm">${esc(sum.motive.dimensionName)}</div><div class="gd">${sum.motive.riskCount>0?'可能被读成风险 '+sum.motive.riskCount+' 处':'没有明显风险'}</div></div>
@@ -3121,7 +3155,7 @@
     if(!box||!btn||!mdSession)return;
     const answer=mdSession.turns.map(t=>t.answer).join('\n');
     const dimId=mdSession.dimension||mdDimId;
-    const v=MD.judge(answer,{jobStage:mdState.profile.jobStage,dimension:dimId});
+    const v=MD.judge(answer,{jobStage:mdState.profile.jobStage,dimension:dimId,track:mdTrack});
     btn.disabled=true;btn.textContent='正在整理……';
     box.hidden=false;
     box.innerHTML='<h4>改写示例</h4><p class="rw-note">正在按你的原话重排结构……</p>';
@@ -3196,7 +3230,7 @@
     document.getElementById('mdHistoryNote').textContent=rows.length?`共 ${rows.length} 次诊断。看的是档位变化，不是分数。`:'还没有记录。先做一次诊断。';
     list.innerHTML=rows.map(s=>`<div class="md-hist">
       <div class="top"><span class="lv">${esc(MD.levelName(s.verdict.level))}</span>
-      <span>按「${esc(MD.stageName(s.verdict.jobStage))}」标准</span>
+      <span>按「${esc(MD.stageName(s.verdict.jobStage,mdTrack))}」标准</span>
       <span>${esc(displayMockDate(s.date))}</span></div>
       <div class="q">${esc(s.question||'')}</div>
       <div class="mock-note">${esc(s.nextStep||'')}</div>
@@ -3223,7 +3257,32 @@
     const roundName=(MD.INTERVIEW_ROUNDS.find(r=>r.id===mdRoundId)||{}).name||'都要练';
     const reportsName=mdReports==='none'?'没带过人':(mdReports==='small'?'带过 1–3 人':'带过团队');
     const modeName=mdMode==='round'?'练一轮':(mdMode==='single'?'只练一题':(mdMode==='drill'?'专项复练 '+MD.dimension(mdDrillDim).name:'动机题'));
-    el.textContent=`按「${roundName} · ${reportsName} · ${modeName}」开始`;
+    // 校招不显示带人状态——学生基本不可能带过人
+    el.textContent=mdTrack==='campus'
+      ?`按「${roundName} · ${modeName}」开始`
+      :`按「${roundName} · ${reportsName} · ${modeName}」开始`;
+  }
+
+  function mdRenderTracks(){
+    const box=document.getElementById('mdTracks');
+    if(!box)return;
+    box.innerHTML=MD.TRACKS.map(t=>`<button type="button" class="chip ${t.id===mdTrack?'active':''}" data-md-track="${t.id}" title="${esc(t.desc)}">${esc(t.name)}</button>`).join('');
+    box.querySelectorAll('[data-md-track]').forEach(b=>b.onclick=()=>{
+      mdTrack=b.dataset.mdTrack;
+      mdRenderTracks();mdRenderAdvSummary();
+      // 校招问经历档，社招问工作年限——两个问题问的是同一件事，但不能混用
+      const yf=document.getElementById('mdYearsField'),ef=document.getElementById('mdExpField');
+      if(yf)yf.hidden=(mdTrack==='campus');
+      if(ef)ef.hidden=(mdTrack!=='campus');
+      // 校招基本不可能带过人，这个字段对他们是噪音
+      const rf=document.getElementById('mdReportsField');
+      if(rf)rf.hidden=(mdTrack==='campus');
+      const intro=document.getElementById('mdProfileIntro');
+      if(intro)intro.textContent=(mdTrack==='campus'
+        ?'我们只问两件你一定知道的事——按「你有多少相关经历 + 这个岗位要什么人」来定标准。'
+        :'我们只问两件你一定知道的事。不用懂职级——按「你工作几年 + 这个岗位要什么人」来定标准。');
+      if(mdState.profile){mdState.profile.track=mdTrack;mdWrite(mdState);if(mdStep!=='profile')mdStartAnswer();}
+    });
   }
 
   function mdRenderRounds(){
@@ -3298,6 +3357,7 @@
   // 初始化方法论诊断
   mdLoad();
   renderGrid();
+  mdRenderTracks();
   mdRenderRounds();
   mdRenderReports();
   mdRenderModes();
@@ -3333,7 +3393,7 @@
   mdBind('mdSummaryAgain',()=>mdStartAnswer());
   mdBind('mdSummaryWeak',()=>{
     if(!mdRound)return;
-    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage);
+    const sum=MD.roundSummary(mdRound.results,mdState.profile.jobStage,mdTrack);
     if(!sum.weakest)return;
     mdStartDrill(sum.weakest.dimensionId);
   });

@@ -959,3 +959,127 @@ test('存档接受 stories 并兼容旧数据',()=>{
   const old=M.empty();delete old.stories;
   assert.ok(M.validate(old),'旧存档没有 stories 也要能读');
 });
+
+/* ===== 阶段四：校招赛道 ===== */
+test('两个赛道，校招用另一套档位名',()=>{
+  assert.deepEqual(M.TRACK_IDS,['experienced','campus']);
+  assert.equal(M.stageName('owner','experienced'),'独当一面');
+  assert.equal(M.stageName('owner','campus'),'有项目');
+  assert.equal(M.stageName('lead','campus'),'能独立');
+  assert.equal(M.stageName('executor','campus'),'起步');
+  // 不传赛道默认社招
+  assert.equal(M.stageName('owner'),'独当一面');
+});
+
+test('五个维度都有校招题库，题目与社招不重复',()=>{
+  for(const d of M.DIMENSIONS){
+    assert.equal(d.campusQuestions.length,3,d.id+' 校招应有三题');
+    const campusTexts=d.campusQuestions.map(q=>q.q);
+    const expTexts=d.questions.map(q=>q.q);
+    for(const t of campusTexts){
+      assert.ok(!expTexts.includes(t),d.id+' 校招题不应与社招题完全相同');
+      assert.ok(!/你带的人|下属/.test(t),d.id+' 校招题不该出现管理措辞');
+    }
+  }
+});
+
+test('校招按经历档选难度，不按工作年限',()=>{
+  assert.equal(M.inferCampusStage('e0'),'executor');
+  assert.equal(M.inferCampusStage('e1'),'owner');
+  assert.equal(M.inferCampusStage('e2'),'owner');
+  assert.equal(M.inferCampusStage('e3'),'lead');
+  assert.equal(M.inferCampusStage('不存在'),'owner');
+  assert.equal(M.pickQuestion('executor','D2',{track:'campus'}).id,'D2-C1');
+  assert.equal(M.pickQuestion('owner','D2',{track:'campus'}).id,'D2-C2');
+  assert.equal(M.pickQuestion('lead','D2',{track:'campus'}).id,'D2-C3');
+});
+
+test('校招动机题不提「上一份工作」',()=>{
+  assert.equal(M.MOTIVE.campusQuestions.length,3);
+  for(const q of M.MOTIVE.campusQuestions)assert.ok(!/上一份工作|离职/.test(q.q),'校招不该问离职');
+  assert.match(M.MOTIVE.campusQuestions[0].q,/行业/);
+});
+
+test('校招 JD 不把「校招 / 应届 / 培训生」当成低职级',()=>{
+  // 社招逻辑里「校招」会被判成执行者，校招逻辑里不该
+  assert.equal(M.inferJobStage('2027届校招，产品经理培训生','','experienced'),'executor');
+  assert.equal(M.inferJobStage('2027届校招，产品经理培训生','','campus'),'owner');
+  assert.equal(M.inferJobStage('管培生项目','','campus'),'lead');
+});
+
+test('校招标尺：实习经历投校招岗，不会误报「岗位低于你的经验」',()=>{
+  const s=M.resolveScale({track:'campus',exp:'e2',jd:'2027届校招，产品经理培训生'});
+  assert.equal(s.selfStage,'owner');
+  assert.equal(s.jobStage,'owner');
+  assert.equal(s.flag,'match','实习投校招应是匹配，不是降级');
+});
+
+test('校招一轮六题，全部使用校招问法',()=>{
+  const round=M.buildRound('owner',null,{round:'all',track:'campus'});
+  assert.equal(round.length,6);
+  for(const q of round){
+    if(q.kind==='motive'){assert.match(q.question,/行业/,'校招动机题应问行业');continue;}
+    assert.match(q.questionId,/-C\d$/,'校招题号应以 -C 结尾：'+q.questionId);
+  }
+});
+
+test('校招专项复练也走校招题库',()=>{
+  const qs=M.drillRound('D2','owner',{track:'campus'});
+  assert.equal(qs.length,3);
+  assert.ok(qs.every(q=>/-C\d$/.test(q.questionId)),'专项复练应用校招题');
+});
+
+test('校招小结显示校招档位名',()=>{
+  const sum=M.roundSummary([{dimensionId:'D1',level:'no'}],'owner','campus');
+  assert.equal(sum.rows[0].jobStageName,'有项目');
+});
+
+/* ===== 多轮上下文与跨故事一致性 ===== */
+const STORY_A='我推动三个部门共用一套指标，财务明确反对，我拿两周灰度数据说服他先试一个部门，对账时间从三天变成半天。';
+const STORY_B='我推动三个部门共用一套指标，财务一开始反对，我拿两周的灰度数据说服他先试一个部门，对账时间从三天变成半天，后来推广了。';
+const STORY_C='我在课程项目里负责前端开发，用 React 搭了组件库，最后拿了优秀作业。';
+
+test('文本相似度：同一段经历高、不同经历低',()=>{
+  assert.ok(M.similarity(STORY_A,STORY_B)>0.7,'同一段改写应高度相似');
+  assert.ok(M.similarity(STORY_A,STORY_C)<0.2,'不同经历应几乎不相似');
+});
+
+test('轮内重复用同一个故事会被识别',()=>{
+  const rep=M.repeatedStory([{questionId:'D2-Q2',answer:STORY_A}],STORY_B);
+  assert.ok(rep,'应识别出重复');
+  assert.equal(rep.questionId,'D2-Q2');
+  assert.ok(rep.similarity>=0.5);
+});
+
+test('正常的另一个故事不会被误报成重复',()=>{
+  assert.equal(M.repeatedStory([{questionId:'D2-Q2',answer:STORY_A}],STORY_C),null);
+});
+
+test('太短的回答不参与重复检测，避免误判',()=>{
+  assert.equal(M.repeatedStory([{questionId:'D2-Q2',answer:STORY_A}],'我做了个项目。'),null);
+});
+
+test('跨故事一致性：同段经历数字对不上会报出来',()=>{
+  const s1={id:'a',title:'推动指标统一',text:STORY_A,dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  const s2={id:'b',title:'推动指标统一（另一版）',text:'我推动三个部门共用一套指标，财务明确反对，我拿三周灰度数据说服他先试两个部门，对账时间从五天变成一天。',dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  const c=M.storyConflicts([s1,s2]);
+  assert.equal(c.length,1);
+  assert.ok(c[0].numbers.length>=2);
+  assert.ok(c[0].numbers.includes('三周'));
+});
+
+test('跨故事一致性：数字一致或不是同一段经历时不报',()=>{
+  const s1={id:'a',title:'x',text:STORY_A,dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  const same={id:'b',title:'y',text:STORY_A.replace('我推动','我还推动'),dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  assert.deepEqual(M.storyConflicts([s1,same]),[],'数字一致不该报');
+  const other={id:'c',title:'z',text:STORY_C,dimensions:['D1'],gaps:[],createdAt:'x',updatedAt:'x'};
+  assert.deepEqual(M.storyConflicts([s1,other]),[],'不同经历不该比');
+});
+
+test('中文数量也能被识别为差异，不只阿拉伯数字',()=>{
+  const a={id:'1',title:'x',text:'我拿两周数据说服了财务，最后试点两个部门。',dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  const b={id:'2',title:'y',text:'我拿三周数据说服了财务，最后试点两个部门。',dimensions:['D2'],gaps:[],createdAt:'x',updatedAt:'x'};
+  const c=M.storyConflicts([a,b]);
+  assert.equal(c.length,1);
+  assert.ok(c[0].numbers.includes('两周')||c[0].numbers.includes('三周'));
+});

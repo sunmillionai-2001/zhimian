@@ -554,6 +554,54 @@ const {spawn}=require('node:child_process');
   await page.waitForTimeout(250);
   assert.match(await page.locator('#mdRoundBar').innerText(),/第 1 \/ 3 题/,'专项复练应是三题');
 
+  // 校招赛道：换问法、换档位名、动机题问行业
+  await page.evaluate(()=>localStorage.removeItem('zm_method_state_v1'));
+  await page.reload();
+  await page.waitForSelector('#methodStart');
+  await openAdv();
+  assert.equal(await page.locator('#mdTracks .chip').count(),2,'应有社招/校招两个赛道');
+  await page.locator('[data-md-track="campus"]').click();
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(()=>document.getElementById('mdYearsField').hidden),true,'校招不问工作年限');
+  assert.equal(await page.evaluate(()=>document.getElementById('mdExpField').hidden),false,'校招问经历档');
+  await page.selectOption('#mdExp','e2');
+  await page.fill('#mdRole','产品经理');
+  await page.fill('#mdJd','2027届校招，产品经理培训生');
+  await page.click('#mdSaveProfile');
+  await page.waitForFunction(()=>!document.getElementById('mdPanelAnswer').hidden);
+  await page.waitForTimeout(300);
+  const campScale=await page.locator('#mdScaleLine').innerText();
+  assert.match(campScale,/有项目/,'校招档位名应是「有项目」，实际：'+campScale);
+  assert.ok(!/低于你的经验/.test(campScale),'校招不该说岗位低于经验');
+  const campQ=await page.locator('#mdQuestion').innerText();
+  const campQid=await page.evaluate(()=>mdRound.questions[0].questionId);
+  assert.match(campQid,/-C\d$/,'校招应使用校招题库，实际题号：'+campQid);
+  assert.ok(!/你带的人|下属|公司|领导/.test(campQ),'校招题不该出现职场措辞，实际：'+campQ);
+  // 跑一题看判定正常
+  await page.locator('#mdAnswer').fill('我在课程项目里负责推动三个同学配合，中间有人不配合，我拉了个会重新分工，最后按时交了作业。');
+  await page.locator('#mdSubmit').click();
+  await page.waitForTimeout(300);
+  if(await page.evaluate(()=>!document.getElementById('mdPanelProbe').hidden))await page.locator('#mdProbeSkip').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelVerdict').hidden);
+  assert.match(await page.locator('#mdVerdictBody').innerText(),/有项目/,'判定页应显示校招档位名');
+
+  // 跨故事一致性：两段相似但数字不同的故事要被标出来
+  await page.evaluate(()=>{
+    mdState.stories=[
+      {id:'k1',title:'推动指标统一',text:'我推动三个部门共用一套指标，财务明确反对，我拿两周灰度数据说服他先试一个部门，对账时间从三天变成半天。',dimensions:['D2'],gaps:[],createdAt:'2026-10-01',updatedAt:'2026-10-01'},
+      {id:'k2',title:'推动指标统一（另一版）',text:'我推动三个部门共用一套指标，财务明确反对，我拿三周灰度数据说服他先试两个部门，对账时间从五天变成一天。',dimensions:['D2'],gaps:[],createdAt:'2026-10-02',updatedAt:'2026-10-02'}
+    ];
+    mdWrite(mdState);
+  });
+  await page.locator('#mdProgressOpen').click();
+  await page.waitForFunction(()=>!document.getElementById('mdPanelProgress').hidden);
+  await page.evaluate(()=>{mdProgTab='stories';mdRenderProgress();});
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('.md-conflict').count(),1,'应标出一处说法矛盾');
+  const conflictText=await page.locator('.md-conflict').innerText();
+  assert.match(conflictText,/数字对不上/,'应说明是数字对不上');
+  assert.match(conflictText,/三周|五天/,'应列出冲突的数字');
+
   // 窄屏不溢出
   await page.setViewportSize({width:320,height:720});
   await page.waitForTimeout(150);
